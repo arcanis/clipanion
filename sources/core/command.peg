@@ -1,0 +1,61 @@
+main
+= S* command:command S* options:optionList S*
+{ return Object.assign({}, command, options) }
+
+command
+= S* path:commandPath S* requiredArguments:requiredArgumentList S* optionalArguments:optionalArgumentList S*
+{ return Object.assign({}, path, requiredArguments, optionalArguments) }
+
+commandPath
+= initial:commandPart rest:(S+ part:commandPart { return part })* { return { path: [ initial, ... rest ] } }
+/ "" { return { path: [] } }
+
+commandPart
+= name:identifier { return name }
+
+requiredArgumentList
+= initial:requiredArgument rest:(S+ part:requiredArgument { return part })* { return { requiredArguments: [ initial, ... rest ] } }
+/ "" { return { requiredArguments: [] } }
+
+requiredArgument
+= "<" name:identifier ">" { return name }
+
+optionalArgumentList
+= spread:optionalSpread { return { optionalArguments: [], spread } }
+/ initial:optionalArgument rest:(S+ part:optionalArgument { return part })* { return { optionalArguments: [ initial, ... rest ], spread: null } }
+/ "" { return { optionalArguments: [], spread: null } }
+
+optionalArgument
+= "[" name:identifier "]" { return name }
+
+optionalSpread
+= "[..." S* name:identifier "]" { return name }
+
+optionList
+= initial:option rest:(S+ part:option { return part })* { return { options: initial.concat(... rest) } }
+/ "" { return { options: [] } }
+
+option
+= "[-" names:shortOptionName+ "]" { return names.map(shortName => Object.assign({}, shortName, { longName: null, argumentName: null })) }
+/ "[" names:optionNames S+ argumentName:optionArgument "]" { return [ Object.assign({}, names, { argumentName }) ] }
+/ "[" names:optionNames "]" { return [ Object.assign({}, names, { argumentName: null }) ] }
+
+optionNames
+= "-" shortName:shortOptionName ",--" longName:longOptionName { return Object.assign({}, shortName, longName) }
+/ "-" shortName:shortOptionName { return Object.assign({}, shortName, { longName: null }) }
+/ "--" longName:longOptionName { return Object.assign({}, longName, { shortName: null }) }
+
+shortOptionName
+= shortName:[a-z] { return { shortName } }
+
+longOptionName
+= longName:identifier { return { longName } }
+
+optionArgument
+= [A-Z][A-Z0-9]*("-"[A-Z][A-Z0-9]*)* { return text() }
+
+identifier
+= [a-z][a-z0-9]*("-"[a-z][a-z0-9]*)* { return text() }
+
+S
+= [ ]
