@@ -106,7 +106,7 @@ import { concierge } from '@manaflair/concierge';
 concierge
     .command(`server [-p,--port PORT]`)
     .describe(`Run a server on the specified port`)
-    .validate(`port`, Joi.number().min(1).max(65535).default(8080))
+    .validate(`port`, Joi => Joi.number().min(1).max(65535).default(8080))
     .action(() => { /* ... */ });
 
 concierge

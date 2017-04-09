@@ -1,9 +1,13 @@
+import chalk          from 'chalk';
+import fs             from 'fs';
 import Joi            from 'joi';
+import path           from 'path';
 
 import { Command }    from './Command';
 import { UsageError } from './UsageError';
 import * as flags     from './flags';
 import { parse }      from './parse';
+import * as index     from './';
 
 let standardOptions = [ {
 
@@ -94,9 +98,46 @@ export class Concierge {
 
     validate(optionName, validator) {
 
-        this.validators[optionName] = validator;
+        this.validators[optionName] = validator(Joi);
 
         return this;
+
+    }
+
+    directory(startingPath, { extension = `.js`, recursive = true } = {}) {
+
+        let pathQueue = [ path.resolve(startingPath) ];
+        let commandFiles = [];
+
+        while (pathQueue.length > 0) {
+
+            let currentPath = pathQueue.shift();
+            let entries = fs.readdirSync(currentPath);
+
+            for (let entry of entries) {
+
+                let entryPath = `${currentPath}/${entry}`;
+                let stat = fs.lstatSync(entryPath);
+
+                if (stat.isDirectory() && recursive)
+                    pathQueue.push(entryPath);
+
+                if (stat.isFile() && entry.endsWith(extension)) {
+                    commandFiles.push(entryPath);
+                }
+
+            }
+
+        }
+
+        for (let commandPath of commandFiles) {
+
+            let pkg = require(commandPath);
+            let factory = pkg.default || pkg;
+
+            factory(index);
+
+        }
 
     }
 
@@ -117,13 +158,15 @@ export class Concierge {
     usage(name, { command = null, error = null } = {}) {
 
         if (error) {
-            console.log(error.message);
+            console.log(`${chalk.red.bold(`Error`)}${chalk.bold(`:`)} ${error.message}`);
             console.log();
         }
 
         if (command) {
 
-            let path = command.path.join(` `);
+            let execPath = name ? [].concat(name).join(` `) : `???`;
+
+            let commandPath = command.path.join(` `);
 
             let requiredArguments = command.requiredArguments.map(name => `<${name}>`).join(` `);
             let optionalArguments = command.optionalArguments.map(name => `[${name}]`).join(` `);
@@ -131,32 +174,41 @@ export class Concierge {
             let globalOptions = getOptionString(this.options);
             let commandOptions = getOptionString(command.options);
 
-            console.log(`Usage: ${name} ${globalOptions} ${path} ${requiredArguments} ${optionalArguments} ${commandOptions}`.replace(/ +/g, ` `).trim());
+            console.log(`${chalk.bold(`Usage:`)} ${execPath} ${globalOptions} ${commandPath} ${requiredArguments} ${optionalArguments} ${commandOptions}`.replace(/ +/g, ` `).trim());
+
+            if (!error && command.description) {
+                console.log();
+                console.log(command.description);
+            }
 
         } else {
 
+            let execPath = name ? [].concat(name).join(` `) : `???`;
+
             let globalOptions = getOptionString(this.options);
 
-            console.log(`Usage: ${name} ${globalOptions} <command>`.replace(/ +/g, ` `).trim());
+            console.log(`${chalk.bold(`Usage:`)} ${execPath} ${globalOptions} <command>`.replace(/ +/g, ` `).trim());
 
             if (this.commands) {
 
                 console.log();
-                console.log(`Where <command> is one of:`);
+                console.log(`${chalk.bold(`Where <command> is one of:`)}`);
                 console.log();
 
-                for (let command of this.commands)
-                    console.log(`  ${command.path.join(` `)}    ${command.description}`);
+                let maxPathLength = Math.max(0, ... this.commands.map(command => {
+                    return command.path.join(` `).length;
+                }));
 
-                console.log();
+                let pad = str => {
+                    return `${str}${` `.repeat(maxPathLength - str.length)}`;
+                };
+
+                for (let command of this.commands) {
+                    console.log(`  ${chalk.bold(pad(command.path.join(` `)))}  ${command.description}`);
+                }
 
             }
 
-        }
-
-        if (!error && command.description) {
-            console.log();
-            console.log(command.description);
         }
 
     }
@@ -491,7 +543,13 @@ export class Concierge {
             env = validationResults.value;
 
             if (env.help) {
-                this.usage(argv0, { command: selectedCommand });
+
+                if (commandPath.length > 0) {
+                    this.usage(argv0, { command: selectedCommand });
+                } else {
+                    this.usage(argv0);
+                }
+
             } else {
                 selectedCommand.run(env);
             }
