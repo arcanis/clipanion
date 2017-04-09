@@ -1,5 +1,3 @@
-import Joi        from 'joi';
-
 import * as flags from './flags';
 
 export class Command {
@@ -32,7 +30,7 @@ export class Command {
 
     validate(optionName, validator) {
 
-        this.validators[optionName] = validator(Joi);
+        this.validators[optionName] = validator;
 
         return this;
 

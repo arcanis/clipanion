@@ -98,7 +98,7 @@ export class Concierge {
 
     validate(optionName, validator) {
 
-        this.validators[optionName] = validator(Joi);
+        this.validators[optionName] = validator;
 
         return this;
 
