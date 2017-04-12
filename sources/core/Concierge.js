@@ -485,9 +485,9 @@ export class Concierge {
                                 commandPath = commandBuffer;
                             }
 
-                            candidateCommands = nextCandidates;
+                            candidateCommands = nextCandidates.filter(candidate => candidate !== nextSelectedCommand);
 
-                            if (candidateCommands.length === 1) {
+                            if (candidateCommands.length === 0) {
                                 lockCommand();
                             }
 
