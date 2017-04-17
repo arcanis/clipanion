@@ -1,6 +1,7 @@
 import chalk          from 'chalk';
 import fs             from 'fs';
 import Joi            from 'joi';
+import { camelCase }  from 'lodash';
 import path           from 'path';
 
 import { Command }    from './Command';
@@ -46,8 +47,15 @@ function getOptionString(options) {
         if (option.shortName)
             names.push(`-${option.shortName}`);
 
-        if (option.longName)
-            names.push(`--${option.longName}`);
+        if (option.longName) {
+            if (option.initialValue !== true) {
+                names.push(`--${option.longName}`);
+            } else if (option.longName.startsWith(`with-`)) {
+                names.push(`--without-${option.longName.replace(/^with-/, ``)}`);
+            } else {
+                names.push(`--no-${option.longName}`);
+            }
+        }
 
         if (option.argumentName) {
             return `[${names.join(`,`)} ${option.argumentName}]`;
@@ -253,7 +261,7 @@ export class Concierge {
         let RAW_STRING = 4;
 
         let LONG_OPTION_REGEXP = /^--(?:(no|without)-)?([a-z][a-z0-9]*(?:-[a-z][a-z0-9]*)*)(?:(=)(.*))?$/;
-        let SHORT_OPTION_REGEXP = /^-([a-z])(?:=(.*))?(.*)$/;
+        let SHORT_OPTION_REGEXP = /^-([a-zA-Z])(?:=(.*))?(.*)$/;
 
         function lockCommand() {
 
@@ -371,7 +379,7 @@ export class Concierge {
                                 throw new UsageError(`Option "${leadingOption.shortName}" cannot be used without argument`);
 
                             if (leadingOption.longName) {
-                                env[leadingOption.longName] = value;
+                                env[camelCase(leadingOption.longName)] = value;
                             } else {
                                 env[leadingOption.shortName] = value;
                             }
@@ -400,9 +408,9 @@ export class Concierge {
                                     throw new UsageError(`Option "${optionName}" cannot be placed in an option list, because it expects an argument`);
 
                                 if (option.longName) {
-                                    env[option.longName] = true;
+                                    env[camelCase(option.longName)] = !option.initialValue;
                                 } else {
-                                    env[option.shortName] = true;
+                                    env[option.shortName] = !option.initialValue;
                                 }
 
                             }
@@ -427,7 +435,7 @@ export class Concierge {
 
                         if (option.argumentName) {
 
-                            let disablePrefix = option.longName.startsWith(`--with-`) ? `--without` : `--no`;
+                            let disablePrefix = option.longName.startsWith(`with-`) ? `--without` : `--no`;
 
                             if (!current.enabled && current.value !== undefined)
                                 throw new UsageError(`Option "${option.longName}" cannot have an argument when used with ${disablePrefix}`);
@@ -463,7 +471,7 @@ export class Concierge {
                         }
 
                         if (option.longName) {
-                            env[option.longName] = value;
+                            env[camelCase(option.longName)] = value;
                         } else {
                             env[option.shortName] = value;
                         }
@@ -510,7 +518,7 @@ export class Concierge {
                 if (rest.length === 0)
                     throw new UsageError(`Missing required argument "${name}"`);
 
-                env[name] = rest.shift();
+                env[camelCase(name)] = rest.shift();
 
             }
 
@@ -519,14 +527,28 @@ export class Concierge {
                 if (rest.length === 0)
                     break;
 
-                env[name] = rest.shift();
+                env[camelCase(name)] = rest.shift();
 
             }
 
             if (selectedCommand.spread)
-                env[selectedCommand.spread] = rest;
+                env[camelCase(selectedCommand.spread)] = rest;
+
             else if (rest.length > 0)
                 throw new UsageError(`Too many arguments`);
+
+            for (let option of [ ... selectedCommand.options, ... this.options ]) {
+
+                let envName = option.longName
+                    ? camelCase(option.longName)
+                    : option.shortName;
+
+                if (Object.prototype.hasOwnProperty.call(env, envName))
+                    continue;
+
+                env[envName] = option.initialValue;
+
+            }
 
             let validationResults = Joi.validate(env, Joi.object().keys(Object.assign({}, this.validators, selectedCommand.validators)).unknown());
 
@@ -542,16 +564,13 @@ export class Concierge {
 
             env = validationResults.value;
 
-            if (env.help) {
+            if (!env.help)
+                return selectedCommand.run(env);
 
-                if (commandPath.length > 0) {
-                    this.usage(argv0, { command: selectedCommand });
-                } else {
-                    this.usage(argv0);
-                }
-
+            if (commandPath.length > 0) {
+                this.usage(argv0, { command: selectedCommand });
             } else {
-                selectedCommand.run(env);
+                this.usage(argv0);
             }
 
         } catch (error) {
@@ -563,6 +582,8 @@ export class Concierge {
             }
 
         }
+
+        return undefined;
 
     }
 

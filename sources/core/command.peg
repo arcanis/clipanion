@@ -37,7 +37,7 @@ optionList
 
 option
 = "[-" names:shortOptionName+ "]" { return names.map(shortName => Object.assign({}, shortName, { longName: null, argumentName: null })) }
-/ "[" names:optionNames S+ argumentName:optionArgument "]" { return [ Object.assign({}, names, { argumentName }) ] }
+/ "[" names:optionNames S+ argumentName:optionArgument "]" { return [ Object.assign({}, names, { argumentName, initialValue: null }) ] }
 / "[" names:optionNames "]" { return [ Object.assign({}, names, { argumentName: null }) ] }
 
 optionNames
@@ -46,10 +46,12 @@ optionNames
 / "--" longName:longOptionName { return Object.assign({}, longName, { shortName: null }) }
 
 shortOptionName
-= shortName:[a-z] { return { shortName } }
+= shortName:[a-zA-Z] { return { shortName, initialValue: false } }
 
 longOptionName
-= longName:identifier { return { longName } }
+= "no-" longName:identifier { return { longName, initialValue: true } }
+/ "without-" longName:identifier { return { longName: `with-${longName}`, initialValue: true } }
+/ longName:identifier { return { longName, initialValue: false } }
 
 optionArgument
 = [A-Z][A-Z0-9]*("-"[A-Z][A-Z0-9]*)* { return text() }
