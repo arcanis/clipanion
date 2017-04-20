@@ -8,7 +8,6 @@ import { Command }    from './Command';
 import { UsageError } from './UsageError';
 import * as flags     from './flags';
 import { parse }      from './parse';
-import * as index     from './';
 
 let standardOptions = [ {
 
@@ -143,7 +142,7 @@ export class Concierge {
             let pkg = require(commandPath);
             let factory = pkg.default || pkg;
 
-            factory(index);
+            factory(this);
 
         }
 
