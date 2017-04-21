@@ -155,17 +155,23 @@ export class Concierge {
         if (definition.path.length === 0)
             throw new Error(`A command pattern cannot have an empty command path; use options() instead`);
 
-        let command = new Command(definition);
+        let command = new Command(this, definition);
         this.commands.push(command);
 
         return command;
 
     }
 
+    error(error) {
+
+        console.log(`${chalk.red.bold(`Error`)}${chalk.bold(`:`)} ${error.message}`);
+
+    }
+
     usage(name, { command = null, error = null } = {}) {
 
         if (error) {
-            console.log(`${chalk.red.bold(`Error`)}${chalk.bold(`:`)} ${error.message}`);
+            this.error(error);
             console.log();
         }
 
@@ -196,13 +202,15 @@ export class Concierge {
 
             console.log(`${chalk.bold(`Usage:`)} ${execPath} ${globalOptions} <command>`.replace(/ +/g, ` `).trim());
 
-            if (this.commands) {
+            let commands = this.commands.filter(command => command.flags & flags.HIDDEN_COMMAND === 0);
+
+            if (commands.length > 0) {
 
                 console.log();
                 console.log(`${chalk.bold(`Where <command> is one of:`)}`);
                 console.log();
 
-                let maxPathLength = Math.max(0, ... this.commands.map(command => {
+                let maxPathLength = Math.max(0, ... commands.map(command => {
                     return command.path.join(` `).length;
                 }));
 
@@ -210,7 +218,7 @@ export class Concierge {
                     return `${str}${` `.repeat(maxPathLength - str.length)}`;
                 };
 
-                for (let command of this.commands) {
+                for (let command of commands) {
                     console.log(`  ${chalk.bold(pad(command.path.join(` `)))}  ${command.description}`);
                 }
 
@@ -239,14 +247,24 @@ export class Concierge {
 
     }
 
-    run(argv0, argv) {
+    run(argv0, argv, initialEnv = {}) {
 
         this.check();
 
-        let env = {};
+        let env = { argv0 };
         let rest = [];
 
-        let selectedCommand = this.commands.find(command => command.flags & flags.DEFAULT_COMMAND);
+        for (let option of this.options) {
+
+            if (option.longName) {
+                env[option.longName] = initialEnv[option.longName];
+            } else {
+                env[option.shortName] = initialEnv[option.shortName];
+            }
+
+        }
+
+        let selectedCommand = this.commands.find(command => command.flags & flags.DEFAULT_COMMAND !== 0);
         let candidateCommands = this.commands;
 
         let commandPath = [];
@@ -494,8 +512,18 @@ export class Concierge {
 
                             candidateCommands = nextCandidates.filter(candidate => candidate !== nextSelectedCommand);
 
-                            if (candidateCommands.length === 0) {
+                            if ((selectedCommand && (selectedCommand.flags & flags.PROXY_COMMAND) !== 0) && next && next.type !== RAW_STRING) {
+
                                 lockCommand();
+
+                                for (t = t + 1; t < T; ++t) {
+                                    rest.push(parsedArgv[t].literal);
+                                }
+
+                            } else if (candidateCommands.length === 0) {
+
+                                lockCommand();
+
                             }
 
                         } else {
@@ -566,16 +594,18 @@ export class Concierge {
             if (!env.help)
                 return selectedCommand.run(env);
 
-            if (commandPath.length > 0) {
+            if (commandPath.length > 0)
                 this.usage(argv0, { command: selectedCommand });
-            } else {
+            else
                 this.usage(argv0);
-            }
+
+            return 0;
 
         } catch (error) {
 
             if (error instanceof UsageError) {
                 this.usage(argv0, { command: selectedCommand, error });
+                return 1;
             } else {
                 throw error;
             }
@@ -583,6 +613,17 @@ export class Concierge {
         }
 
         return undefined;
+
+    }
+
+    runExit(argv0, argv) {
+
+        Promise.resolve(this.run(argv0, argv)).then(exitCode => {
+            process.exit(exitCode);
+        }, error => {
+            this.error(error);
+            process.exit(1);
+        });
 
     }
 

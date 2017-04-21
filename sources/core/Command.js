@@ -2,7 +2,9 @@ import * as flags from './flags';
 
 export class Command {
 
-    constructor(definition) {
+    constructor(concierge, definition) {
+
+        this.concierge = concierge;
 
         this.path = definition.path;
         this.description = null;
@@ -17,6 +19,26 @@ export class Command {
 
         this.validators = {};
         this.run = () => {};
+
+    }
+
+    alias(pattern) {
+
+        let command = this.concierge
+
+            .command(`${pattern} [... rest]`)
+
+            .flag(flags.HIDDEN_COMMAND)
+            .flag(flags.PROXY_COMMAND)
+
+            .action(args => this.concierge.run(args.argv0, [
+                ... this.path,
+                ... args.rest,
+            ]))
+
+        ;
+
+        return this;
 
     }
 

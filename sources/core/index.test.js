@@ -7,12 +7,18 @@ concierge
 
 concierge
     .command(`command-a [-F,--no-foo] [-X,--without-foobar] [-b,--bar] [-a,--arg ARG]`)
+    .alias(`a`)
     .action(env => [ `command-a`, env ]);
 
 concierge
     .command(`command-b [... args]`)
+    .alias(`b`)
     .flag(flags.DEFAULT_COMMAND)
     .action(env => [ `command-b`, env ]);
+
+concierge
+    .command(`b foobar`)
+    .action(env => [ `foobar`, env ]);;
 
 describe(`concierge`, () => {
 
@@ -122,6 +128,31 @@ describe(`concierge`, () => {
         let [ command, env ] = concierge.run(null, [ `command-a`, `-a.js` ]);
 
         expect(env.arg).to.equal(`.js`);
+
+    });
+
+    it(`should correctly resolve aliased commands`, () => {
+
+        let [ command, env ] = concierge.run(null, [ `a` ]);
+
+        expect(command).to.equal(`command-a`);
+
+    });
+
+    it(`should correctly forward any argument to the aliased command`, () => {
+
+        let [ command, env ] = concierge.run(null, [ `a`, `-a`, `.js` ]);
+
+        expect(command).to.equal(`command-a`);
+        expect(env.arg).to.equal(`.js`);
+
+    });
+
+    it(`should use nested commands before any alias if possible`, () => {
+
+        let [ command, env ] = concierge.run(null, [ `b`, `foobar` ]);
+
+        expect(command).to.equal(`foobar`);
 
     });
 

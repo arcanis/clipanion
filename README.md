@@ -41,7 +41,7 @@ concierge
     .action(() => { /* ... */ });
 
 concierge
-    .run(process.argv0, process.argv.slice(2));
+    .runExit(process.argv0, process.argv.slice(2));
 ```
 
 ## Patterns
@@ -110,7 +110,7 @@ concierge
     .action(() => { /* ... */ });
 
 concierge
-    .run(process.argv0, process.argv.slice(2));
+    .runExit(process.argv0, process.argv.slice(2));
 ```
 
 Note that Joi will automatically coherce any value to its expected type if possible, so it is advised that you use it when your options expect arguments (so that you don't end up working with strings or booleans instead of numbers, for example).
