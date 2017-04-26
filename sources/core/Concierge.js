@@ -82,6 +82,25 @@ export class Concierge {
         this.validators = {};
         this.options = standardOptions;
 
+        this.beforeEachList = [];
+        this.afterEachList = [];
+
+    }
+
+    beforeEach(callback) {
+
+        this.beforeEachList.push(callback);
+
+        return this;
+
+    }
+
+    afterEach(callback) {
+
+        this.afterEachList.push(callback);
+
+        return this;
+
     }
 
     topLevel(pattern) {
@@ -202,7 +221,7 @@ export class Concierge {
 
             console.log(`${chalk.bold(`Usage:`)} ${execPath} ${globalOptions} <command>`.replace(/ +/g, ` `).trim());
 
-            let commands = this.commands.filter(command => command.flags & flags.HIDDEN_COMMAND === 0);
+            let commands = this.commands.filter(command => (command.flags & flags.HIDDEN_COMMAND) === 0);
 
             if (commands.length > 0) {
 
@@ -591,15 +610,28 @@ export class Concierge {
 
             env = validationResults.value;
 
-            if (!env.help)
-                return selectedCommand.run(env);
+            if (env.help) {
 
-            if (commandPath.length > 0)
-                this.usage(argv0, { command: selectedCommand });
-            else
-                this.usage(argv0);
+                if (commandPath.length > 0)
+                    this.usage(argv0, { command: selectedCommand });
+                else
+                    this.usage(argv0);
 
-            return 0;
+                return 0;
+
+            } else {
+
+                for (let callback of this.beforeEachList)
+                    callback(env);
+
+                let result = selectedCommand.run(env);
+
+                for (let callback of this.afterEachList)
+                    callback(env);
+
+                return result;
+
+            }
 
         } catch (error) {
 
