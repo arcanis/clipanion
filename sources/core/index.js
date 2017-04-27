@@ -1,3 +1,4 @@
+export { RuntimeError } from './RuntimeError';
 export { UsageError } from './UsageError';
 
 import { Concierge } from './Concierge';

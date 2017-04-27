@@ -1,13 +1,14 @@
-import chalk          from 'chalk';
-import fs             from 'fs';
-import Joi            from 'joi';
-import { camelCase }  from 'lodash';
-import path           from 'path';
+import chalk            from 'chalk';
+import fs               from 'fs';
+import Joi              from 'joi';
+import { camelCase }    from 'lodash';
+import path             from 'path';
 
-import { Command }    from './Command';
-import { UsageError } from './UsageError';
-import * as flags     from './flags';
-import { parse }      from './parse';
+import { Command }      from './Command';
+import { RuntimeError } from './RuntimeError';
+import { UsageError }   from './UsageError';
+import * as flags       from './flags';
+import { parse }        from './parse';
 
 let standardOptions = [ {
 
@@ -17,6 +18,51 @@ let standardOptions = [ {
     argumentName: null,
 
 } ];
+
+function runMaybePromises(callbacks, returnIndex) {
+
+    let results = new Array(callbacks.length);
+    let promise = null;
+
+    for (let t = 0; t < callbacks.length; ++t) {
+
+        let callback = callbacks[t];
+
+        if (promise) {
+
+            promise = promise.then(() => {
+                return Promise.resolve(callback()).then(result => {
+                    results[t] = result;
+                });
+            });
+
+        } else {
+
+            let result = results[t] = callback();
+
+            if (result && result.then) {
+                promise = result.then(trueResult => {
+                    results[t] = trueResult;
+                });
+            }
+
+        }
+
+    }
+
+    if (promise) {
+
+        return promise.then(() => {
+            return results[returnIndex];
+        });
+
+    } else {
+
+        return results[returnIndex];
+
+    }
+
+}
 
 function getOptionString(options) {
 
@@ -183,11 +229,15 @@ export class Concierge {
 
     error(error) {
 
-        console.log(`${chalk.red.bold(`Error`)}${chalk.bold(`:`)} ${error.message}`);
+        if (error instanceof RuntimeError) {
+            console.log(`${chalk.red.bold(`Error`)}${chalk.bold(`:`)} ${error.message}`);
+        } else {
+            console.log(`${chalk.red.bold(`Error`)}${chalk.bold(`:`)} ${error.stack}`);
+        }
 
     }
 
-    usage(name, { command = null, error = null } = {}) {
+    usage(argv0, { command = null, error = null } = {}) {
 
         if (error) {
             this.error(error);
@@ -196,7 +246,7 @@ export class Concierge {
 
         if (command) {
 
-            let execPath = name ? [].concat(name).join(` `) : `???`;
+            let execPath = argv0 ? [].concat(argv0).join(` `) : `???`;
 
             let commandPath = command.path.join(` `);
 
@@ -215,7 +265,7 @@ export class Concierge {
 
         } else {
 
-            let execPath = name ? [].concat(name).join(` `) : `???`;
+            let execPath = argv0 ? [].concat(argv0).join(` `) : `???`;
 
             let globalOptions = getOptionString(this.options);
 
@@ -276,9 +326,17 @@ export class Concierge {
         for (let option of this.options) {
 
             if (option.longName) {
-                env[option.longName] = initialEnv[option.longName];
+
+                if (Object.prototype.hasOwnProperty.call(initialEnv, option.longName)) {
+                    env[option.longName] = initialEnv[option.longName];
+                }
+
             } else {
-                env[option.shortName] = initialEnv[option.shortName];
+
+                if (Object.prototype.hasOwnProperty.call(initialEnv, option.shortName)) {
+                    env[option.shortName] = initialEnv[option.shortName];
+                }
+
             }
 
         }
@@ -621,15 +679,19 @@ export class Concierge {
 
             } else {
 
-                for (let callback of this.beforeEachList)
-                    callback(env);
+                return runMaybePromises([
 
-                let result = selectedCommand.run(env);
+                    ... this.beforeEachList.map(beforeEach => () => {
+                        beforeEach(env);
+                    }),
 
-                for (let callback of this.afterEachList)
-                    callback(env);
+                    () => selectedCommand.run(env),
 
-                return result;
+                    ... this.afterEachList.map(afterEach => () => {
+                        afterEach(env);
+                    }),
+
+                ], this.beforeEachList.length);
 
             }
 
