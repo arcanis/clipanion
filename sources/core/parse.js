@@ -168,7 +168,7 @@ function peg$parse(input, options) {
       peg$c24 = "[-",
       peg$c25 = peg$literalExpectation("[-", false),
       peg$c26 = function(names) { return names.map(shortName => Object.assign({}, shortName, { longName: null, argumentName: null })) },
-      peg$c27 = function(names, argumentName) { return [ Object.assign({}, names, { argumentName, initialValue: null }) ] },
+      peg$c27 = function(names, argumentName) { return [ Object.assign({}, names, { argumentName, initialValue: undefined }) ] },
       peg$c28 = function(names) { return [ Object.assign({}, names, { argumentName: null }) ] },
       peg$c29 = "-",
       peg$c30 = peg$literalExpectation("-", false),

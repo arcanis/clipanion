@@ -5,7 +5,6 @@ import { camelCase }    from 'lodash';
 import path             from 'path';
 
 import { Command }      from './Command';
-import { RuntimeError } from './RuntimeError';
 import { UsageError }   from './UsageError';
 import * as flags       from './flags';
 import { parse }        from './parse';
@@ -229,7 +228,7 @@ export class Concierge {
 
     error(error) {
 
-        if (error instanceof RuntimeError) {
+        if (error instanceof UsageError) {
             console.log(`${chalk.red.bold(`Error`)}${chalk.bold(`:`)} ${error.message}`);
         } else {
             console.log(`${chalk.red.bold(`Error`)}${chalk.bold(`:`)} ${error.stack}`);
@@ -679,7 +678,7 @@ export class Concierge {
 
             } else {
 
-                return runMaybePromises([
+                let result = runMaybePromises([
 
                     ... this.beforeEachList.map(beforeEach => () => {
                         beforeEach(env);
@@ -692,6 +691,23 @@ export class Concierge {
                     }),
 
                 ], this.beforeEachList.length);
+
+                if (result && result.then) {
+
+                    result = result.then(null, error => {
+
+                        if (error instanceof UsageError) {
+                            this.usage(argv0, { command: selectedCommand, error });
+                            return 1;
+                        } else {
+                            throw error;
+                        }
+
+                    });
+
+                }
+
+                return result;
 
             }
 

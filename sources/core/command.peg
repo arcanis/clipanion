@@ -37,7 +37,7 @@ optionList
 
 option
 = "[-" names:shortOptionName+ "]" { return names.map(shortName => Object.assign({}, shortName, { longName: null, argumentName: null })) }
-/ "[" names:optionNames S+ argumentName:optionArgument "]" { return [ Object.assign({}, names, { argumentName, initialValue: null }) ] }
+/ "[" names:optionNames S+ argumentName:optionArgument "]" { return [ Object.assign({}, names, { argumentName, initialValue: undefined }) ] }
 / "[" names:optionNames "]" { return [ Object.assign({}, names, { argumentName: null }) ] }
 
 optionNames
