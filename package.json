@@ -1,6 +1,6 @@
 {
   "name": "@manaflair/concierge",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "license": "MIT",
   "module": "sources/index",
   "main": "build/index",
