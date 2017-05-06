@@ -2,6 +2,7 @@
   "name": "@manaflair/concierge",
   "version": "0.3.3",
   "license": "MIT",
+  "module": "sources/index",
   "main": "build/index",
   "browser": "sources/index",
   "scripts": {
