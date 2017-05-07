@@ -175,38 +175,56 @@ export class Concierge {
 
     }
 
-    directory(startingPath, { extension = `.js`, recursive = true } = {}) {
+    directory(startingPath, recursive = true, pattern = /\.js$/) {
 
-        let pathQueue = [ path.resolve(startingPath) ];
-        let commandFiles = [];
+        if (typeof IS_WEBPACK !== `undefined`) {
 
-        while (pathQueue.length > 0) {
+            if (typeof startingPath === `string`)
+                throw new Error(`In webpack mode, you must use require.context to provide the directory content yourself; a path isn't enough`);
 
-            let currentPath = pathQueue.shift();
-            let entries = fs.readdirSync(currentPath);
+            for (let entry of startingPath.keys()) {
 
-            for (let entry of entries) {
+                let pkg = startingPath(entry);
+                let factory = pkg.default || pkg;
 
-                let entryPath = `${currentPath}/${entry}`;
-                let stat = fs.lstatSync(entryPath);
+                factory(this);
 
-                if (stat.isDirectory() && recursive)
-                    pathQueue.push(entryPath);
+            }
 
-                if (stat.isFile() && entry.endsWith(extension)) {
-                    commandFiles.push(entryPath);
+        } else {
+
+            let pathQueue = [ path.resolve(startingPath) ];
+            let commandFiles = [];
+
+            while (pathQueue.length > 0) {
+
+                let currentPath = pathQueue.shift();
+                let entries = fs.readdirSync(currentPath);
+
+                for (let entry of entries) {
+
+                    let entryPath = `${currentPath}/${entry}`;
+                    let stat = fs.lstatSync(entryPath);
+
+                    if (stat.isDirectory() && recursive)
+                        pathQueue.push(entryPath);
+
+                    if (stat.isFile() && entry.match(pattern)) {
+                        commandFiles.push(entryPath);
+                    }
+
                 }
 
             }
 
-        }
+            for (let commandPath of commandFiles) {
 
-        for (let commandPath of commandFiles) {
+                let pkg = require(commandPath);
+                let factory = pkg.default || pkg;
 
-            let pkg = require(commandPath);
-            let factory = pkg.default || pkg;
+                factory(this);
 
-            factory(this);
+            }
 
         }
 
