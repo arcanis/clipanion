@@ -518,10 +518,22 @@ export class Concierge {
                                 if (option.argumentName)
                                     throw new UsageError(`Option "${optionName}" cannot be placed in an option list, because it expects an argument`);
 
-                                if (option.longName) {
-                                    env[camelCase(option.longName)] = !option.initialValue;
+                                if (option.maxValue !== undefined) {
+
+                                    if (option.longName) {
+                                        env[camelCase(option.longName)] = Math.min((env[camelCase(option.longName)] || option.initialValue) + 1, option.maxValue);
+                                    } else {
+                                        env[option.shortName] = Math.min((env[option.shortName] || option.initialValue) + 1, option.maxValue);
+                                    }
+
                                 } else {
-                                    env[option.shortName] = !option.initialValue;
+
+                                    if (option.longName) {
+                                        env[camelCase(option.longName)] = !option.initialValue;
+                                    } else {
+                                        env[option.shortName] = !option.initialValue;
+                                    }
+
                                 }
 
                             }
