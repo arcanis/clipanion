@@ -44,6 +44,15 @@ concierge
     .runExit(process.argv0, process.argv.slice(2));
 ```
 
+## Standard options
+
+Two options are standard and work without any interaction from your part:
+
+  - `-h,--help` will automatically print the help, also available as `.usage()`
+  - `-c,--config` will load a JSON file and use it as input once the command line has been fully read
+
+It's not possible to disable them at the time.
+
 ## Patterns
 
 Concierge automatically deduces command definitions from what we call patterns. A pattern syntax is as follow:
@@ -53,6 +62,21 @@ command-name <required-arg-1> <required-arg-2> [optional-arg-1] [... spread-name
 ```
 
 Note that `command-name` is allowed to have multiple words, in which case the selected command will always be the command with the largest path that match your command line arguments.
+
+The following patterns are all valid:
+
+```
+global add <pkg-name>         ; "global add" will be the command name, "pkg-name" will be a required argument
+global add [pkg-name]         ; "global add" will be the command name, "pkg-name" will be an optional argument
+global add [... args]         ; will accept any number of arguments, potentially zero
+global add <first> [... rest] ; will require at least one argument, potentially more
+install [-v]                  ; the "v" option will be true, false, or undefined
+install [-vvv]                ; the "v" option will become a counter, from 0 to 3 included
+install [-v,--verbose]        ; the "verbose" option will be true (--verbose), false (--no-verbose), or undefined
+download [-u,--url URL]       ; the "url" option will expect a parameter, or will be "null" if --no-url is used
+download [--with-ssl]         ; the "ssl" option will be true (--with-ssl), false (--without-ssl), or undefined
+command [-vqcarRbudlLkKHpE]   ; declare all those options at once
+```
 
 ## Environments
 
@@ -66,7 +90,7 @@ The environment values have the following properties, excluding any extra valida
 
   - Required arguments are always of type string
   - Optional arguments are always either strings or undefined
-  - Short options without arguments are always either true or undefined
+  - Short options without arguments are always either true, undefined, or a number
   - Short options with arguments are always either a string or undefined
   - Long options without arguments are always either true, false, or undefined
   - Long options with arguments are always either a string, null, or undefined
@@ -114,6 +138,70 @@ concierge
 ```
 
 Note that Joi will automatically coherce any value to its expected type if possible, so it is advised that you use it when your options expect arguments (so that you don't end up working with strings or booleans instead of numbers, for example).
+
+## Command folder
+
+You can split you cli into multiple files by using the `directory()` function:
+
+```js
+concierge
+    .directory(`${__dirname}/commands`, true, /\.js$/);
+```
+
+It also works fine with Webpack:
+
+```js
+concierge
+    .directory(require.context(`./commands`, true, /\.js$/));
+```
+
+However, in such a case it is advised to do the following, so that you can use your code without having to compile it through Webpack:
+
+```js
+typeof IS_WEBPACK === `undefined` && concierge
+    .directory(`${__dirname}/commands`, true, /\.js$/);
+
+typeof IS_WEBPACK !== `undefined` && concierge
+    .directory(require.context(`./commands`, true, /\.js$/));
+
+// Don't forget to add "new DefinePlugin({ IS_WEBPACK: true })" in your webpack.config.js
+```
+
+## Daemon plugin
+
+Concierge ships with an optional plugin that allows you to run your programs in a daemon mode. In order to use it, just use the `makeDaemon` function and you're set to go:
+
+```js
+import { makeDaemon } from '@manaflair/concierge/extra/daemon';
+import { concierge }  from '@manaflair/concierge';
+
+const daemon = makeDaemon(concierge, {
+    port: 4242
+});
+
+daemon.command(`init`)
+    .action(() => { /*...*/ });
+
+daemon.command(`hello [--name NAME]`)
+    .action(() => { /*...*/ });
+
+daemon
+    .run(process.argv0, process.argv.slice(2));
+```
+
+Using the `makeDaemon` wrapper will automatically add a few commands to your application:
+
+  - `start` will start a daemon, then will call its `init` command.
+  - `status` will try to reach a daemon, and inform you whether it succeeds or fails.
+  - `stop` will make the daemon exit after calling its `cleanup` command.
+  - `restart` will restart the running daemon, with the exact same arguments.
+
+You are expected to implement a few commands by yourself:
+
+  - `init` will be called by `start` and `restart`, and should prepare everything needed for your application to be in valid state.
+  - `cleanup` will be called by `stop` and `restart`, and should clean everything needed. When it returns, the `start` command will return, usually ending the process.
+
+Last important note: the current daemon implementation **is not secure by default**. Even if it will only listen to the localhost requests, it is possible for any local user to send requests to the daemon, that will then be executed with the privileges of the user that started the daemon. I have no idea how to fix this, so feel free to open an issue with your ideas if you happen to have one. In the meantime, just be careful and avoid running a daemon as root.
 
 ## License (MIT)
 

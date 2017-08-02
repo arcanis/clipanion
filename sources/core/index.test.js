@@ -6,7 +6,7 @@ concierge
     .topLevel(``);
 
 concierge
-    .command(`command-a [-F,--no-foo] [-X,--without-foobar] [-b,--bar] [-a,--arg ARG]`)
+    .command(`command-a [... rest] [-F,--no-foo] [-X,--without-foobar] [-b,--bar] [-a,--arg ARG]`)
     .alias(`a`)
     .action(env => [ `command-a`, env ]);
 
@@ -99,11 +99,28 @@ describe(`concierge`, () => {
 
     });
 
-    it(`should assign "null" as initial value for options expecting arguments`, () => {
+    it(`should assign "undefined" as initial value for options expecting an argument`, () => {
 
         let [ command, env ] = concierge.run(null, [ `command-a` ]);
 
+        expect(env.arg).to.equal(undefined);
+
+    });
+
+    it(`should assign "null" as value for options expecting an argument, when using the --no- option`, () => {
+
+        let [ command, env ] = concierge.run(null, [ `command-a`, `--no-arg` ]);
+
         expect(env.arg).to.equal(null);
+
+    });
+
+    it(`should not parse the following argument when using the --no- option`, () => {
+
+        let [ command, env ] = concierge.run(null, [ `command-a`, `--no-arg`, `hello` ]);
+
+        expect(env.arg).to.equal(null);
+        expect(env.rest).to.deep.equal([ `hello` ]);
 
     });
 

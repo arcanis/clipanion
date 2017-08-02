@@ -1,6 +1,5 @@
 import chalk            from 'chalk';
 import fs               from 'fs';
-import Joi              from 'joi';
 import { camelCase }    from 'lodash';
 import path             from 'path';
 
@@ -15,6 +14,13 @@ let standardOptions = [ {
     longName: `help`,
 
     argumentName: null,
+
+}, {
+
+    shortName: `c`,
+    longName: `config`,
+
+    argumentName: `NAME`
 
 } ];
 
@@ -161,7 +167,7 @@ export class Concierge {
         if (definition.optionalArguments.length > 0)
             throw new Error(`The top-level pattern cannot have optional arguments; use command() instead`);
 
-        this.options = standardOptions.concat(definition.options);
+        this.options = this.options.concat(definition.options);
 
         return this;
 
@@ -244,21 +250,24 @@ export class Concierge {
 
     }
 
-    error(error) {
+    error(error, { stream }) {
 
         if (error instanceof UsageError) {
-            console.log(`${chalk.red.bold(`Error`)}${chalk.bold(`:`)} ${error.message}`);
+            stream.write(`${chalk.red.bold(`Error`)}${chalk.bold(`:`)} ${error.message}\n`);
         } else {
-            console.log(`${chalk.red.bold(`Error`)}${chalk.bold(`:`)} ${error.stack}`);
+            stream.write(`${chalk.red.bold(`Error`)}${chalk.bold(`:`)} ${error.stack}\n`);
         }
 
     }
 
-    usage(argv0, { command = null, error = null } = {}) {
+    usage(argv0, { command = null, error = null, stream = process.stderr } = {}) {
 
         if (error) {
-            this.error(error);
-            console.log();
+
+            this.error(error, { stream });
+
+            stream.write(`\n`);
+
         }
 
         if (command) {
@@ -273,11 +282,11 @@ export class Concierge {
             let globalOptions = getOptionString(this.options);
             let commandOptions = getOptionString(command.options);
 
-            console.log(`${chalk.bold(`Usage:`)} ${execPath} ${globalOptions} ${commandPath} ${requiredArguments} ${optionalArguments} ${commandOptions}`.replace(/ +/g, ` `).trim());
+            stream.write(`${chalk.bold(`Usage:`)} ${execPath} ${globalOptions} ${commandPath} ${requiredArguments} ${optionalArguments} ${commandOptions}\n`.replace(/ +/g, ` `).replace(/ +$/, ``));
 
             if (!error && command.description) {
-                console.log();
-                console.log(command.description);
+                stream.write(`\n`);
+                stream.write(`${command.description}\n`);
             }
 
         } else {
@@ -286,15 +295,15 @@ export class Concierge {
 
             let globalOptions = getOptionString(this.options);
 
-            console.log(`${chalk.bold(`Usage:`)} ${execPath} ${globalOptions} <command>`.replace(/ +/g, ` `).trim());
+            stream.write(`${chalk.bold(`Usage:`)} ${execPath} ${globalOptions} <command>\n`.replace(/ +/g, ` `).replace(/ +$/, ``));
 
             let commands = this.commands.filter(command => (command.flags & flags.HIDDEN_COMMAND) === 0);
 
             if (commands.length > 0) {
 
-                console.log();
-                console.log(`${chalk.bold(`Where <command> is one of:`)}`);
-                console.log();
+                stream.write(`\n`);
+                stream.write(`${chalk.bold(`Where <command> is one of:`)}\n`);
+                stream.write(`\n`);
 
                 let maxPathLength = Math.max(0, ... commands.map(command => {
                     return command.path.join(` `).length;
@@ -305,7 +314,7 @@ export class Concierge {
                 };
 
                 for (let command of commands) {
-                    console.log(`  ${chalk.bold(pad(command.path.join(` `)))}  ${command.description}`);
+                    stream.write(`  ${chalk.bold(pad(command.path.join(` `)))}  ${command.description || `undocumented`}\n`);
                 }
 
             }
@@ -333,11 +342,14 @@ export class Concierge {
 
     }
 
-    run(argv0, argv, initialEnv = {}) {
+    run(argv0, argv, { stdin = process.stdin, stdout = process.stdout, stderr = process.stderr, ... initialEnv } = {}) {
 
         this.check();
 
-        let env = { argv0 };
+        // This object is the one we'll fill with the parsed options
+        let env = { argv0, stdin, stdout, stderr };
+
+        // This array will contain the literals we will not use as
         let rest = [];
 
         for (let option of this.options) {
@@ -358,11 +370,19 @@ export class Concierge {
 
         }
 
+        // This pointer contains the command we'll be using if nothing prevents it
         let selectedCommand = this.commands.find(command => command.flags & flags.DEFAULT_COMMAND !== 0);
+
+        // This array is the list of the commands we might still have a chance to end up using
         let candidateCommands = this.commands;
 
+        // This array is the list of the words that make up the selected command name
         let commandPath = [];
+
+        // This array is the list of the words that might end up in a command name
         let commandBuffer = [];
+
+        // True if a command has been locked (cannot be changed anymore), false otherwise
         let isCommandLocked = false;
 
         let LONG_OPTION = 0;
@@ -618,6 +638,7 @@ export class Concierge {
 
                             candidateCommands = nextCandidates.filter(candidate => candidate !== nextSelectedCommand);
 
+                            // If we've jumped on a proxy command, then we lock it now and here, and we forward everything else as "rest" parameter
                             if ((selectedCommand && (selectedCommand.flags & flags.PROXY_COMMAND) !== 0) && next && next.type !== RAW_STRING) {
 
                                 lockCommand();
@@ -626,6 +647,7 @@ export class Concierge {
                                     rest.push(parsedArgv[t].literal);
                                 }
 
+                            // If there's absolutely no other command we can switch to, then we can lock the current one right now, so that we can start parsing its options
                             } else if (candidateCommands.length === 0) {
 
                                 lockCommand();
@@ -634,6 +656,7 @@ export class Concierge {
 
                         } else {
 
+                            // If the command is locked, then we know the current argument will not influence the
                             rest.push(current.literal);
 
                         }
@@ -674,7 +697,7 @@ export class Concierge {
 
                 let envName = option.longName
                     ? camelCase(option.longName)
-                    : option.shortName;
+                            : option.shortName;
 
                 if (Object.prototype.hasOwnProperty.call(env, envName))
                     continue;
@@ -683,30 +706,94 @@ export class Concierge {
 
             }
 
-            let validationResults = Joi.validate(env, Joi.object().keys(Object.assign({}, this.validators, selectedCommand.validators)).unknown());
+            if (Object.keys(this.validators).length > 0 || Object.keys(selectedCommand.validators).length > 0) {
 
-            if (validationResults.error) {
+                let Joi;
 
-                if (validationResults.error.details.length > 1) {
-                    throw new UsageError(`Validation failed because ${validationResults.error.details.slice(0, -1).map(detail => detail.message).join(`, `)}, and ${validationResults.error.details[validationResults.error.details.length - 1].message}`);
-                } else {
-                    throw new UsageError(`Validation failed because ${validationResults.error.details[0].message}`);
+                try {
+                    Joi = require(`joi`);
+                } catch (error) {
+                    // Should fool webpack
+                    throw error;
                 }
 
-            }
+                let validationResults = Joi.validate(env, Joi.object().keys(Object.assign({}, this.validators, selectedCommand.validators)).unknown());
 
-            env = validationResults.value;
+                if (validationResults.error) {
+
+                    if (validationResults.error.details.length > 1) {
+                        throw new UsageError(`Validation failed because ${validationResults.error.details.slice(0, -1).map(detail => detail.message).join(`, `)}, and ${validationResults.error.details[validationResults.error.details.length - 1].message}`);
+                    } else {
+                        throw new UsageError(`Validation failed because ${validationResults.error.details[0].message}`);
+                    }
+
+                }
+
+                env = validationResults.value;
+
+            }
 
             if (env.help) {
 
                 if (commandPath.length > 0)
-                    this.usage(argv0, { command: selectedCommand });
+                    this.usage(argv0, { command: selectedCommand, stream: stdin });
                 else
-                    this.usage(argv0);
+                    this.usage(argv0, { stream: stdin });
 
                 return 0;
 
             } else {
+
+                if (env.config) {
+
+                    let configOptions = JSON.parse(fs.readFileSync(env.config, `utf8`));
+
+                    for (let name of Object.keys(configOptions)) {
+
+                        let option = selectedCommand.options.find(option => option.longName === optionName);
+
+                        if (!option)
+                            option = this.options.find(option => option.longName === optionName);
+
+                        if (!option)
+                            continue;
+
+                        if (configOptions[name] === undefined)
+                            continue;
+
+                        if (option.argumentName) {
+
+                            if (typeof configOptions[name] === `string` || configOptions[name] === null) {
+                                env[name] = configOptions[name];
+                            } else {
+                                throw new UsageError(`Option "${name}" must be a string, null, or undefined`);
+                            }
+
+                        } else {
+
+                            if (option.maxValue !== undefined) {
+
+                                if (Number.isInteger(configOptions[name])) {
+                                    env[name] = Math.max(0, Math.min(Number(configOptions[name]), option.maxValue));
+                                } else {
+                                    throw new UsageError(`Option "${name}" must be a number or undefined`);
+                                }
+
+                            } else {
+
+                                if (typeof configOptions[name] === `boolean`) {
+                                    env[name] = configOptions[name];
+                                } else {
+                                    throw new UsageError(`Option "${name}" must be a boolean or undefined`);
+                                }
+
+                            }
+
+                        }
+
+                    }
+
+                }
 
                 let result = runMaybePromises([
 
@@ -727,10 +814,15 @@ export class Concierge {
                     result = result.then(null, error => {
 
                         if (error instanceof UsageError) {
-                            this.usage(argv0, { command: selectedCommand, error });
+
+                            this.usage(argv0, { command: selectedCommand, error, stream: stderr });
+
                             return 1;
+
                         } else {
+
                             throw error;
+
                         }
 
                     });
@@ -744,10 +836,15 @@ export class Concierge {
         } catch (error) {
 
             if (error instanceof UsageError) {
-                this.usage(argv0, { command: selectedCommand, error });
+
+                this.usage(argv0, { command: selectedCommand, error, stream: stderr });
+
                 return 1;
+
             } else {
+
                 throw error;
+
             }
 
         }
