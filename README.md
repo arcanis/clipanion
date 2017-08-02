@@ -122,7 +122,7 @@ concierge
 
 ## Validation
 
-Concierge uses the [Joi](https://github.com/hapijs/joi) library to validate its data. You can easily plug your own validators:
+Concierge optionally uses the [Joi](https://github.com/hapijs/joi) library to validate its data. You can easily plug in your own validators:
 
 ```js
 import { concierge } from '@manaflair/concierge';
@@ -155,7 +155,7 @@ concierge
     .directory(require.context(`./commands`, true, /\.js$/));
 ```
 
-However, in such a case it is advised to do the following, so that you can use your code without having to compile it through Webpack:
+However, in such a case it is advised to do the following, so that you can use your code without having to compile it through Webpack (useful if you want to dev your application using babel-node or similar):
 
 ```js
 typeof IS_WEBPACK === `undefined` && concierge
@@ -169,7 +169,7 @@ typeof IS_WEBPACK !== `undefined` && concierge
 
 ## Daemon plugin
 
-Concierge ships with an optional plugin that allows you to run your programs in a daemon mode. In order to use it, just use the `makeDaemon` function and you're set to go:
+Concierge ships with an optional plugin that allows you to run your programs in a daemon mode. In order to use it, just use the `makeDaemon` function and you're ready to go:
 
 ```js
 import { makeDaemon } from '@manaflair/concierge/extra/daemon';
@@ -196,12 +196,12 @@ Using the `makeDaemon` wrapper will automatically add a few commands to your app
   - `stop` will make the daemon exit after calling its `cleanup` command.
   - `restart` will restart the running daemon, with the exact same arguments.
 
-You are expected to implement a few commands by yourself:
+You are expected to implement a few commands by yourself. They will automatically be hidden from the usage:
 
-  - `init` will be called by `start` and `restart`, and should prepare everything needed for your application to be in valid state.
+  - `init` will be called by `start` and `restart`, and should prepare everything needed for your application to be in valid state. The daemon will start only after this command returns.
   - `cleanup` will be called by `stop` and `restart`, and should clean everything needed. When it returns, the `start` command will return, usually ending the process.
 
-Last important note: the current daemon implementation **is not secure by default**. Even if it will only listen to the localhost requests, it is possible for any local user to send requests to the daemon, that will then be executed with the privileges of the user that started the daemon. I have no idea how to fix this, so feel free to open an issue with your ideas if you happen to have one. In the meantime, just be careful and avoid running a daemon as root.
+Last important note: the current daemon implementation **is not secure by default**. Because it only listens to the localhost requests it should be impossible for an external attacker to execute requests on your server, however it is possible for any local user (ie people who have an account on the same machine) to send crafted requests to the daemon, that will then be executed with the privileges of the user that started the daemon. I have no idea how to fix this, so feel free to open an issue with your ideas if you happen to have one. In the meantime, just be careful and avoid running a daemon as root.
 
 ## License (MIT)
 
