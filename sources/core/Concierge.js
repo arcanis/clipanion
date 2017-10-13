@@ -255,9 +255,23 @@ export class Concierge {
     error(error, { stream }) {
 
         if (error instanceof UsageError) {
+
             stream.write(`${chalk.red.bold(`Error`)}${chalk.bold(`:`)} ${error.message}\n`);
+
+        } else if (typeof error === `object` && error && error.message) {
+
+            let stackIndex = error.stack ? error.stack.search(/\n *at /) : -1;
+
+            if (stackIndex >= 0) {
+                stream.write(`${chalk.red.bold(`Error`)}${chalk.bold(`:`)} ${error.message}${error.stack.substr(stackIndex)}\n`);
+            } else {
+                stream.write(`${chalk.red.bold(`Error`)}${chalk.bold(`:`)} ${error.message}\n`);
+            }
+
         } else {
-            stream.write(`${chalk.red.bold(`Error`)}${chalk.bold(`:`)} ${error.stack}\n`);
+
+            stream.write(`${chalk.red.bold(`Error`)}${chalk.bold(`:`)} ${error}\n`);
+
         }
 
     }
