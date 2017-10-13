@@ -1,58 +1,80 @@
-import * as flags from './flags';
-
 export class Command {
 
     constructor(concierge, definition) {
 
         this.concierge = concierge;
 
+        // An array with the command "path" (ie the words that are required to run the command)
         this.path = definition.path;
-        this.description = null;
-        this.flags = this.path.length > 0 ? 0 : flags.DEFAULT_COMMAND;
 
+        // The command description, has displayed in the help
+        this.description = null;
+
+        // Various flag that affect how the command is seen by the controller
+        this.defaultCommand = this.path.length === 0;
+        this.hiddenCommand = false;
+        this.proxyArguments = false;
+
+        // A list of the names of the required arguments
         this.requiredArguments = definition.requiredArguments;
+
+        // A list of the names of the optional arguments
         this.optionalArguments = definition.optionalArguments;
 
+        // The name of the spread
         this.spread = definition.spread;
 
+        // A list of all the options supported by the command
         this.options = definition.options;
 
-        this.validators = {};
+        // A Joi validator, or null if this command doesn't use any validation
+        this.validator = null;
+
+        // The function that will be called when running the command
         this.run = () => {};
 
     }
 
-    alias(pattern) {
+    aliases(... patterns) {
 
-        let command = this.concierge
+        for (let pattern of patterns) {
 
-            .command(`${pattern} [... rest]`)
+            this.concierge.command(`${pattern} [... rest]`)
 
-            .flag(flags.HIDDEN_COMMAND)
-            .flag(flags.PROXY_COMMAND)
+                .flags({
 
-            .action(args => this.concierge.run(args.argv0, [
-                ... this.path,
-                ... args.rest,
-            ]))
+                    // Alias must not be displayed as regular commands
+                    hiddenCommand: true,
 
-        ;
+                    // Alias directly forward all of their arguments to the actual command
+                    proxyArguments: true,
+
+                })
+
+                .action(args => this.concierge.run(args.argv0, [
+                    ... this.path,
+                    ... args.rest,
+                ]))
+
+            ;
+
+        }
 
         return this;
 
     }
 
-    flag(flags) {
+    flags(flags) {
 
-        this.flags |= flags;
+        Object.assign(this, flags);
 
         return this;
 
     }
 
-    validate(optionName, validator) {
+    validate(validator) {
 
-        this.validators[optionName] = validator;
+        this.validator = validator;
 
         return this;
 

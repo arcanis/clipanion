@@ -5,7 +5,6 @@ import path             from 'path';
 
 import { Command }      from './Command';
 import { UsageError }   from './UsageError';
-import * as flags       from './flags';
 import { parse }        from './parse';
 
 let standardOptions = [ {
@@ -130,7 +129,7 @@ export class Concierge {
 
         this.commands = [];
 
-        this.validators = {};
+        this.validator = null;
         this.options = standardOptions;
 
         this.beforeEachList = [];
@@ -156,6 +155,9 @@ export class Concierge {
 
     topLevel(pattern) {
 
+        if (Array.isArray(pattern))
+            pattern = pattern.join(` `);
+
         let definition = parse(pattern);
 
         if (definition.path.length > 0)
@@ -173,9 +175,9 @@ export class Concierge {
 
     }
 
-    validate(optionName, validator) {
+    validate(validator) {
 
-        this.validators[optionName] = validator;
+        this.validator = validator;
 
         return this;
 
@@ -238,10 +240,10 @@ export class Concierge {
 
     command(pattern) {
 
-        let definition = parse(pattern);
+        if (Array.isArray(pattern))
+            pattern = pattern.join(` `);
 
-        if (definition.path.length === 0)
-            throw new Error(`A command pattern cannot have an empty command path; use options() instead`);
+        let definition = parse(pattern);
 
         let command = new Command(this, definition);
         this.commands.push(command);
@@ -297,7 +299,7 @@ export class Concierge {
 
             stream.write(`${chalk.bold(`Usage:`)} ${execPath} ${globalOptions} <command>\n`.replace(/ +/g, ` `).replace(/ +$/, ``));
 
-            let commands = this.commands.filter(command => (command.flags & flags.HIDDEN_COMMAND) === 0);
+            let commands = this.commands.filter(command => !command.hiddenCommand);
 
             if (commands.length > 0) {
 
@@ -325,7 +327,7 @@ export class Concierge {
 
     check() {
 
-        if (this.commands.filter(command => command.flags & flags.DEFAULT_COMMAND).length > 1)
+        if (this.commands.filter(command => command.defaultCommand).length > 1)
             throw new Error(`Multiple commands have been flagged as default command`);
 
         let shortNames = this.options.map(option => option.shortName).filter(name => name);
@@ -344,14 +346,16 @@ export class Concierge {
 
     run(argv0, argv, { stdin = process.stdin, stdout = process.stdout, stderr = process.stderr, ... initialEnv } = {}) {
 
+        // Sanity check to make sure that the configuration makes sense
         this.check();
 
         // This object is the one we'll fill with the parsed options
         let env = { argv0, stdin, stdout, stderr };
 
-        // This array will contain the literals we will not use as
+        // This array will contain the literals that will be forwarded to the command as positional arguments
         let rest = [];
 
+        // We copy the global options from our initial environment into our new one (it's a form of inheritance)
         for (let option of this.options) {
 
             if (option.longName) {
@@ -371,7 +375,7 @@ export class Concierge {
         }
 
         // This pointer contains the command we'll be using if nothing prevents it
-        let selectedCommand = this.commands.find(command => command.flags & flags.DEFAULT_COMMAND !== 0);
+        let selectedCommand = this.commands.find(command => command.defaultCommand);
 
         // This array is the list of the commands we might still have a chance to end up using
         let candidateCommands = this.commands;
@@ -613,11 +617,11 @@ export class Concierge {
 
                         }
 
-                        if (option.longName) {
-                            env[camelCase(option.longName)] = value;
-                        } else {
-                            env[option.shortName] = value;
-                        }
+                        let envName = option.longName
+                            ? camelCase(option.longName)
+                            : option.shortName;
+
+                        env[envName] = value;
 
                     } break;
 
@@ -639,7 +643,7 @@ export class Concierge {
                             candidateCommands = nextCandidates.filter(candidate => candidate !== nextSelectedCommand);
 
                             // If we've jumped on a proxy command, then we lock it now and here, and we forward everything else as "rest" parameter
-                            if ((selectedCommand && (selectedCommand.flags & flags.PROXY_COMMAND) !== 0) && next && next.type !== RAW_STRING) {
+                            if (selectedCommand && selectedCommand.proxyArguments && next && next.type !== RAW_STRING) {
 
                                 lockCommand();
 
@@ -647,7 +651,7 @@ export class Concierge {
                                     rest.push(parsedArgv[t].literal);
                                 }
 
-                            // If there's absolutely no other command we can switch to, then we can lock the current one right now, so that we can start parsing its options
+                            // If there's absolutely no other command we can switch to, then we can lock the current one right away, so that we can start parsing its options
                             } else if (candidateCommands.length === 0) {
 
                                 lockCommand();
@@ -697,7 +701,7 @@ export class Concierge {
 
                 let envName = option.longName
                     ? camelCase(option.longName)
-                            : option.shortName;
+                    : option.shortName;
 
                 if (Object.prototype.hasOwnProperty.call(env, envName))
                     continue;
@@ -706,18 +710,26 @@ export class Concierge {
 
             }
 
-            if (Object.keys(this.validators).length > 0 || Object.keys(selectedCommand.validators).length > 0) {
+            if (this.validator || selectedCommand.validator) {
 
                 let Joi;
 
                 try {
                     Joi = require(`joi`);
                 } catch (error) {
-                    // Should fool webpack
+                    // Should fool webpack into not emitting errors if the (optional) dependency cannot be found
                     throw error;
                 }
 
-                let validationResults = Joi.validate(env, Joi.object().keys(Object.assign({}, this.validators, selectedCommand.validators)).unknown());
+                let validator = Joi.any();
+
+                if (this.validator)
+                    validator = validator.concat(this.validator);
+
+                if (selectedCommand.validator)
+                    validator = validator.concat(selectedCommand.validator);
+
+                let validationResults = Joi.validate(env, validator);
 
                 if (validationResults.error) {
 
@@ -727,9 +739,11 @@ export class Concierge {
                         throw new UsageError(`Validation failed because ${validationResults.error.details[0].message}`);
                     }
 
-                }
+                } else {
 
-                env = validationResults.value;
+                    env = validationResults.value;
+
+                }
 
             }
 

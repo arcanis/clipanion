@@ -6,18 +6,18 @@ concierge
     .topLevel(``);
 
 concierge
-    .command(`command-a [... rest] [-F,--no-foo] [-X,--without-foobar] [-b,--bar] [-a,--arg ARG]`)
-    .alias(`a`)
+    .command(`command-a [... rest] [-v,-vv,-vvv,--verbose] [-F,--no-foo] [-X,--without-foobar] [-b,--bar] [-a,--arg ARG]`)
+    .aliases(`a`)
     .action(env => [ `command-a`, env ]);
 
 concierge
     .command(`command-b [... args]`)
-    .alias(`b`)
-    .flag(flags.DEFAULT_COMMAND)
+    .aliases(`b`)
+    .flags({ defaultCommand: true })
     .action(env => [ `command-b`, env ]);
 
 concierge
-    .command(`b foobar`)
+    .command([`b`, `foobar`])
     .action(env => [ `foobar`, env ]);;
 
 describe(`concierge`, () => {
@@ -96,6 +96,38 @@ describe(`concierge`, () => {
 
         expect(env.foo).to.equal(false);
         expect(env.withFoobar).to.equal(false);
+
+    });
+
+    it(`should assign "0" as initial value for short options expecting to be repeated`, () => {
+
+        let [ command, env ] = concierge.run(null, [ `command-a` ]);
+
+        expect(env.verbose).to.equal(0);
+
+    });
+
+    it(`should count the number of time short options are repeated when it's expected they will be`, () => {
+
+        let [ command, env ] = concierge.run(null, [ `command-a`, `-vv` ]);
+
+        expect(env.verbose).to.equal(2);
+
+    });
+
+    it(`should add together the number of time short options are repeated when it's expected they will be`, () => {
+
+        let [ command, env ] = concierge.run(null, [ `command-a`, `-v`, `-v` ]);
+
+        expect(env.verbose).to.equal(2);
+
+    });
+
+    it(`should not set a greater value on short options than the number of time a value is expected to be repeated`, () => {
+
+        let [ command, env ] = concierge.run(null, [ `command-a`, `-vvvvvvvvv` ]);
+
+        expect(env.verbose).to.equal(3);
 
     });
 

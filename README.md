@@ -98,17 +98,7 @@ The environment values have the following properties, excluding any extra valida
 
 ## Default command
 
-There's two ways to define a default command. The first one is to just omit the command path:
-
-```js
-import { concierge } from '@manaflair/concierge';
-
-concierge
-    .command(`[-p,--port PORT]`)
-    .action(() => { /* ... */ });
-```
-
-Another is to manually add the `DEFAULT_COMMAND` flag to your command:
+Add the `defaultCommand` flag to your command:
 
 ```js
 import { concierge, flags } from '@manaflair/concierge';
@@ -116,7 +106,7 @@ import { concierge, flags } from '@manaflair/concierge';
 concierge
     .command(`install [--production]`)
     .describe(`Install all packages located into your package.json`)
-    .flag(flags.DEFAULT_COMMAND)
+    .flag({ defaultCommand: true })
     .action(() => { /* ... */ });
 ```
 
@@ -126,11 +116,12 @@ Concierge optionally uses the [Joi](https://github.com/hapijs/joi) library to va
 
 ```js
 import { concierge } from '@manaflair/concierge';
+import Joi           from 'joi';
 
 concierge
     .command(`server [-p,--port PORT]`)
     .describe(`Run a server on the specified port`)
-    .validate(`port`, Joi.number().min(1).max(65535).default(8080))
+    .validate(Joi.object().keys({ port: Joi.number().min(1).max(65535).default(8080) }).unknown())
     .action(() => { /* ... */ });
 
 concierge
