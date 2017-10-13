@@ -867,13 +867,18 @@ export class Concierge {
 
     }
 
-    runExit(argv0, argv) {
+    runExit(argv0, argv, { stdin = process.stdin, stdout = process.stdout, stderr = process.stderr, ... rest } = {}) {
 
-        Promise.resolve(this.run(argv0, argv)).then(exitCode => {
+        Promise.resolve(this.run(argv0, argv, { stdin, stdout, stderr, ... rest })).then(exitCode => {
+
             process.exit(exitCode);
+
         }, error => {
-            this.error(error);
+
+            this.error(error, { stream: stderr });
+
             process.exit(1);
+
         });
 
     }
