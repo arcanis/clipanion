@@ -527,10 +527,18 @@ export class Concierge {
                             if (value === undefined)
                                 throw new UsageError(`Option "${leadingOption.shortName}" cannot be used without argument`);
 
-                            if (leadingOption.longName) {
-                                env[camelCase(leadingOption.longName)] = value;
+                            let envName = leadingOption.longName
+                                ? camelCase(leadingOption.longName)
+                                : leadingOption.shortName;
+
+                            if (Array.isArray(leadingOption.initialValue)) {
+                                if (env[envName]) {
+                                    env[envName].push(value);
+                                } else {
+                                    env[envName] = [value];
+                                }
                             } else {
-                                env[leadingOption.shortName] = value;
+                                env[envName] = value;
                             }
 
                         } else {

@@ -188,7 +188,15 @@ describe(`concierge`, () => {
 
     });
 
-    it(`should assign an array of strings when using an argument-aware option that accepts multiple arguments`, () => {
+    it(`should assign an array of strings when using an argument-aware option that accepts multiple arguments (single argument)`, () => {
+
+        let [ command, env ] = concierge.run(null, [ `command-a`, `--many-args`, `A` ]);
+
+        expect(env.manyArgs).to.deep.equal([`A`]);
+
+    });
+
+    it(`should assign an array of strings when using an argument-aware option that accepts multiple arguments (multiple arguments)`, () => {
 
         let [ command, env ] = concierge.run(null, [ `command-a`, `--many-args`, `A`, `--many-args`, `B` ]);
 
