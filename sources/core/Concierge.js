@@ -635,7 +635,15 @@ export class Concierge {
                             ? camelCase(option.longName)
                             : option.shortName;
 
-                        env[envName] = value;
+                        if (Array.isArray(option.initialValue)) {
+                            if (env[envName]) {
+                                env[envName].push(value);
+                            } else {
+                                env[envName] = [value];
+                            }
+                        } else {
+                            env[envName] = value;
+                        }
 
                     } break;
 
@@ -885,13 +893,13 @@ export class Concierge {
 
         Promise.resolve(this.run(argv0, argv, { stdin, stdout, stderr, ... rest })).then(exitCode => {
 
-            process.exit(exitCode);
+            process.exitCode = exitCode;
 
         }, error => {
 
             this.error(error, { stream: stderr });
 
-            process.exit(1);
+            process.exitCode = 1;
 
         });
 

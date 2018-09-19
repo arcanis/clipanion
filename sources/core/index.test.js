@@ -6,7 +6,7 @@ concierge
     .topLevel(``);
 
 concierge
-    .command(`command-a [... rest] [-v,-vv,-vvv,--verbose] [-F,--no-foo] [-X,--without-foobar] [-b,--bar] [-a,--arg ARG]`)
+    .command(`command-a [... rest] [-v,-vv,-vvv,--verbose] [-F,--no-foo] [-X,--without-foobar] [-b,--bar] [-a,--arg ARG] [--many-args ARGS...]`)
     .aliases(`a`)
     .action(env => [ `command-a`, env ]);
 
@@ -177,6 +177,22 @@ describe(`concierge`, () => {
         let [ command, env ] = concierge.run(null, [ `command-a`, `-a.js` ]);
 
         expect(env.arg).to.equal(`.js`);
+
+    });
+
+    it(`should assign an empty array of strings when an argument-aware option that accepts multiple arguments received none`, () => {
+
+        let [ command, env ] = concierge.run(null, [ `command-a` ]);
+
+        expect(env.manyArgs).to.deep.equal([]);
+
+    });
+
+    it(`should assign an array of strings when using an argument-aware option that accepts multiple arguments`, () => {
+
+        let [ command, env ] = concierge.run(null, [ `command-a`, `--many-args`, `A`, `--many-args`, `B` ]);
+
+        expect(env.manyArgs).to.deep.equal([`A`, `B`]);
 
     });
 

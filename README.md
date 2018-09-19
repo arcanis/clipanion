@@ -73,6 +73,7 @@ global add <first> [... rest] ; will require at least one argument, potentially 
 install [-v]                  ; the "v" option will be true, false, or undefined
 install [-vvv]                ; the "v" option will become a counter, from 0 to 3 included
 install [-v,--verbose]        ; the "verbose" option will be true (--verbose), false (--no-verbose), or undefined
+execute [--output TARGET...]  ; the "output" option will be an array of strings (empty if the option is never set)
 download [-u,--url URL]       ; the "url" option will expect a parameter, or will be "null" if --no-url is used
 download [--with-ssl]         ; the "ssl" option will be true (--with-ssl), false (--without-ssl), or undefined
 command [-vqcarRbudlLkKHpE]   ; declare all those options at once
@@ -93,7 +94,7 @@ The environment values have the following properties, excluding any extra valida
   - Short options without arguments are always either true, undefined, or a number
   - Short options with arguments are always either a string or undefined
   - Long options without arguments are always either true, false, or undefined
-  - Long options with arguments are always either a string, null, or undefined
+  - Long options with arguments are always either an array of strings, a string, null, or undefined
   - Combinations of short and long options can be of any type at least one of them accepts
 
 ## Default command
