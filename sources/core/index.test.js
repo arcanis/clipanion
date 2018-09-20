@@ -20,6 +20,16 @@ concierge
     .command([`b`, `foobar`])
     .action(env => [ `foobar`, env ]);;
 
+concierge
+    .command(`command-proxy [... rest]`)
+    .flags({ proxyArguments: true })
+    .action(env => [ `command-proxy`, env ]);
+
+concierge
+    .command(`command-proxy-with-arg <arg> [... rest]`)
+    .flags({ proxyArguments: true })
+    .action(env => [ `command-proxy-with-arg`, env ]);
+
 describe(`concierge`, () => {
 
     it(`should select the default command when using no arguments`, () => {
@@ -226,6 +236,61 @@ describe(`concierge`, () => {
         let [ command, env ] = concierge.run(null, [ `b`, `foobar` ]);
 
         expect(command).to.equal(`foobar`);
+
+    });
+
+    it(`should proxy the arguments for commands configured as such (no arguments)`, () => {
+
+        let [ command, env ] = concierge.run(null, [ `command-proxy` ]);
+
+        expect(command).to.equal(`command-proxy`);
+        expect(env.rest).to.deep.equal([]);
+
+    });
+
+    it(`should proxy the arguments for commands configured as such (positional arguments)`, () => {
+
+        let [ command, env ] = concierge.run(null, [ `command-proxy`, `hello`, `world` ]);
+
+        expect(command).to.equal(`command-proxy`);
+        expect(env.rest).to.deep.equal([ `hello`, `world` ]);
+
+    });
+
+    it(`should proxy the arguments for commands configured as such (options)`, () => {
+
+        let [ command, env ] = concierge.run(null, [ `command-proxy`, `--hello`, `--world` ]);
+
+        expect(command).to.equal(`command-proxy`);
+        expect(env.rest).to.deep.equal([ `--hello`, `--world` ]);
+
+    });
+
+    it(`should proxy the arguments for commands configured as such (mixed, positional first)`, () => {
+
+        let [ command, env ] = concierge.run(null, [ `command-proxy`, `hello`, `--world`, `foo`, `--bar` ]);
+
+        expect(command).to.equal(`command-proxy`);
+        expect(env.rest).to.deep.equal([ `hello`, `--world`, `foo`, `--bar` ]);
+
+    });
+
+    it(`should proxy the arguments for commands configured as such (mixed, options first)`, () => {
+
+        let [ command, env ] = concierge.run(null, [ `command-proxy`, `--hello`, `world`, `--foo`, `bar` ]);
+
+        expect(command).to.equal(`command-proxy`);
+        expect(env.rest).to.deep.equal([ `--hello`, `world`, `--foo`, `bar` ]);
+
+    });
+
+    it(`should not proxy the explicitly defined positional options`, () => {
+
+        let [ command, env ] = concierge.run(null, [ `command-proxy-with-arg`, `foo`, `bar` ]);
+
+        expect(command).to.equal(`command-proxy-with-arg`);
+        expect(env.arg).to.equal(`foo`);
+        expect(env.rest).to.deep.equal([ `bar` ]);
 
     });
 

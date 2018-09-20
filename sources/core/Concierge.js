@@ -673,7 +673,7 @@ export class Concierge {
                             candidateCommands = nextCandidates.filter(candidate => candidate !== nextSelectedCommand);
 
                             // If we've jumped on a proxy command, then we lock it now and here, and we forward everything else as "rest" parameter
-                            if (selectedCommand && selectedCommand.proxyArguments && next && next.type !== RAW_STRING) {
+                            if (selectedCommand && selectedCommand.proxyArguments) {
 
                                 lockCommand();
 
@@ -690,7 +690,6 @@ export class Concierge {
 
                         } else {
 
-                            // If the command is locked, then we know the current argument will not influence the
                             rest.push(current.literal);
 
                         }
@@ -780,9 +779,9 @@ export class Concierge {
             if (env.help) {
 
                 if (commandPath.length > 0)
-                    this.usage(argv0, { command: selectedCommand, stream: stdin });
+                    this.usage(argv0, { command: selectedCommand, stream: stdout });
                 else
-                    this.usage(argv0, { stream: stdin });
+                    this.usage(argv0, { stream: stdout });
 
                 return 0;
 
