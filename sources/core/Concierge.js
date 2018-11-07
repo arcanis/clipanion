@@ -304,7 +304,7 @@ export class Concierge {
 
                 if (command.description) {
                     stream.write(`\n`);
-                    stream.write(`${command.description.trim().replace(/^[a-z]/, $0 => $0.toUpperCase())}\n`);
+                    stream.write(command.description.replace(/^[a-z]/, $0 => $0.toUpperCase()));
                 }
 
                 if (command.details) {
@@ -391,7 +391,7 @@ export class Concierge {
                 };
 
                 for (let command of commands) {
-                    stream.write(`  ${chalk.bold(pad(command.path.join(` `)))}  ${command.description || `undocumented`}\n`);
+                    stream.write(`  ${chalk.bold(pad(command.path.join(` `)))}  ${command.description.trim() || `undocumented`}\n`);
                 }
 
             }
