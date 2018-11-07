@@ -231,7 +231,11 @@ describe(`concierge`, () => {
 
     });
 
-    it(`should use nested commands before any alias if possible`, () => {
+    it.skip(`should use nested commands before any alias if possible`, () => {
+
+        // This is now impossible - we must always lock the command when we land on a proxy command,
+        // and aliases are implemented as syntactic sugar over proxy commands. So we can't continue
+        // to parse nested commands before aliases in the current state.
 
         let [ command, env ] = concierge.run(null, [ `b`, `foobar` ]);
 

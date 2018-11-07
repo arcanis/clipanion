@@ -300,9 +300,36 @@ export class Concierge {
 
             stream.write(`${chalk.bold(`Usage:`)} ${execPath} ${globalOptions} ${commandPath} ${requiredArguments} ${optionalArguments} ${commandOptions}\n`.replace(/ +/g, ` `).replace(/ +$/, ``));
 
-            if (!error && command.description) {
-                stream.write(`\n`);
-                stream.write(`${command.description}\n`);
+            if (!error) {
+
+                if (command.description) {
+                    stream.write(`\n`);
+                    stream.write(`${command.description.trim().replace(/^[a-z]/, $0 => $0.toUpperCase())}\n`);
+                }
+
+                if (command.details) {
+
+                    stream.write(`\n`);
+                    stream.write(`${chalk.bold(`Details:`)}\n`);
+
+                    stream.write(command.details);
+
+                }
+
+                if (command.examples.length > 0) {
+
+                    stream.write(`\n`);
+                    stream.write(`${chalk.bold(`Examples:`)}\n`);
+
+                    for (let {description, example} of command.examples) {
+                        stream.write(`\n`);
+                        stream.write(description);
+                        stream.write(`\n`);
+                        stream.write(example.replace(/^/m, `  `));
+                    }
+
+                }
+
             }
 
         } else {
@@ -313,12 +340,46 @@ export class Concierge {
 
             stream.write(`${chalk.bold(`Usage:`)} ${execPath} ${globalOptions} <command>\n`.replace(/ +/g, ` `).replace(/ +$/, ``));
 
-            let commands = this.commands.filter(command => !command.hiddenCommand);
+            let commandsByCategories = new Map();
 
-            if (commands.length > 0) {
+            for (const command of this.commands) {
+
+                if (command.hiddenCommand)
+                    continue;
+
+                let categoryCommands = commandsByCategories.get(command.category);
+
+                if (!categoryCommands)
+                    commandsByCategories.set(command.category, categoryCommands = []);
+
+                categoryCommands.push(command);
+
+            }
+
+            let categoryNames = Array.from(commandsByCategories.keys()).sort((a, b) => {
+
+                if (a === null)
+                    return -1;
+
+                return a.localeCompare(b, `en`, {usage: `sort`, caseFirst: `upper`});
+
+            });
+
+            for (let categoryName of categoryNames) {
+
+                let commands = commandsByCategories.get(categoryName).slice().sort((a, b) => {
+
+                    const aPath = a.path.join(` `);
+                    const bPath = b.path.join(` `);
+
+                    return aPath.localeCompare(bPath, `en`, {usage: `sort`, caseFirst: `upper`});
+
+                });
+
+                let header = categoryName !== null ? categoryName : `Where <command> is one of:`;
 
                 stream.write(`\n`);
-                stream.write(`${chalk.bold(`Where <command> is one of:`)}\n`);
+                stream.write(`${chalk.bold(header)}\n`);
                 stream.write(`\n`);
 
                 let maxPathLength = Math.max(0, ... commands.map(command => {
@@ -898,7 +959,7 @@ export class Concierge {
 
     runExit(argv0, argv, { stdin = process.stdin, stdout = process.stdout, stderr = process.stderr, ... rest } = {}) {
 
-        Promise.resolve(this.run(argv0, argv, { stdin, stdout, stderr, ... rest })).then(exitCode => {
+        return Promise.resolve(this.run(argv0, argv, { stdin, stdout, stderr, ... rest })).then(exitCode => {
 
             process.exitCode = exitCode;
 

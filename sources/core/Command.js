@@ -1,3 +1,19 @@
+function extractContent(text, paragraphs) {
+
+    text = text.replace(/^[\t ]+|[\t ]+$/gm, ``);
+    text = text.replace(/^\n+|\n+$/g, ``);
+    text = text.replace(/\n(\n)?\n*/g, `$1`);
+
+    if (paragraphs) {
+        text = text.split(/\n/g).map(paragraph => {
+            return paragraph.match(/(.{1,80})(?: |$)/g).join(`\n`);
+        }).join(`\n\n`);
+    }
+
+    return text ? text + `\n` : ``;
+
+}
+
 export class Command {
 
     constructor(concierge, definition) {
@@ -7,8 +23,17 @@ export class Command {
         // An array with the command "path" (ie the words that are required to run the command)
         this.path = definition.path;
 
+        // The category where this command belongs in the help
+        this.category = null;
+
         // The command description, has displayed in the help
         this.description = null;
+
+        // The command details, written when printing the usage of a specific command
+        this.details = ``;
+
+        // Various commands examples that can good introduction to figure out how to use the command
+        this.examples = [];
 
         // Various flag that affect how the command is seen by the controller
         this.defaultCommand = this.path.length === 0;
@@ -35,30 +60,33 @@ export class Command {
 
     }
 
+    alias(pattern) {
+
+        this.concierge.command(`${pattern} [... rest]`)
+
+            .flags({
+
+                // Alias must not be displayed as regular commands
+                hiddenCommand: true,
+
+                // Alias directly forward all of their arguments to the actual command
+                proxyArguments: true,
+
+            })
+
+            .action(args => this.concierge.run(args.argv0, [
+                ... this.path,
+                ... args.rest,
+            ]))
+
+        ;
+
+    }
+
     aliases(... patterns) {
 
-        for (let pattern of patterns) {
-
-            this.concierge.command(`${pattern} [... rest]`)
-
-                .flags({
-
-                    // Alias must not be displayed as regular commands
-                    hiddenCommand: true,
-
-                    // Alias directly forward all of their arguments to the actual command
-                    proxyArguments: true,
-
-                })
-
-                .action(args => this.concierge.run(args.argv0, [
-                    ... this.path,
-                    ... args.rest,
-                ]))
-
-            ;
-
-        }
+        for (let pattern of patterns)
+            this.alias(pattern);
 
         return this;
 
@@ -82,7 +110,26 @@ export class Command {
 
     describe(description) {
 
-        this.description = description;
+        this.description = extractContent(description, false);
+
+        return this;
+
+    }
+
+    detail(details) {
+
+        this.detail = extractContent(details, true);
+
+        return this;
+
+    }
+
+    example(description, example) {
+
+        this.examples.push({
+            description: extractContent(description, true),
+            example: extractContent(example, false),
+        });
 
         return this;
 
