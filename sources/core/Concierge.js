@@ -376,10 +376,10 @@ export class Concierge {
 
                 });
 
-                let header = categoryName !== null ? categoryName : `Where <command> is one of:`;
+                let header = categoryName !== null ? categoryName.trim() : `Where <command> is one of`;
 
                 stream.write(`\n`);
-                stream.write(`${chalk.bold(header)}\n`);
+                stream.write(`${chalk.bold(`${header}:`)}\n`);
                 stream.write(`\n`);
 
                 let maxPathLength = Math.max(0, ... commands.map(command => {

@@ -1,6 +1,7 @@
 import { concierge } from '../sources/core';
 
 concierge.command(`hello`)
+    .categorize(`Useless commands`)
     .describe(`say hello`)
 
     .detail(`

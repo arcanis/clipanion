@@ -108,6 +108,14 @@ export class Command {
 
     }
 
+    categorize(category) {
+
+        this.category = extractContent(category, false);
+
+        return this;
+
+    }
+
     describe(description) {
 
         this.description = extractContent(description, false);
