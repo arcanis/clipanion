@@ -171,7 +171,7 @@ const daemon = makeDaemon(concierge, {
     port: 4242
 });
 
-daemon.command(`init`)
+daemon.command(`_init`)
     .action(() => { /*...*/ });
 
 daemon.command(`hello [--name NAME]`)
@@ -183,15 +183,15 @@ daemon
 
 Using the `makeDaemon` wrapper will automatically add a few commands to your application:
 
-  - `start` will start a daemon, then will call its `init` command.
+  - `start` will start a daemon, then will call its `_init` command.
   - `status` will try to reach a daemon, and inform you whether it succeeds or fails.
-  - `stop` will make the daemon exit after calling its `cleanup` command.
+  - `stop` will make the daemon exit after calling its `_cleanup` command.
   - `restart` will restart the running daemon, with the exact same arguments.
 
 You are expected to implement a few commands by yourself. They will automatically be hidden from the usage:
 
-  - `init` will be called by `start` and `restart`, and should prepare everything needed for your application to be in valid state. The daemon will start only after this command returns.
-  - `cleanup` will be called by `stop` and `restart`, and should clean everything needed. When it returns, the `start` command will return, usually ending the process.
+  - `_init` will be called by `start` and `restart`, and should prepare everything needed for your application to be in valid state. The daemon will start only after this command returns.
+  - `_cleanup` will be called by `stop` and `restart`, and should clean everything needed. When it returns, the `start` command will return, usually ending the process.
 
 Last important note: the current daemon implementation **is not secure by default**. Because it only listens to the localhost requests it should be impossible for an external attacker to execute requests on your server, however it is possible for any local user (ie people who have an account on the same machine) to send crafted requests to the daemon, that will then be executed with the privileges of the user that started the daemon. I have no idea how to fix this, so feel free to open an issue with your ideas if you happen to have one. In the meantime, just be careful and avoid running a daemon as root.
 

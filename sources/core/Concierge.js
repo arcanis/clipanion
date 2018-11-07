@@ -341,10 +341,11 @@ export class Concierge {
             stream.write(`${chalk.bold(`Usage:`)} ${execPath} ${globalOptions} <command>\n`.replace(/ +/g, ` `).replace(/ +$/, ``));
 
             let commandsByCategories = new Map();
+            let maxPathLength = 0;
 
             for (const command of this.commands) {
 
-                if (command.hiddenCommand)
+                if (command.hiddenCommand || command.path.some(component => component.startsWith(`_`)))
                     continue;
 
                 let categoryCommands = commandsByCategories.get(command.category);
@@ -354,12 +355,20 @@ export class Concierge {
 
                 categoryCommands.push(command);
 
+                let thisPathLength = command.path.join(` `).length;
+
+                if (thisPathLength > maxPathLength) {
+                    maxPathLength = thisPathLength;
+                }
+
             }
 
             let categoryNames = Array.from(commandsByCategories.keys()).sort((a, b) => {
 
                 if (a === null)
                     return -1;
+                if (b === null)
+                    return +1;
 
                 return a.localeCompare(b, `en`, {usage: `sort`, caseFirst: `upper`});
 
@@ -382,16 +391,12 @@ export class Concierge {
                 stream.write(`${chalk.bold(`${header}:`)}\n`);
                 stream.write(`\n`);
 
-                let maxPathLength = Math.max(0, ... commands.map(command => {
-                    return command.path.join(` `).length;
-                }));
-
                 let pad = str => {
                     return `${str}${` `.repeat(maxPathLength - str.length)}`;
                 };
 
                 for (let command of commands) {
-                    stream.write(`  ${chalk.bold(pad(command.path.join(` `)))}  ${command.description.trim() || `undocumented`}\n`);
+                    stream.write(`  ${chalk.bold(pad(command.path.join(` `)))}  ${command.description ? command.description.trim() : `undocumented`}\n`);
                 }
 
             }

@@ -5,7 +5,7 @@ let daemon = makeDaemon(concierge, {
     port: 9242
 });
 
-daemon.command(`init`)
+daemon.command(`_init`)
     .action(({ stdout }) => { stdout.write(`init completed\n`) });
 
 daemon.command(`test`)

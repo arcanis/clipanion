@@ -18,9 +18,11 @@ function wrapFunction(object, name, replacement) {
 
 export function makeDaemon(concierge, { port } = {}) {
 
+    const category = `Daemon commands (port ${port})`;
+
     concierge.topLevel(`[--no-daemon]`);
 
-    concierge.command(`start [... init-args]`).action(({ argv0, stdin, stdout, stderr, initArgs }) => {
+    concierge.command(`start [... init-args]`).categorize(category).describe(`start a standalone daemon`).action(({ argv0, stdin, stdout, stderr, initArgs }) => {
 
         return new Promise((resolve, reject) => {
 
@@ -101,7 +103,7 @@ export function makeDaemon(concierge, { port } = {}) {
                 } else {
 
                     Promise.resolve().then(() => {
-                        return concierge.run(argv0, [ `init`, `--no-daemon`, ... initArgs ], { stdin, stdout, stderr });
+                        return concierge.run(argv0, [ `_init`, `--no-daemon`, ... initArgs ], { stdin, stdout, stderr });
                     }).then(resolveInit, rejectInit).then(() => {
                         stdout.write(`The daemon is now listening on port ${port}...\n`);
                     });
@@ -114,7 +116,7 @@ export function makeDaemon(concierge, { port } = {}) {
 
     });
 
-    concierge.command(`status`).action(({ stdout }) => new Promise((resolve, reject) => {
+    concierge.command(`status`).categorize(category).describe(`check the daemon status`).action(({ stdout }) => new Promise((resolve, reject) => {
 
         let request = http.request({
 

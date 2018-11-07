@@ -59,7 +59,7 @@ optionArgument
 = [A-Z][A-Z0-9]*("-"[A-Z][A-Z0-9]*)* { return text() }
 
 identifier
-= [a-z][a-z0-9]*("-"[a-z][a-z0-9]*)* { return text() }
+= "_"?[a-z][a-z0-9]*("-"[a-z][a-z0-9]*)* { return text() }
 
 S
 = [ ]
