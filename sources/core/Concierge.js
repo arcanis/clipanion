@@ -551,6 +551,17 @@ export class Concierge {
                 let current = parsedArgv[t];
                 let next = parsedArgv[t + 1];
 
+                // If we're currently processing a command that accepts arguments by proxy, we treat all following tokens as raw strings
+                if (selectedCommand && selectedCommand.proxyArguments) {
+
+                    current = {... current};
+                    current.type = RAW_STRING;
+
+                    next = {... next};
+                    next.type = RAW_STRING;
+
+                }
+
                 switch (current.type) {
 
                     case MALFORMED_OPTION: {
@@ -738,17 +749,8 @@ export class Concierge {
 
                             candidateCommands = nextCandidates.filter(candidate => candidate !== nextSelectedCommand);
 
-                            // If we've jumped on a proxy command, then we lock it now and here, and we forward everything else as "rest" parameter
-                            if (selectedCommand && selectedCommand.proxyArguments) {
-
-                                lockCommand();
-
-                                for (t = t + 1; t < T; ++t) {
-                                    rest.push(parsedArgv[t].literal);
-                                }
-
                             // If there's absolutely no other command we can switch to, then we can lock the current one right away, so that we can start parsing its options
-                            } else if (candidateCommands.length === 0) {
+                            if (candidateCommands.length === 0) {
 
                                 lockCommand();
 
