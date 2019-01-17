@@ -430,7 +430,7 @@ export class Concierge {
         this.check();
 
         // This object is the one we'll fill with the parsed options
-        let env = { argv0, stdin, stdout, stderr };
+        let env = { argv0, stdin, stdout, stderr, ... initialEnv };
 
         // This array will contain the literals that will be forwarded to the command as positional arguments
         let rest = [];
