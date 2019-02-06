@@ -303,14 +303,23 @@ export class Concierge {
             if (!error) {
 
                 if (command.description) {
-                    stream.write(`\n`);
-                    stream.write(command.description.replace(/^[a-z]/, $0 => $0.toUpperCase()));
+
+                    let capitalized = command.description.replace(/^[a-z]/, $0 => $0.toUpperCase());
+
+                    if (command.details || command.examples.length > 0) {
+                        stream.write(`\n`);
+                        stream.write(`${capitalized}\n`);
+                    } else {
+                        stream.write(`       ${capitalized}\n`);
+                    }
+
                 }
 
                 if (command.details) {
 
                     stream.write(`\n`);
                     stream.write(`${chalk.bold(`Details:`)}\n`);
+                    stream.write(`\n`);
 
                     stream.write(command.details);
 

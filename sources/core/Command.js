@@ -1,3 +1,5 @@
+import chalk from 'chalk';
+
 function extractContent(text, paragraphs) {
 
     text = text.replace(/^[\t ]+|[\t ]+$/gm, ``);
@@ -9,6 +11,10 @@ function extractContent(text, paragraphs) {
             return paragraph.match(/(.{1,80})(?: |$)/g).join(`\n`);
         }).join(`\n\n`);
     }
+
+    text = text.replace(/(`+)((?:.|[\n])*?)\1/, ($0, $1) => {
+        return chalk.magenta($1);
+    });
 
     return text ? text + `\n` : ``;
 
