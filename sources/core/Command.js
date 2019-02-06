@@ -7,9 +7,9 @@ function extractContent(text, paragraphs) {
     text = text.replace(/\n(\n)?\n*/g, `$1`);
 
     if (paragraphs) {
-      text = text.split(/\n/g).map(function (paragraph) {
+      text = text.split(/\r\n|\r|\n/g).map(function (paragraph) {
 
-        let bulletMatch = paragraph.match(/[*-][\t ]+(.*)/);
+        let bulletMatch = paragraph.match(/^[*-][\t ]+(.*)/);
 
         if (bulletMatch) {
           return bulletMatch[1].match(/(.{1,78})(?: |$)/g).map((line, index) => {

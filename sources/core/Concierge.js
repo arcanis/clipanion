@@ -310,9 +310,17 @@ export class Concierge {
 
                 }
 
-                stream.write(`${chalk.bold(`Usage:`)}\n`);
-                stream.write(`\n`);
-                stream.write(`${argv0 || ``} ${commandPath} ${requiredArguments} ${optionalArguments} ${commandOptions}\n`.replace(/ +/g, ` `).replace(/^ +| +$/g, ``));
+                if (command.details || command.examples.length > 0) {
+
+                    stream.write(`${chalk.bold(`Usage:`)}\n`);
+                    stream.write(`\n`);
+                    stream.write(`${argv0 || ``} ${commandPath} ${requiredArguments} ${optionalArguments} ${commandOptions}\n`.replace(/ +/g, ` `).replace(/^ +| +$/g, ``));
+
+                } else {
+
+                    stream.write(`${chalk.bold(`Usage:`)} ${argv0 || ``} ${commandPath} ${requiredArguments} ${optionalArguments} ${commandOptions}\n`.replace(/ +/g, ` `).replace(/^ +| +$/g, ``));
+
+                }
 
                 if (command.details) {
 
@@ -836,7 +844,7 @@ export class Concierge {
                 if (selectedCommand.validator)
                     validator = validator.concat(selectedCommand.validator);
 
-                let validationResults = this.joi.validate(env, validator);
+                let validationResults = this.Joi.validate(env, validator);
 
                 if (validationResults.error) {
 
