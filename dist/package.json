@@ -1,6 +1,6 @@
 {
   "name": "@manaflair/concierge",
-  "version": "0.9.6",
+  "version": "0.9.7",
   "license": "MIT",
   "scripts": {
     "genparse": "pegjs -o sources/core/parse.js sources/core/command.peg",
