@@ -14,13 +14,6 @@ let standardOptions = [ {
 
     argumentName: null,
 
-}, {
-
-    shortName: `c`,
-    longName: `config`,
-
-    argumentName: `NAME`
-
 } ];
 
 function runMaybePromises(callbacks, returnIndex) {
@@ -125,15 +118,24 @@ function getOptionString(options) {
 
 export class Concierge {
 
-    constructor() {
+    constructor({configKey = `config`} = {}) {
 
         this.commands = [];
 
         this.validator = null;
-        this.options = standardOptions;
+        this.options = standardOptions.slice();
 
         this.beforeEachList = [];
         this.afterEachList = [];
+
+        this.hasConfig = configKey !== null;
+
+        if (this.hasConfig) {
+            this.commands.push({
+                longName: configKey,
+                argumentName: `PATH`
+            });
+        }
 
     }
 
@@ -288,17 +290,12 @@ export class Concierge {
 
         if (command) {
 
-            let execPath = argv0 ? [].concat(argv0).join(` `) : `???`;
-
             let commandPath = command.path.join(` `);
 
             let requiredArguments = command.requiredArguments.map(name => `<${name}>`).join(` `);
             let optionalArguments = command.optionalArguments.map(name => `[${name}]`).join(` `);
 
-            let globalOptions = getOptionString(this.options);
             let commandOptions = getOptionString(command.options);
-
-            stream.write(`${chalk.bold(`Usage:`)} ${execPath} ${globalOptions} ${commandPath} ${requiredArguments} ${optionalArguments} ${commandOptions}\n`.replace(/ +/g, ` `).replace(/ +$/, ``));
 
             if (!error) {
 
@@ -314,6 +311,10 @@ export class Concierge {
                     }
 
                 }
+
+                stream.write(`${chalk.bold(`Usage:`)}\n`);
+                stream.write(`\n`);
+                stream.write(`${argv0 || ``} ${commandPath} ${requiredArguments} ${optionalArguments} ${commandOptions}\n`.replace(/ +/g, ` `).replace(/^ +| +$/g, ``));
 
                 if (command.details) {
 
@@ -339,15 +340,17 @@ export class Concierge {
 
                 }
 
+            } else {
+
+                stream.write(`${chalk.bold(`Usage:`)} ${argv0 || ``} ${commandPath} ${requiredArguments} ${optionalArguments} ${commandOptions}\n`.replace(/ +/g, ` `).replace(/^ +| +$/g, ``));
+
             }
 
         } else {
 
-            let execPath = argv0 ? [].concat(argv0).join(` `) : `???`;
-
             let globalOptions = getOptionString(this.options);
 
-            stream.write(`${chalk.bold(`Usage:`)} ${execPath} ${globalOptions} <command>\n`.replace(/ +/g, ` `).replace(/ +$/, ``));
+            stream.write(`${chalk.bold(`Usage:`)} ${argv0 || `<binary>`} ${globalOptions} <command>\n`.replace(/ +/g, ` `).replace(/ +$/, ``));
 
             let commandsByCategories = new Map();
             let maxPathLength = 0;
@@ -864,7 +867,7 @@ export class Concierge {
 
             } else {
 
-                if (env.config) {
+                if (this.hasConfig && env.config) {
 
                     let configOptions = JSON.parse(fs.readFileSync(env.config, `utf8`));
 
