@@ -126,7 +126,7 @@ export class Command {
 
     detail(details) {
 
-        this.detail = extractContent(details, true);
+        this.details = extractContent(details, true);
 
         return this;
 
