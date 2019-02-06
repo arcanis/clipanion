@@ -116,8 +116,10 @@ concierge
 Concierge optionally uses the [Joi](https://github.com/hapijs/joi) library to validate its data. You can easily plug in your own validators:
 
 ```js
-import { concierge } from '@manaflair/concierge';
+import { Concierge } from '@manaflair/concierge';
 import Joi           from 'joi';
+
+const concierge = new Concierge({Joi});
 
 concierge
     .command(`server [-p,--port PORT]`)

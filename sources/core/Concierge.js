@@ -118,7 +118,9 @@ function getOptionString(options) {
 
 export class Concierge {
 
-    constructor({configKey = `config`} = {}) {
+    constructor({Joi, configKey = `config`} = {}) {
+
+        this.Joi = Joi;
 
         this.commands = [];
 
@@ -303,12 +305,8 @@ export class Concierge {
 
                     let capitalized = command.description.replace(/^[a-z]/, $0 => $0.toUpperCase());
 
-                    if (command.details || command.examples.length > 0) {
-                        stream.write(`       ${capitalized}`);
-                    } else {
-                        stream.write(`\n`);
-                        stream.write(capitalized);
-                    }
+                    stream.write(capitalized);
+                    stream.write(`\n`);
 
                 }
 
@@ -430,8 +428,17 @@ export class Concierge {
         if (new Set(topLevelNames).size !== topLevelNames.length)
             throw new Error(`Some top-level parameter names are conflicting together`);
 
+        if (this.validator && !this.Joi)
+            throw new Error(`Validators cannot be used unless Joi has been setup`);
+
         for (let command of this.commands) {
+
             command.check(topLevelNames);
+
+            if (command.validator && !this.Joi) {
+                throw new Error(`Validators cannot be used unless Joi has been setup`);
+            }
+
         }
 
     }
@@ -821,16 +828,7 @@ export class Concierge {
 
             if (this.validator || selectedCommand.validator) {
 
-                let Joi;
-
-                try {
-                    Joi = require(`joi`);
-                } catch (error) {
-                    // Should fool webpack into not emitting errors if the (optional) dependency cannot be found
-                    throw error;
-                }
-
-                let validator = Joi.any();
+                let validator = this.Joi.any();
 
                 if (this.validator)
                     validator = validator.concat(this.validator);
@@ -838,7 +836,7 @@ export class Concierge {
                 if (selectedCommand.validator)
                     validator = validator.concat(selectedCommand.validator);
 
-                let validationResults = Joi.validate(env, validator);
+                let validationResults = this.joi.validate(env, validator);
 
                 if (validationResults.error) {
 
