@@ -131,7 +131,7 @@ export class Concierge {
         this.hasConfig = configKey !== null;
 
         if (this.hasConfig) {
-            this.commands.push({
+            this.options.push({
                 longName: configKey,
                 argumentName: `PATH`
             });
