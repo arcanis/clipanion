@@ -7,13 +7,23 @@ function extractContent(text, paragraphs) {
     text = text.replace(/\n(\n)?\n*/g, `$1`);
 
     if (paragraphs) {
-        text = text.split(/\n/g).map(paragraph => {
-            return paragraph.match(/(.{1,80})(?: |$)/g).join(`\n`);
-        }).join(`\n\n`);
+      text = text.split(/\n/g).map(function (paragraph) {
+
+        let bulletMatch = paragraph.match(/[*-][\t ]+(.*)/);
+
+        if (bulletMatch) {
+          return bulletMatch[1].match(/(.{1,78})(?: |$)/g).map((line, index) => {
+            return (index === 0 ? `- ` : `  `) + line;
+          }).join('\n');
+        } else {
+          return paragraph.match(/(.{1,80})(?: |$)/g).join('\n');
+        }
+
+      }).join('\n\n');
     }
 
-    text = text.replace(/(`+)((?:.|[\n])*?)\1/, ($0, $1) => {
-        return chalk.magenta($1);
+    text = text.replace(/(`+)((?:.|[\n])*?)\1/g, function ($0, $1, $2) {
+        return chalk.cyan($1 + $2 + $1);
     });
 
     return text ? text + `\n` : ``;

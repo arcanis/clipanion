@@ -307,10 +307,10 @@ export class Concierge {
                     let capitalized = command.description.replace(/^[a-z]/, $0 => $0.toUpperCase());
 
                     if (command.details || command.examples.length > 0) {
-                        stream.write(`\n`);
-                        stream.write(`${capitalized}\n`);
+                        stream.write(`       ${capitalized}`);
                     } else {
-                        stream.write(`       ${capitalized}\n`);
+                        stream.write(`\n`);
+                        stream.write(capitalized);
                     }
 
                 }
