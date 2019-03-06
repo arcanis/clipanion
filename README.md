@@ -51,7 +51,7 @@ Two options are standard and work without any interaction from your part:
   - `-h,--help` will automatically print the help, also available as `.usage()`
   - `-c,--config` will load a JSON file and use it as input once the command line has been fully read
 
-It's not possible to disable them at the time.
+While `-h` cannot be disabled at this time, `-c` can be toggled off by passing `configKey: null` in the constructor of the `Concierge` class.
 
 ## Patterns
 
@@ -70,9 +70,10 @@ global add <pkg-name>         ; "global add" will be the command name, "pkg-name
 global add [pkg-name]         ; "global add" will be the command name, "pkg-name" will be an optional argument
 global add [... args]         ; will accept any number of arguments, potentially zero
 global add <first> [... rest] ; will require at least one argument, potentially more
-install [-v]                  ; the "v" option will be true, false, or undefined
+install [-v]                  ; the "v" option will be true or false
 install [-vvv]                ; the "v" option will become a counter, from 0 to 3 included
-install [-v,--verbose]        ; the "verbose" option will be true (--verbose), false (--no-verbose), or undefined
+install [-v,--verbose]        ; the "verbose" option will be true (--verbose), or false (--no-verbose), or unspecified
+install [--frozen-lockfile?]  ; the "frozenLockfile" option will be true (--frozen-lockfile), false (--no-frozen-lockfile), or null
 execute [--output TARGET...]  ; the "output" option will be an array of strings (empty if the option is never set)
 download [-u,--url URL]       ; the "url" option will expect a parameter, or will be "null" if --no-url is used
 download [--with-ssl]         ; the "ssl" option will be true (--with-ssl), false (--without-ssl), or undefined

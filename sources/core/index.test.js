@@ -6,7 +6,7 @@ concierge
     .topLevel(``);
 
 concierge
-    .command(`command-a [... rest] [-v,-vv,-vvv,--verbose] [-F,--no-foo] [-X,--without-foobar] [-b,--bar] [-a,--arg ARG] [--many-args ARGS...]`)
+    .command(`command-a [... rest] [-v,-vv,-vvv,--verbose] [-F,--no-foo] [-X,--without-foobar] [-b,--bar] [--baz?] [-a,--arg ARG] [--many-args ARGS...]`)
     .aliases(`a`)
     .action(env => [ `command-a`, env ]);
 
@@ -66,11 +66,20 @@ describe(`concierge`, () => {
 
     });
 
+    it(`should assign "null" as initial value for regular options if the "?" flag is set`, () => {
+
+        let [ command, env ] = concierge.run(null, [ `command-a` ]);
+
+        expect(env.baz).to.equal(null);
+
+    });
+
     it(`should assign "true" when using a regular option long name`, () => {
 
-        let [ command, env ] = concierge.run(null, [ `command-a`, `--bar` ]);
+        let [ command, env ] = concierge.run(null, [ `command-a`, `--bar`, `--baz` ]);
 
         expect(env.bar).to.equal(true);
+        expect(env.baz).to.equal(true);
 
     });
 
@@ -93,10 +102,11 @@ describe(`concierge`, () => {
 
     it(`should assign "false" when using a --no- option long name`, () => {
 
-        let [ command, env ] = concierge.run(null, [ `command-a`, `--no-foo`, `--without-foobar` ]);
+        let [ command, env ] = concierge.run(null, [ `command-a`, `--no-foo`, `--without-foobar`, `--no-baz` ]);
 
         expect(env.foo).to.equal(false);
         expect(env.withFoobar).to.equal(false);
+        expect(env.baz).to.equal(false);
 
     });
 

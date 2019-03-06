@@ -39,11 +39,15 @@ option
 = "[-" names:shortOptionName+ "]" { return names.map(shortName => Object.assign({}, shortName, { longName: null, argumentName: null })) }
 / "[" names:optionNames S+ argumentName:optionArgument S* "...]" { return [ Object.assign({}, names, { argumentName, initialValue: [] }) ] }
 / "[" names:optionNames S+ argumentName:optionArgument "]" { return [ Object.assign({}, names, { argumentName, initialValue: undefined }) ] }
+/ "[" names:optionNamesNoRepeat "?]" { return [ Object.assign({}, names, { argumentName: null, initialValue: null }) ] }
 / "[" names:optionNames "]" { return [ Object.assign({}, names, { argumentName: null }) ] }
 
 optionNames
 = "-" shortName:shortOptionName repeats:(",-" repeat:(shortOptionName+ { return text() }) { return repeat })+ longName:(",--" longName:longOptionName { return longName })? &{ return repeats.every((repeat, index) => repeat === shortName.shortName.repeat(2 + index)) } { return Object.assign({}, shortName, longName, { initialValue: 0, maxValue: 1 + repeats.length }) }
-/ "-" shortName:shortOptionName ",--" longName:longOptionName { return Object.assign({}, shortName, longName) }
+/ optionNamesNoRepeat
+
+optionNamesNoRepeat
+= "-" shortName:shortOptionName ",--" longName:longOptionName { return Object.assign({}, shortName, longName) }
 / "-" shortName:shortOptionName { return Object.assign({}, shortName, { longName: null }) }
 / "--" longName:longOptionName { return Object.assign({}, longName, { shortName: null }) }
 
