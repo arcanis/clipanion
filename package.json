@@ -5,7 +5,7 @@
     "license": "MIT",
     "scripts": {
         "genparse": "pegjs -o sources/core/parse.js sources/core/command.peg",
-        "build": "yarn genparse && babel -d dist/ sources/ && rm -f $(find dist -name '*.test.js')",
+        "build": "yarn genparse && babel -D -d dist/ sources/ && rm -f $(find dist -name '*.test.js')",
         "test": "mocha --compilers js:babel-register -r core-js $(find sources -name '*.test.js')",
         "push": "yarn build && cp README.md dist/ && jq 'del(.private)' package.json > dist/package.json && (cd dist && yarn publish)"
     },
