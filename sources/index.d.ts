@@ -1,10 +1,13 @@
 import {Readable, Writable} from 'stream';
 
-export interface Environment {
-  stdin: Readable;
-  stdout: Writable;
-  stderr: Writable;
-  [key: string]: any;
+export type Validator = any;
+export type Environment = any;
+
+export class UsageError {
+  constructor(message: string);
+
+  message: string;
+  isUsageError: true;
 }
 
 export interface Command {
@@ -20,10 +23,12 @@ export interface Command {
   detail(details: string): Command;
   example(description: string, example: string): Command;
 
-  action(action: (env: Environment) => Number | undefined): Command;
+  action(action: (env: Environment) => Promise<Number | undefined> | Number | undefined): Command;
 }
 
 export class Concierge {
+  constructor(opts: {Joi?: any, configKey?: string | null});
+
   beforeEach(callback: (env: Environment) => void): Concierge;
   afterEach(callback: (env: Environment) => void): Concierge;
 
@@ -39,8 +44,8 @@ export class Concierge {
 
   check(): void;
 
-  run(argv0: string, argv: Array<string>, opts: {stdin?: Readable, stdout?: Writable, stderr?: Writable}): void;
-  runExit(argv0: string, argv: Array<string>, opts: {stdin?: Readable, stdout?: Writable, stderr?: Writable}): Promise<void>;
+  run(argv0: string, argv: Array<string>, opts?: Partial<Environment>): Promise<Number | undefined> | Number | undefined;
+  runExit(argv0: string, argv: Array<string>, opts?: Partial<Environment>): Promise<void>;
 }
 
-export = Concierge;
+export default Concierge;
