@@ -258,11 +258,11 @@ export class Concierge {
 
     error(error, { stream }) {
 
-        if (error instanceof UsageError) {
+        if (error && error.isUsageError) {
 
             stream.write(`${chalk.red.bold(`Error`)}${chalk.bold(`:`)} ${error.message}\n`);
 
-        } else if (typeof error === `object` && error && error.message) {
+        } else if (error && error.message) {
 
             let stackIndex = error.stack ? error.stack.search(/\n *at /) : -1;
 
@@ -942,7 +942,7 @@ export class Concierge {
 
                     result = result.then(null, error => {
 
-                        if (error instanceof UsageError) {
+                        if (error && error.isUsageError) {
 
                             this.usage(argv0, { command: selectedCommand, error, stream: stderr });
 
@@ -964,7 +964,7 @@ export class Concierge {
 
         } catch (error) {
 
-            if (error instanceof UsageError) {
+            if (error && error.isUsageError) {
 
                 this.usage(argv0, { command: selectedCommand, error, stream: stderr });
 

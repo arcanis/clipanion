@@ -4,6 +4,8 @@ export class UsageError {
 
         this.message = message;
 
+        this.isUsageError = true;
+
     }
 
 }
