@@ -579,7 +579,7 @@ export class Concierge {
                 let next = parsedArgv[t + 1];
 
                 // If we're currently processing a command that accepts arguments by proxy, we treat all following tokens as raw strings
-                if (selectedCommand && selectedCommand.proxyArguments) {
+                if (selectedCommand && selectedCommand.proxyArguments && rest.length >= selectedCommand.requiredArguments) {
 
                     current = {... current};
                     current.type = RAW_STRING;

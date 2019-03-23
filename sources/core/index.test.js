@@ -26,7 +26,7 @@ concierge
     .action(env => [ `command-proxy`, env ]);
 
 concierge
-    .command(`command-proxy-with-arg <arg> [... rest]`)
+    .command(`command-proxy-with-arg <arg> [... rest] [-f,--foo]`)
     .flags({ proxyArguments: true })
     .action(env => [ `command-proxy-with-arg`, env ]);
 
@@ -303,6 +303,17 @@ describe(`concierge`, () => {
         let [ command, env ] = concierge.run(null, [ `command-proxy-with-arg`, `foo`, `bar` ]);
 
         expect(command).to.equal(`command-proxy-with-arg`);
+        expect(env.arg).to.equal(`foo`);
+        expect(env.rest).to.deep.equal([ `bar` ]);
+
+    });
+
+    it(`should interpret the option flags provided before explicitly defined positional options`, () => {
+
+        let [ command, env ] = concierge.run(null, [ `command-proxy-with-arg`, `--foo`, `foo`, `bar` ]);
+
+        expect(command).to.equal(`command-proxy-with-arg`);
+        expect(env.foo).to.equal(true);
         expect(env.arg).to.equal(`foo`);
         expect(env.rest).to.deep.equal([ `bar` ]);
 
