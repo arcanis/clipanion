@@ -14,7 +14,7 @@ $> yarn add clipanion
 
 ## Why
 
-  - Clipanion supports commands with any number of components (for example `yarn constraints fix`)
+  - Clipanion supports both simple CLI and more complex ones with multiple level of commands (for example `yarn constraints fix`)
   - Clipanion supports proxy commands (for example `yarn run eslint --help`, where `--help` is an option that must be forwarded to `eslint`, not consumed by `yarn run`)
   - Clipanion supports a bunch of option types: boolean, numbered (`-vv`), with arguments (`-x VAL`), arrays (`-x VAL ...`), negations (`--no-optionals` / `--without-openssl`), ...
   - Clipanion finds out the type of the options based on their declaration, and gives them useful default (`false` for booleans, `0` for numbers, ...)
