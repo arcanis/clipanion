@@ -26,18 +26,18 @@ export interface Command {
   action(action: (env: Environment) => Promise<Number | undefined> | Number | undefined): Command;
 }
 
-export class Concierge {
+export class Clipanion {
   constructor(opts: {Joi?: any, configKey?: string | null});
 
-  beforeEach(callback: (env: Environment) => void): Concierge;
-  afterEach(callback: (env: Environment) => void): Concierge;
+  beforeEach(callback: (env: Environment) => void): Clipanion;
+  afterEach(callback: (env: Environment) => void): Clipanion;
 
-  directory(startingPath: string | any, recursive?: boolean, pattern?: RegExp): Concierge;
+  directory(startingPath: string | any, recursive?: boolean, pattern?: RegExp): Clipanion;
 
-  topLevel(pattern: string): Concierge;
+  topLevel(pattern: string): Clipanion;
   command(pattern: string): Command;
 
-  validate(validator: Validator): Concierge;
+  validate(validator: Validator): Clipanion;
 
   error(error: Error, opts: {stream: Writable}): void;
   usage(argv0: string, opts: {command?: Command | null, error?: Error | null, stream?: Writable}): void;
@@ -48,4 +48,4 @@ export class Concierge {
   runExit(argv0: string, argv: Array<string>, opts?: Partial<Environment>): Promise<void>;
 }
 
-export default Concierge;
+export default Clipanion;

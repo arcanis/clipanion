@@ -1,7 +1,8 @@
 {
-    "name": "@manaflair/concierge",
+    "name": "clipanion",
     "version": "0.12.3",
     "license": "MIT",
+    "main": "./sources/core/index.js",
     "scripts": {
         "genparse": "pegjs -o sources/core/parse.js sources/core/command.peg",
         "prepublishOnly": "yarn genparse && yarn test",

@@ -1,4 +1,4 @@
 exports.UsageError = require('./UsageError').UsageError;
-exports.Concierge  = require('./Concierge').Concierge;
+exports.Clipanion  = require('./Clipanion').Clipanion;
 
-exports.concierge  = new exports.Concierge();
+exports.clipanion  = new exports.Clipanion();

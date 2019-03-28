@@ -71,7 +71,7 @@ function getOptionString(options) {
 
 }
 
-exports.Concierge = class Concierge {
+exports.Clipanion = class Clipanion {
 
     constructor({configKey = `config`} = {}) {
 

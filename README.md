@@ -4,41 +4,54 @@
 
 > A companion to manage your CLI applications without hassle
 
+[![](https://img.shields.io/npm/v/clipanion.svg)]() [![](https://img.shields.io/npm/l/clipanion.svg)]()
+
 ## Installation
 
 ```
-$> npm install --save @manaflair/concierge
+$> yarn add clipanion
 ```
+
+## Why
+
+  - Clipanion supports commands with any number of components (for example `yarn constraints fix`)
+  - Clipanion supports proxy commands (for example `yarn run eslint --help`, where `--help` is an option that must be forwarded to `eslint`, not consumed by `yarn run`)
+  - Clipanion supports a bunch of option types: boolean, numbered (`-vv`), with arguments (`-x VAL`), arrays (`-x VAL ...`), negations (`--no-optionals` / `--without-openssl`), ...
+  - Clipanion finds out the type of the options based on their declaration, and gives them useful default (`false` for booleans, `0` for numbers, ...)
+  - Clipanion supports parameter validation for when the default cohercion isn't enough (using [Yup](https://github.com/jquense/yup))
+  - Clipanion generates good-looking help pages
+
+Clipanion is used in [Yarn](https://github.com/yarnpkg/berry) with great success.
 
 ## Usage
 
 ```js
-import { concierge } from '@manaflair/concierge';
+const { clipanion } = require('clipanion');
 
-concierge
+clipanion
     .topLevel(`[-v,--verbose]`);
 
-concierge
+clipanion
     .command(`install [--production]`)
     .describe(`Install all packages located into your package.json`)
     .action(() => { /* ... */ });
 
-concierge
+clipanion
     .command(`add <pkg-name> [... others-pkgs] [-D,--dev] [-P,--peer] [-O,--optional] [-E,--exact] [-T,--tilde]`)
     .describe(`Add a package to your package.json`)
     .action(() => { /* ... */ });
 
-concierge
+clipanion
     .command(`remove <pkg-name> [... other-pkgs]`)
     .describe(`Remove a package from your package.json`)
     .action(() => { /* ... */ });
 
-concierge
+clipanion
     .command(`info <pkg-name> [field] [--json]`)
     .describe(`Fetch informations about a package`)
     .action(() => { /* ... */ });
 
-concierge
+clipanion
     .runExit(process.argv0, process.argv.slice(2));
 ```
 
@@ -49,11 +62,11 @@ Two options are standard and work without any interaction from your part:
   - `-h,--help` will automatically print the help, also available as `.usage()`
   - `-c,--config` will load a JSON file and use it as input once the command line has been fully read
 
-While `-h` cannot be disabled at this time, `-c` can be toggled off by passing `configKey: null` in the constructor of the `Concierge` class.
+While `-h` cannot be disabled at this time, `-c` can be toggled off by passing `configKey: null` in the constructor of the `Clipanion` class.
 
 ## Patterns
 
-Concierge automatically deduces command definitions from what we call patterns. A pattern syntax is as follow:
+Clipanion automatically deduces command definitions from what we call patterns. A pattern syntax is as follow:
 
 ```
 command-name <required-arg-1> <required-arg-2> [optional-arg-1] [... spread-name] [-s,--long-name ARGNAME]
@@ -101,9 +114,9 @@ The environment values have the following properties, excluding any extra valida
 Add the `defaultCommand` flag to your command:
 
 ```js
-import { concierge, flags } from '@manaflair/concierge';
+const { clipanion, flags } = require('clipanion');
 
-concierge
+clipanion
     .command(`install [--production]`)
     .describe(`Install all packages located into your package.json`)
     .flag({ defaultCommand: true })
@@ -112,63 +125,47 @@ concierge
 
 ## Validation
 
-Concierge optionally uses the [Yup](https://github.com/jquense/yup) library to validate its data. You can easily plug in your own validators:
+Clipanion integrates out of the box with the [Yup](https://github.com/jquense/yup) library to validate and transform your data into the specific types that you expect (while also providing your users decent feedback if they enter invalid parameters):
 
 ```js
-import { Concierge } from '@manaflair/concierge';
-import Joi           from 'joi';
+const { clipanion } = require('clipanion');
+const yup           = require('yup');
 
-const concierge = new Concierge({Joi});
-
-concierge
+clipanion
     .command(`server [-p,--port PORT]`)
     .describe(`Run a server on the specified port`)
-    .validate(Joi.object().keys({ port: Joi.number().min(1).max(65535).default(8080) }).unknown())
+    .validate(yup.object().shape({ port: yup.number().min(1).max(65535).default(8080) }).unknown())
     .action(() => { /* ... */ });
 
-concierge
+clipanion
     .runExit(process.argv0, process.argv.slice(2));
 ```
 
-Note that Joi will automatically coherce any value to its expected type if possible, so it is advised that you use it when your options expect arguments (so that you don't end up working with strings or booleans instead of numbers, for example).
-
 ## Command folder
 
-You can split you cli into multiple files by using the `directory()` function:
+You can split you cli into multiple files by using the `directory()` function, which will load all files matching a specific regex:
 
 ```js
-concierge
+clipanion
     .directory(`${__dirname}/commands`, true, /\.js$/);
 ```
 
-It also works fine with Webpack:
+The API mimics `require.context` from Webpack for a good reason - it also accepts its return value:
 
 ```js
-concierge
+clipanion
     .directory(require.context(`./commands`, true, /\.js$/));
-```
-
-However, in such a case it is advised to do the following, so that you can use your code without having to compile it through Webpack (useful if you want to dev your application using babel-node or similar):
-
-```js
-typeof IS_WEBPACK === `undefined` && concierge
-    .directory(`${__dirname}/commands`, true, /\.js$/);
-
-typeof IS_WEBPACK !== `undefined` && concierge
-    .directory(require.context(`./commands`, true, /\.js$/));
-
-// Don't forget to add "new DefinePlugin({ IS_WEBPACK: true })" in your webpack.config.js
 ```
 
 ## Daemon plugin
 
-Concierge ships with an optional plugin that allows you to run your programs in a daemon mode. In order to use it, just use the `makeDaemon` function and you're ready to go:
+Clipanion ships with an optional and slightly experimental plugin that allows you to run your programs in a daemon mode. When under this mode, Clipanion will add a few predefined commands to your application (such as `start` and `stop`). Running any other one will cause Clipanion to open a connection to the master process and request it to execute the specified command within its own context. The command will then be executed by the master within an adjusted environment (the stdio stream traditionally sent to the Clipanion commands will be special streams that will be forwarded from and to the agent process).
 
 ```js
-import { makeDaemon } from '@manaflair/concierge/extra/daemon';
-import { concierge }  from '@manaflair/concierge';
+const { makeDaemon } = require('clipanion/daemon');
+const { clipanion }  = require('clipanion');
 
-const daemon = makeDaemon(concierge, {
+const daemon = makeDaemon(clipanion, {
     port: 4242
 });
 
@@ -194,11 +191,11 @@ You are expected to implement a few commands by yourself. They will automaticall
   - `_init` will be called by `start` and `restart`, and should prepare everything needed for your application to be in valid state. The daemon will start only after this command returns.
   - `_cleanup` will be called by `stop` and `restart`, and should clean everything needed. When it returns, the `start` command will return, usually ending the process.
 
-Last important note: the current daemon implementation **is not secure by default**. Because it only listens to the localhost requests it should be impossible for an external attacker to execute requests on your server, however it is possible for any local user (ie people who have an account on the same machine) to send crafted requests to the daemon, that will then be executed with the privileges of the user that started the daemon. I have no idea how to fix this, so feel free to open an issue with your ideas if you happen to have one. In the meantime, just be careful and avoid running a daemon as root.
+Last important note: the current daemon implementation **is not secure by default**. Because it only watches localhost it should be impossible for an external attacker to execute requests on your server, however it is possible for any local user (ie people who have an account on the same machine) to send crafted requests to the daemon which will then be executed with the privileges of the user that started the daemon. In order to prevent this, you'll have to implement your own authentication scheme.
 
 ## License (MIT)
 
-> **Copyright © 2016 Manaflair**
+> **Copyright © 2019 Mael Nison**
 >
 > Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 >

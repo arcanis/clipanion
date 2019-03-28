@@ -32,9 +32,9 @@ function extractContent(text, paragraphs) {
 
 exports.Command = class Command {
 
-    constructor(concierge, definition) {
+    constructor(clipanion, definition) {
 
-        this.concierge = concierge;
+        this.clipanion = clipanion;
 
         // An array with the command "path" (ie the words that are required to run the command)
         this.path = definition.path;
@@ -78,7 +78,7 @@ exports.Command = class Command {
 
     alias(pattern) {
 
-        this.concierge.command(`${pattern} [... rest]`)
+        this.clipanion.command(`${pattern} [... rest]`)
 
             .flags({
 
@@ -90,7 +90,7 @@ exports.Command = class Command {
 
             })
 
-            .action(args => this.concierge.run(args.argv0, [
+            .action(args => this.clipanion.run(args.argv0, [
                 ... this.path,
                 ... args.rest,
             ]))
