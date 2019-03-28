@@ -1,4 +1,4 @@
-import chalk from 'chalk';
+const chalk = require('chalk');
 
 function extractContent(text, paragraphs) {
 
@@ -30,7 +30,7 @@ function extractContent(text, paragraphs) {
 
 }
 
-export class Command {
+exports.Command = class Command {
 
     constructor(concierge, definition) {
 
@@ -185,4 +185,4 @@ export class Command {
 
     }
 
-}
+};

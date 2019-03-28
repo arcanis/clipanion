@@ -1,11 +1,11 @@
-export class UsageError {
+exports.UsageError = class UsageError extends Error {
 
     constructor(message) {
 
-        this.message = message;
+        super(message);
 
         this.isUsageError = true;
 
     }
 
-}
+};

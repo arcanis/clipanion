@@ -1,6 +1,4 @@
-export { UsageError } from './UsageError';
+exports.UsageError = require('./UsageError').UsageError;
+exports.Concierge  = require('./Concierge').Concierge;
 
-import { Concierge } from './Concierge';
-export { Concierge } from './Concierge';
-
-export let concierge = new Concierge();
+exports.concierge  = new exports.Concierge();

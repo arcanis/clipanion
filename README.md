@@ -4,8 +4,6 @@
 
 [![](https://img.shields.io/npm/v/@manaflair/concierge.svg)]() [![](https://img.shields.io/npm/l/@manaflair/concierge.svg)]()
 
-[Check out our other OSS projects!](https://manaflair.github.io)
-
 ## Installation
 
 ```
@@ -114,7 +112,7 @@ concierge
 
 ## Validation
 
-Concierge optionally uses the [Joi](https://github.com/hapijs/joi) library to validate its data. You can easily plug in your own validators:
+Concierge optionally uses the [Yup](https://github.com/jquense/yup) library to validate its data. You can easily plug in your own validators:
 
 ```js
 import { Concierge } from '@manaflair/concierge';

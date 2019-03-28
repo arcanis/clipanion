@@ -1,11 +1,11 @@
-import chalk            from 'chalk';
-import fs               from 'fs';
-import { camelCase }    from 'lodash';
-import path             from 'path';
+const chalk          = require('chalk');
+const fs             = require('fs');
+const camelCase      = require('camelcase');
+const path           = require('path');
 
-import { Command }      from './Command';
-import { UsageError }   from './UsageError';
-import { parse }        from './parse';
+const { Command }    = require('./Command');
+const { UsageError } = require('./UsageError');
+const { parse }      = require('./parse');
 
 let standardOptions = [ {
 
@@ -15,51 +15,6 @@ let standardOptions = [ {
     argumentName: null,
 
 } ];
-
-function runMaybePromises(callbacks, returnIndex) {
-
-    let results = new Array(callbacks.length);
-    let promise = null;
-
-    for (let t = 0; t < callbacks.length; ++t) {
-
-        let callback = callbacks[t];
-
-        if (promise) {
-
-            promise = promise.then(() => {
-                return Promise.resolve(callback()).then(result => {
-                    results[t] = result;
-                });
-            });
-
-        } else {
-
-            let result = results[t] = callback();
-
-            if (result && result.then) {
-                promise = result.then(trueResult => {
-                    results[t] = trueResult;
-                });
-            }
-
-        }
-
-    }
-
-    if (promise) {
-
-        return promise.then(() => {
-            return results[returnIndex];
-        });
-
-    } else {
-
-        return results[returnIndex];
-
-    }
-
-}
 
 function getOptionString(options) {
 
@@ -116,11 +71,11 @@ function getOptionString(options) {
 
 }
 
-export class Concierge {
+exports.Concierge = class Concierge {
 
-    constructor({Joi, configKey = `config`} = {}) {
+    constructor({configKey = `config`} = {}) {
 
-        this.Joi = Joi;
+        this.configKey = configKey;
 
         this.commands = [];
 
@@ -130,11 +85,9 @@ export class Concierge {
         this.beforeEachList = [];
         this.afterEachList = [];
 
-        this.hasConfig = configKey !== null;
-
-        if (this.hasConfig) {
+        if (this.configKey !== null) {
             this.options.push({
-                longName: configKey,
+                longName: this.configKey,
                 argumentName: `PATH`
             });
         }
@@ -297,6 +250,16 @@ export class Concierge {
             let requiredArguments = command.requiredArguments.map(name => `<${name}>`).join(` `);
             let optionalArguments = command.optionalArguments.map(name => `[${name}]`).join(` `);
 
+            if (command.spread) {
+
+                if (optionalArguments !== ``) {
+                    optionalArguments += ` [... ${command.spread}]`;
+                } else {
+                    optionalArguments += `[... ${command.spread}]`;
+                }
+
+            }
+
             let commandOptions = getOptionString(command.options);
 
             if (!error) {
@@ -436,25 +399,17 @@ export class Concierge {
         if (new Set(topLevelNames).size !== topLevelNames.length)
             throw new Error(`Some top-level parameter names are conflicting together`);
 
-        if (this.validator && !this.Joi)
-            throw new Error(`Validators cannot be used unless Joi has been setup`);
-
         for (let command of this.commands) {
-
             command.check(topLevelNames);
-
-            if (command.validator && !this.Joi) {
-                throw new Error(`Validators cannot be used unless Joi has been setup`);
-            }
-
         }
 
     }
 
-    run(argv0, argv, { stdin = process.stdin, stdout = process.stdout, stderr = process.stderr, ... initialEnv } = {}) {
+    async run(argv0, argv, { stdin = process.stdin, stdout = process.stdout, stderr = process.stderr, ... initialEnv } = {}) {
 
         // Sanity check to make sure that the configuration makes sense
-        this.check();
+        if (!process.env.NODE_ENV || process.env.NODE_ENV === 'development')
+            this.check();
 
         // This object is the one we'll fill with the parsed options
         let env = { argv0, stdin, stdout, stderr, ... initialEnv };
@@ -797,6 +752,17 @@ export class Concierge {
 
             lockCommand();
 
+            if (env.help) {
+
+                if (commandPath.length > 0)
+                    this.usage(argv0, { command: selectedCommand, stream: stdout });
+                else
+                    this.usage(argv0, { stream: stdout });
+
+                return 0;
+
+            }
+
             for (let name of selectedCommand.requiredArguments) {
 
                 if (rest.length === 0)
@@ -834,88 +800,47 @@ export class Concierge {
 
             }
 
-            if (this.validator || selectedCommand.validator) {
+            if (this.configKey !== null && typeof env[this.configKey] !== `undefined`) {
 
-                let validator = this.Joi.any();
+                let configOptions = JSON.parse(fs.readFileSync(env[this.configKey], `utf8`));
 
-                if (this.validator)
-                    validator = validator.concat(this.validator);
+                for (let name of Object.keys(configOptions)) {
 
-                if (selectedCommand.validator)
-                    validator = validator.concat(selectedCommand.validator);
+                    let option = selectedCommand.options.find(option => option.longName === optionName);
 
-                let validationResults = this.Joi.validate(env, validator);
+                    if (!option)
+                        option = this.options.find(option => option.longName === optionName);
 
-                if (validationResults.error) {
+                    if (!option)
+                        continue;
 
-                    if (validationResults.error.details.length > 1) {
-                        throw new UsageError(`Validation failed because ${validationResults.error.details.slice(0, -1).map(detail => detail.message).join(`, `)}, and ${validationResults.error.details[validationResults.error.details.length - 1].message}`);
+                    if (configOptions[name] === undefined)
+                        continue;
+
+                    if (option.argumentName) {
+
+                        if (typeof configOptions[name] === `string` || configOptions[name] === null) {
+                            env[name] = configOptions[name];
+                        } else {
+                            throw new UsageError(`Option "${name}" must be a string, null, or undefined`);
+                        }
+
                     } else {
-                        throw new UsageError(`Validation failed because ${validationResults.error.details[0].message}`);
-                    }
 
-                } else {
+                        if (option.maxValue !== undefined) {
 
-                    env = validationResults.value;
+                            if (Number.isInteger(configOptions[name])) {
+                                env[name] = Math.max(0, Math.min(Number(configOptions[name]), option.maxValue));
+                            } else {
+                                throw new UsageError(`Option "${name}" must be a number or undefined`);
+                            }
 
-                }
+                        } else {
 
-            }
-
-            if (env.help) {
-
-                if (commandPath.length > 0)
-                    this.usage(argv0, { command: selectedCommand, stream: stdout });
-                else
-                    this.usage(argv0, { stream: stdout });
-
-                return 0;
-
-            } else {
-
-                if (this.hasConfig && env.config) {
-
-                    let configOptions = JSON.parse(fs.readFileSync(env.config, `utf8`));
-
-                    for (let name of Object.keys(configOptions)) {
-
-                        let option = selectedCommand.options.find(option => option.longName === optionName);
-
-                        if (!option)
-                            option = this.options.find(option => option.longName === optionName);
-
-                        if (!option)
-                            continue;
-
-                        if (configOptions[name] === undefined)
-                            continue;
-
-                        if (option.argumentName) {
-
-                            if (typeof configOptions[name] === `string` || configOptions[name] === null) {
+                            if (typeof configOptions[name] === `boolean`) {
                                 env[name] = configOptions[name];
                             } else {
-                                throw new UsageError(`Option "${name}" must be a string, null, or undefined`);
-                            }
-
-                        } else {
-
-                            if (option.maxValue !== undefined) {
-
-                                if (Number.isInteger(configOptions[name])) {
-                                    env[name] = Math.max(0, Math.min(Number(configOptions[name]), option.maxValue));
-                                } else {
-                                    throw new UsageError(`Option "${name}" must be a number or undefined`);
-                                }
-
-                            } else {
-
-                                if (typeof configOptions[name] === `boolean`) {
-                                    env[name] = configOptions[name];
-                                } else {
-                                    throw new UsageError(`Option "${name}" must be a boolean or undefined`);
-                                }
-
+                                throw new UsageError(`Option "${name}" must be a boolean or undefined`);
                             }
 
                         }
@@ -924,43 +849,47 @@ export class Concierge {
 
                 }
 
-                let result = runMaybePromises([
+            }
 
-                    ... this.beforeEachList.map(beforeEach => () => {
-                        beforeEach(env);
-                    }),
+            if (this.validator || selectedCommand.validator) {
 
-                    () => selectedCommand.run(env),
+                let schema = this.validator && selectedCommand.validator
+                    ? this.validator.concat(selectedCommand.validator)
+                    : this.validator || selectedCommand.validator;
 
-                    ... this.afterEachList.map(afterEach => () => {
-                        afterEach(env);
-                    }),
+                try {
 
-                ], this.beforeEachList.length);
+                    env = await schema.validate(env);
 
-                if (result && result.then) {
+                } catch (error) {
 
-                    result = result.then(null, error => {
+                    if (error && error.name === `ValidationError`) {
 
-                        if (error && error.isUsageError) {
-
-                            this.usage(argv0, { command: selectedCommand, error, stream: stderr });
-
-                            return 1;
-
+                        if (error.errors.length > 1) {
+                            throw new UsageError(`Validation failed because ${error.errors.slice(0, -1).join(`, `)}, and ${error.errors[error.errors.length - 1]}`);
                         } else {
-
-                            throw error;
-
+                            throw new UsageError(`Validation failed because ${error.errors[0]}`);
                         }
 
-                    });
+                    } else {
+
+                        throw error;
+
+                    }
 
                 }
 
-                return result;
-
             }
+
+            for (let beforeEach of this.beforeEachList)
+                await beforeEach(env);
+
+            let result = await selectedCommand.run(env);
+
+            for (let afterEach of this.afterEachList)
+                await afterEach(env, result);
+
+            return result;
 
         } catch (error) {
 
@@ -982,20 +911,20 @@ export class Concierge {
 
     }
 
-    runExit(argv0, argv, { stdin = process.stdin, stdout = process.stdout, stderr = process.stderr, ... rest } = {}) {
+    async runExit(argv0, argv, { stdin = process.stdin, stdout = process.stdout, stderr = process.stderr, ... rest } = {}) {
 
-        return Promise.resolve(this.run(argv0, argv, { stdin, stdout, stderr, ... rest })).then(exitCode => {
+        try {
 
-            process.exitCode = exitCode;
+            process.exitCode = await this.run(argv0, argv, { stdin, stdout, stderr, ... rest });
 
-        }, error => {
+        } catch (error) {
 
             this.error(error, { stream: stderr });
 
             process.exitCode = 1;
 
-        });
+        }
 
     }
 
-}
+};

@@ -3,7 +3,7 @@ import {Readable, Writable} from 'stream';
 export type Validator = any;
 export type Environment = any;
 
-export class UsageError {
+export class UsageError extends Error {
   constructor(message: string);
 
   message: string;
