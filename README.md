@@ -1,8 +1,8 @@
-# [![](/logo.png?raw=true)](https://github.com/manaflair/concierge)
+<img src="./logo.svg" width="100" />
 
-> Easily parse your command line options and commands
+# Clipanion
 
-[![](https://img.shields.io/npm/v/@manaflair/concierge.svg)]() [![](https://img.shields.io/npm/l/@manaflair/concierge.svg)]()
+> A companion to manage your CLI applications without hassle
 
 ## Installation
 
