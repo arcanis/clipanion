@@ -402,4 +402,40 @@ describe(`clipanion`, () => {
 
     });
 
+    it(`should print a json object when using --clipanion-definitions`, async () => {
+
+        const stream = new PassThrough();
+        const promise = getStream(stream);
+
+        await clipanion.run(null, [`--clipanion-definitions`], { stdout: stream });
+        stream.end();
+
+        expect(JSON.parse(await promise)).to.have.property(`commands`);
+
+    });
+
+    it(`should not print hidden commands when using --clipanion-definitions`, async () => {
+
+        const stream = new PassThrough();
+        const promise = getStream(stream);
+
+        await clipanion.run(null, [`--clipanion-definitions`], { stdout: stream });
+        stream.end();
+
+        expect(JSON.parse(await promise).commands).to.have.lengthOf(6);
+
+    });
+
+    it(`should not print --clipanion-definitions when using --help`, async () => {
+
+        const stream = new PassThrough();
+        const promise = getStream(stream);
+
+        await clipanion.run(null, [`--help`], { stdout: stream });
+        stream.end();
+
+        expect(await promise).not.to.contain(`--clipanion-definitions`);
+
+    });
+
 });

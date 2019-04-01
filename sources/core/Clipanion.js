@@ -1,75 +1,26 @@
-const chalk          = require('chalk');
-const fs             = require('fs');
-const camelCase      = require('camelcase');
-const path           = require('path');
+const chalk                                = require('chalk');
+const fs                                   = require('fs');
+const camelCase                            = require('camelcase');
+const path                                 = require('path');
 
-const { Command }    = require('./Command');
-const { UsageError } = require('./UsageError');
-const { parse }      = require('./parse');
+const { Command }                          = require('./Command');
+const { UsageError }                       = require('./UsageError');
+const { getOptionComponent, getUsageLine } = require('./format');
+const { parse }                            = require('./parse');
 
 let standardOptions = [ {
 
     shortName: `h`,
     longName: `help`,
 
-    argumentName: null,
+}, {
+
+    shortName: null,
+    longName: `clipanion-definitions`,
+
+    hidden: true,
 
 } ];
-
-function getOptionString(options) {
-
-    let basicOptions = [];
-    let complexOptions = [];
-
-    for (let option of options) {
-
-        if (option.shortName && !option.longName && !option.argumentName) {
-            basicOptions.push(option);
-        } else {
-            complexOptions.push(option);
-        }
-
-    }
-
-    let basicString = basicOptions.length > 0 ? `[-${basicOptions.map(option => {
-
-        return option.shortName;
-
-    }).join(``)}]` : null;
-
-    let complexString = complexOptions.map(option => {
-
-        let names = [];
-
-        if (option.shortName)
-            names.push(`-${option.shortName}`);
-
-        if (option.longName) {
-            if (option.initialValue !== true) {
-                names.push(`--${option.longName}`);
-            } else if (option.longName.startsWith(`with-`)) {
-                names.push(`--without-${option.longName.replace(/^with-/, ``)}`);
-            } else {
-                names.push(`--no-${option.longName}`);
-            }
-        }
-
-        if (option.argumentName) {
-            return `[${names.join(`,`)} ${option.argumentName}]`;
-        } else {
-            return `[${names.join(`,`)}]`;
-        }
-
-    }).join(` `);
-
-    return [
-
-        basicString,
-        complexString
-
-    ].join(` `);
-
-}
 
 exports.Clipanion = class Clipanion {
 
@@ -246,21 +197,7 @@ exports.Clipanion = class Clipanion {
         if (command) {
 
             let commandPath = command.path.join(` `);
-
-            let requiredArguments = command.requiredArguments.map(name => `<${name}>`).join(` `);
-            let optionalArguments = command.optionalArguments.map(name => `[${name}]`).join(` `);
-
-            if (command.spread) {
-
-                if (optionalArguments !== ``) {
-                    optionalArguments += ` [... ${command.spread}]`;
-                } else {
-                    optionalArguments += `[... ${command.spread}]`;
-                }
-
-            }
-
-            let commandOptions = getOptionString(command.options);
+            let usageLine = getUsageLine(command);
 
             if (!error) {
 
@@ -277,11 +214,11 @@ exports.Clipanion = class Clipanion {
 
                     stream.write(`${chalk.bold(`Usage:`)}\n`);
                     stream.write(`\n`);
-                    stream.write(`${argv0 || ``} ${commandPath} ${requiredArguments} ${optionalArguments} ${commandOptions}\n`.replace(/ +/g, ` `).replace(/^ +| +$/g, ``));
+                    stream.write(`${argv0 || ``} ${commandPath} ${usageLine}\n`.replace(/ +/g, ` `).replace(/^ +| +$/g, ``));
 
                 } else {
 
-                    stream.write(`${chalk.bold(`Usage:`)} ${argv0 || ``} ${commandPath} ${requiredArguments} ${optionalArguments} ${commandOptions}\n`.replace(/ +/g, ` `).replace(/^ +| +$/g, ``));
+                    stream.write(`${chalk.bold(`Usage:`)} ${argv0 || ``} ${commandPath} ${usageLine}\n`.replace(/ +/g, ` `).replace(/^ +| +$/g, ``));
 
                 }
 
@@ -311,13 +248,13 @@ exports.Clipanion = class Clipanion {
 
             } else {
 
-                stream.write(`${chalk.bold(`Usage:`)} ${argv0 || ``} ${commandPath} ${requiredArguments} ${optionalArguments} ${commandOptions}\n`.replace(/ +/g, ` `).replace(/^ +| +$/g, ``));
+                stream.write(`${chalk.bold(`Usage:`)} ${argv0 || ``} ${commandPath} ${usageLine}\n`.replace(/ +/g, ` `).replace(/^ +| +$/g, ``));
 
             }
 
         } else {
 
-            let globalOptions = getOptionString(this.options);
+            let globalOptions = getOptionComponent(this.options);
 
             stream.write(`${chalk.bold(`Usage:`)} ${argv0 || `<binary>`} ${globalOptions} <command>\n`.replace(/ +/g, ` `).replace(/ +$/, ``));
 
@@ -383,6 +320,29 @@ exports.Clipanion = class Clipanion {
             }
 
         }
+
+    }
+
+    definitions({ stream = process.stderr } = {}) {
+
+        let commands = [];
+
+        for (const command of this.commands) {
+            if (!command.hiddenCommand) {
+                commands.push({
+                    path: command.path,
+                    category: command.category,
+                    usage: getUsageLine(command),
+                    description: command.description,
+                    details: command.details,
+                    examples: command.examples,
+                });
+            }
+        }
+
+        stream.write(JSON.stringify({
+            commands,
+        }, null, 2));
 
     }
 
@@ -758,6 +718,14 @@ exports.Clipanion = class Clipanion {
                     this.usage(argv0, { command: selectedCommand, stream: stdout });
                 else
                     this.usage(argv0, { stream: stdout });
+
+                return 0;
+
+            }
+
+            if (env.clipanionDefinitions) {
+
+                this.definitions({ stream: stdout });
 
                 return 0;
 
