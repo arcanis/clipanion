@@ -48,4 +48,4 @@ export class Clipanion {
   runExit(argv0: string, argv: Array<string>, opts?: Partial<Environment>): Promise<void>;
 }
 
-export default Clipanion;
+export const clipanion: Clipanion;
