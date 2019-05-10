@@ -10,6 +10,8 @@ export class UsageError extends Error {
   isUsageError: true;
 }
 
+type ExitCode = number | void;
+
 export interface Command {
   validate(validator: Validator): Command;
 
@@ -23,7 +25,7 @@ export interface Command {
   detail(details: string): Command;
   example(description: string, example: string): Command;
 
-  action(action: (env: Environment) => Promise<Number | undefined> | Number | undefined): Command;
+  action(action: (env: Environment) => ExitCode | Promise<ExitCode>): Command;
 }
 
 export class Clipanion {
@@ -44,7 +46,7 @@ export class Clipanion {
 
   check(): void;
 
-  run(argv0: string, argv: Array<string>, opts?: Partial<Environment>): Promise<Number | undefined> | Number | undefined;
+  run(argv0: string, argv: Array<string>, opts?: Partial<Environment>): ExitCode | Promise<ExitCode>;
   runExit(argv0: string, argv: Array<string>, opts?: Partial<Environment>): Promise<void>;
 }
 
