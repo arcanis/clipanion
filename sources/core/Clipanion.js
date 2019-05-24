@@ -686,7 +686,7 @@ exports.Clipanion = class Clipanion {
 
                             if (nextSelectedCommand) {
                                 selectedCommand = nextSelectedCommand;
-                                commandPath = commandBuffer;
+                                commandPath = commandBuffer.slice();
                             }
 
                             candidateCommands = nextCandidates.filter(candidate => candidate !== nextSelectedCommand);
@@ -714,10 +714,10 @@ exports.Clipanion = class Clipanion {
 
             if (env.help) {
 
-                if (commandPath.length > 0)
-                    this.usage(argv0, { command: selectedCommand, stream: stdout });
-                else
+                if (argv.length === 0 || (argv.length === 1 && (argv[0] === `-h` || argv[0] === `--help`)))
                     this.usage(argv0, { stream: stdout });
+                else
+                    this.usage(argv0, { command: selectedCommand, stream: stdout });
 
                 return 0;
 

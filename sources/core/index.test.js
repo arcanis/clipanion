@@ -102,6 +102,15 @@ describe(`clipanion`, () => {
 
     });
 
+    it(`should not eat positional arguments when discarding an obsolete candidate`, async () => {
+
+        let [ command, env ] = await clipanion.run(null, [ `b`, `not-foobar` ]);
+
+        expect(command).to.equal(`command-b`);
+        expect(env.args).to.deep.equal([ `not-foobar` ]);
+
+    });
+
     it(`should not select the default command if another one seems to be a better match`, async () => {
 
         let [ command, env ] = await clipanion.run(null, [ `command-a` ]);

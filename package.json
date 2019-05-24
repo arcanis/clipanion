@@ -1,6 +1,6 @@
 {
     "name": "clipanion",
-    "version": "0.14.0",
+    "version": "0.14.1",
     "license": "MIT",
     "main": "./sources/core/index.js",
     "scripts": {
