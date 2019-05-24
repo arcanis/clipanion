@@ -565,7 +565,7 @@ exports.Clipanion = class Clipanion {
                             if (current.value)
                                 throw new UsageError(`Option "${leadingOption.shortName}" doesn't expect any argument`);
 
-                            if (!current.rest.match(/^[a-z0-9]*$/))
+                            if (!current.rest.match(/^[a-zA-Z0-9]*$/))
                                 throw new UsageError(`Malformed option list "${current.literal}"`);
 
                             for (let optionName of [ current.leading, ... current.rest ]) {

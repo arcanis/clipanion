@@ -180,6 +180,15 @@ describe(`clipanion`, () => {
 
     });
 
+    it(`should support passing multiple boolean arguments in one shortname`, async () => {
+
+        let [ command, env ] = await clipanion.run(null, [ `command-a`, `-FX` ]);
+
+        expect(env.foo).to.equal(false);
+        expect(env.withFoobar).to.equal(false);
+
+    });
+
     it(`should assign "0" as initial value for short options expecting to be repeated`, async () => {
 
         let [ command, env ] = await clipanion.run(null, [ `command-a` ]);
@@ -240,6 +249,14 @@ describe(`clipanion`, () => {
     it(`should assign a string when using an argument-aware option long name`, async () => {
 
         let [ command, env ] = await clipanion.run(null, [ `command-a`, `--arg`, `.js` ]);
+
+        expect(env.arg).to.equal(`.js`);
+
+    });
+
+    it(`should assign a string when using an argument-aware option long name (with a =)`, async () => {
+
+        let [ command, env ] = await clipanion.run(null, [ `command-a`, `--arg=.js` ]);
 
         expect(env.arg).to.equal(`.js`);
 
