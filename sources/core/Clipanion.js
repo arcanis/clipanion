@@ -365,36 +365,13 @@ exports.Clipanion = class Clipanion {
 
     }
 
-    async run(argv0, argv, { stdin = process.stdin, stdout = process.stdout, stderr = process.stderr, ... initialEnv } = {}) {
-
-        // Sanity check to make sure that the configuration makes sense
-        if (!process.env.NODE_ENV || process.env.NODE_ENV === 'development')
-            this.check();
-
-        // This object is the one we'll fill with the parsed options
-        let env = { argv0, stdin, stdout, stderr, ... initialEnv };
+    parse(argv) {
 
         // This array will contain the literals that will be forwarded to the command as positional arguments
         let rest = [];
 
-        // We copy the global options from our initial environment into our new one (it's a form of inheritance)
-        for (let option of this.options) {
-
-            if (option.longName) {
-
-                if (Object.prototype.hasOwnProperty.call(initialEnv, option.longName)) {
-                    env[option.longName] = initialEnv[option.longName];
-                }
-
-            } else {
-
-                if (Object.prototype.hasOwnProperty.call(initialEnv, option.shortName)) {
-                    env[option.shortName] = initialEnv[option.shortName];
-                }
-
-            }
-
-        }
+        // This object is the one we'll fill with the parsed options
+        let env = {};
 
         // This pointer contains the command we'll be using if nothing prevents it
         let selectedCommand = this.commands.find(command => command.defaultCommand);
@@ -484,185 +461,71 @@ exports.Clipanion = class Clipanion {
 
         }
 
-        try {
+        let parsedArgv = argv.map(arg => parseArgument(arg));
 
-            let parsedArgv = argv.map(arg => parseArgument(arg));
+        for (let t = 0, T = parsedArgv.length; t < T; ++t) {
 
-            for (let t = 0, T = parsedArgv.length; t < T; ++t) {
+            let current = parsedArgv[t];
+            let next = parsedArgv[t + 1];
 
-                let current = parsedArgv[t];
-                let next = parsedArgv[t + 1];
+            // If we're currently processing a command that accepts arguments by proxy, we treat all following tokens as raw strings
+            if (selectedCommand && selectedCommand.proxyArguments && rest.length >= selectedCommand.requiredArguments.length) {
 
-                // If we're currently processing a command that accepts arguments by proxy, we treat all following tokens as raw strings
-                if (selectedCommand && selectedCommand.proxyArguments && rest.length >= selectedCommand.requiredArguments.length) {
+                current = {... current};
+                current.type = RAW_STRING;
 
-                    current = {... current};
-                    current.type = RAW_STRING;
+                next = {... next};
+                next.type = RAW_STRING;
 
-                    next = {... next};
-                    next.type = RAW_STRING;
+            }
 
-                }
+            switch (current.type) {
 
-                switch (current.type) {
+                case MALFORMED_OPTION: {
 
-                    case MALFORMED_OPTION: {
+                    throw new UsageError(`Malformed option "${current.literal}"`);
 
-                        throw new UsageError(`Malformed option "${current.literal}"`);
+                } break;
 
-                    } break;
+                case STOP_OPTION: {
 
-                    case STOP_OPTION: {
+                    lockCommand();
 
+                    for (t = t + 1; t < T; ++t) {
+                        rest.push(parsedArgv[t].literal);
+                    }
+
+                } break;
+
+                case SHORT_OPTION: {
+
+                    let leadingOption = selectedCommand ? selectedCommand.options.find(option => option.shortName === current.leading) : null;
+
+                    if (leadingOption)
                         lockCommand();
+                    else
+                        leadingOption = this.options.find(option => option.shortName === current.leading);
 
-                        for (t = t + 1; t < T; ++t) {
-                            rest.push(parsedArgv[t].literal);
+                    if (!leadingOption)
+                        throw new UsageError(`Unknown option "${current.leading}"`);
+
+                    if (leadingOption.argumentName) {
+
+                        let value = current.value || current.rest || undefined;
+
+                        if (!value && next && next.type === RAW_STRING) {
+                            value = next.literal;
+                            t += 1;
                         }
 
-                    } break;
+                        if (value === undefined)
+                            throw new UsageError(`Option "${leadingOption.shortName}" cannot be used without argument`);
 
-                    case SHORT_OPTION: {
+                        let envName = leadingOption.longName
+                            ? camelCase(leadingOption.longName)
+                            : leadingOption.shortName;
 
-                        let leadingOption = selectedCommand ? selectedCommand.options.find(option => option.shortName === current.leading) : null;
-
-                        if (leadingOption)
-                            lockCommand();
-                        else
-                            leadingOption = this.options.find(option => option.shortName === current.leading);
-
-                        if (!leadingOption)
-                            throw new UsageError(`Unknown option "${current.leading}"`);
-
-                        if (leadingOption.argumentName) {
-
-                            let value = current.value || current.rest || undefined;
-
-                            if (!value && next && next.type === RAW_STRING) {
-                                value = next.literal;
-                                t += 1;
-                            }
-
-                            if (value === undefined)
-                                throw new UsageError(`Option "${leadingOption.shortName}" cannot be used without argument`);
-
-                            let envName = leadingOption.longName
-                                ? camelCase(leadingOption.longName)
-                                : leadingOption.shortName;
-
-                            if (Array.isArray(leadingOption.initialValue)) {
-                                if (env[envName]) {
-                                    env[envName].push(value);
-                                } else {
-                                    env[envName] = [value];
-                                }
-                            } else {
-                                env[envName] = value;
-                            }
-
-                        } else {
-
-                            if (current.value)
-                                throw new UsageError(`Option "${leadingOption.shortName}" doesn't expect any argument`);
-
-                            if (!current.rest.match(/^[a-zA-Z0-9]*$/))
-                                throw new UsageError(`Malformed option list "${current.literal}"`);
-
-                            for (let optionName of [ current.leading, ... current.rest ]) {
-
-                                let option = selectedCommand ? selectedCommand.options.find(option => option.shortName === optionName) : null;
-
-                                if (option)
-                                    lockCommand();
-                                else
-                                    option = this.options.find(option => option.shortName === optionName);
-
-                                if (!option)
-                                    throw new UsageError(`Unknown option "${optionName}"`);
-
-                                if (option.argumentName)
-                                    throw new UsageError(`Option "${optionName}" cannot be placed in an option list, because it expects an argument`);
-
-                                if (option.maxValue !== undefined) {
-
-                                    if (option.longName) {
-                                        env[camelCase(option.longName)] = Math.min((env[camelCase(option.longName)] || option.initialValue) + 1, option.maxValue);
-                                    } else {
-                                        env[option.shortName] = Math.min((env[option.shortName] || option.initialValue) + 1, option.maxValue);
-                                    }
-
-                                } else {
-
-                                    if (option.longName) {
-                                        env[camelCase(option.longName)] = !option.initialValue;
-                                    } else {
-                                        env[option.shortName] = !option.initialValue;
-                                    }
-
-                                }
-
-                            }
-
-                        }
-
-                    } break;
-
-                    case LONG_OPTION: {
-
-                        let option = selectedCommand ? selectedCommand.options.find(option => option.longName === current.name) : null;
-
-                        if (option)
-                            lockCommand();
-                        else
-                            option = this.options.find(option => option.longName === current.name);
-
-                        if (!option)
-                            throw new UsageError(`Unknown option "${current.name}"`);
-
-                        let value;
-
-                        if (option.argumentName) {
-
-                            let disablePrefix = option.longName.startsWith(`with-`) ? `--without` : `--no`;
-
-                            if (!current.enabled && current.value !== undefined)
-                                throw new UsageError(`Option "${option.longName}" cannot have an argument when used with ${disablePrefix}`);
-
-                            if (current.enabled) {
-
-                                if (current.value !== undefined) {
-                                    value = current.value;
-                                } else if (next && next.type === RAW_STRING) {
-                                    value = next.literal;
-                                    t += 1;
-                                } else {
-                                    throw new UsageError(`Option "${option.longName}" cannot be used without argument. Use "${disablePrefix}-${option.longName}" instead`);
-                                }
-
-                            } else {
-
-                                value = null;
-
-                            }
-
-                        } else {
-
-                            if (current.value !== undefined)
-                                throw new UsageError(`Option "${option.name}" doesn't expect any argument`);
-
-                            if (current.enabled) {
-                                value = true;
-                            } else {
-                                value = false;
-                            }
-
-                        }
-
-                        let envName = option.longName
-                            ? camelCase(option.longName)
-                            : option.shortName;
-
-                        if (Array.isArray(option.initialValue)) {
+                        if (Array.isArray(leadingOption.initialValue)) {
                             if (env[envName]) {
                                 env[envName].push(value);
                             } else {
@@ -672,64 +535,159 @@ exports.Clipanion = class Clipanion {
                             env[envName] = value;
                         }
 
-                    } break;
+                    } else {
 
-                    case RAW_STRING: {
+                        if (current.value)
+                            throw new UsageError(`Option "${leadingOption.shortName}" doesn't expect any argument`);
 
-                        if (!isCommandLocked) {
+                        if (!current.rest.match(/^[a-zA-Z0-9]*$/))
+                            throw new UsageError(`Malformed option list "${current.literal}"`);
 
-                            let nextCandidates = candidateCommands.filter(command => command.path[commandBuffer.length] === current.literal);
+                        for (let optionName of [ current.leading, ... current.rest ]) {
 
-                            commandBuffer.push(current.literal);
+                            let option = selectedCommand ? selectedCommand.options.find(option => option.shortName === optionName) : null;
 
-                            let nextSelectedCommand = nextCandidates.find(command => command.path.length === commandBuffer.length);
+                            if (option)
+                                lockCommand();
+                            else
+                                option = this.options.find(option => option.shortName === optionName);
 
-                            if (nextSelectedCommand) {
-                                selectedCommand = nextSelectedCommand;
-                                commandPath = commandBuffer.slice();
+                            if (!option)
+                                throw new UsageError(`Unknown option "${optionName}"`);
+
+                            if (option.argumentName)
+                                throw new UsageError(`Option "${optionName}" cannot be placed in an option list, because it expects an argument`);
+
+                            if (option.maxValue !== undefined) {
+
+                                if (option.longName) {
+                                    env[camelCase(option.longName)] = Math.min((env[camelCase(option.longName)] || option.initialValue) + 1, option.maxValue);
+                                } else {
+                                    env[option.shortName] = Math.min((env[option.shortName] || option.initialValue) + 1, option.maxValue);
+                                }
+
+                            } else {
+
+                                if (option.longName) {
+                                    env[camelCase(option.longName)] = !option.initialValue;
+                                } else {
+                                    env[option.shortName] = !option.initialValue;
+                                }
+
                             }
 
-                            candidateCommands = nextCandidates.filter(candidate => candidate !== nextSelectedCommand);
+                        }
 
-                            // If there's absolutely no other command we can switch to, then we can lock the current one right away, so that we can start parsing its options
-                            if (candidateCommands.length === 0) {
+                    }
 
-                                lockCommand();
+                } break;
 
+                case LONG_OPTION: {
+
+                    let option = selectedCommand ? selectedCommand.options.find(option => option.longName === current.name) : null;
+
+                    if (option)
+                        lockCommand();
+                    else
+                        option = this.options.find(option => option.longName === current.name);
+
+                    if (!option)
+                        throw new UsageError(`Unknown option "${current.name}"`);
+
+                    let value;
+
+                    if (option.argumentName) {
+
+                        let disablePrefix = option.longName.startsWith(`with-`) ? `--without` : `--no`;
+
+                        if (!current.enabled && current.value !== undefined)
+                            throw new UsageError(`Option "${option.longName}" cannot have an argument when used with ${disablePrefix}`);
+
+                        if (current.enabled) {
+
+                            if (current.value !== undefined) {
+                                value = current.value;
+                            } else if (next && next.type === RAW_STRING) {
+                                value = next.literal;
+                                t += 1;
+                            } else {
+                                throw new UsageError(`Option "${option.longName}" cannot be used without argument. Use "${disablePrefix}-${option.longName}" instead`);
                             }
 
                         } else {
 
-                            rest.push(current.literal);
+                            value = null;
 
                         }
 
-                    } break;
+                    } else {
 
-                }
+                        if (current.value !== undefined)
+                            throw new UsageError(`Option "${option.name}" doesn't expect any argument`);
+
+                        if (current.enabled) {
+                            value = true;
+                        } else {
+                            value = false;
+                        }
+
+                    }
+
+                    let envName = option.longName
+                        ? camelCase(option.longName)
+                        : option.shortName;
+
+                    if (Array.isArray(option.initialValue)) {
+                        if (env[envName]) {
+                            env[envName].push(value);
+                        } else {
+                            env[envName] = [value];
+                        }
+                    } else {
+                        env[envName] = value;
+                    }
+
+                } break;
+
+                case RAW_STRING: {
+
+                    if (!isCommandLocked) {
+
+                        let nextCandidates = candidateCommands.filter(command => command.path[commandBuffer.length] === current.literal);
+
+                        commandBuffer.push(current.literal);
+
+                        let nextSelectedCommand = nextCandidates.find(command => command.path.length === commandBuffer.length);
+
+                        if (nextSelectedCommand) {
+                            selectedCommand = nextSelectedCommand;
+                            commandPath = commandBuffer.slice();
+                        }
+
+                        candidateCommands = nextCandidates.filter(candidate => candidate !== nextSelectedCommand);
+
+                        // If there's absolutely no other command we can switch to, then we can lock the current one right away, so that we can start parsing its options
+                        if (candidateCommands.length === 0) {
+
+                            lockCommand();
+
+                        }
+
+                    } else {
+
+                        rest.push(current.literal);
+
+                    }
+
+                } break;
 
             }
 
-            lockCommand();
+        }
 
-            if (env.help) {
+        lockCommand();
 
-                if (argv.length === 0 || (argv.length === 1 && (argv[0] === `-h` || argv[0] === `--help`)))
-                    this.usage(argv0, { stream: stdout });
-                else
-                    this.usage(argv0, { command: selectedCommand, stream: stdout });
-
-                return 0;
-
-            }
-
-            if (env.clipanionDefinitions) {
-
-                this.definitions({ stream: stdout });
-
-                return 0;
-
-            }
+        if (!env.help) {
 
             for (let name of selectedCommand.requiredArguments) {
 
@@ -749,22 +707,90 @@ exports.Clipanion = class Clipanion {
 
             }
 
-            if (selectedCommand.spread)
+            if (selectedCommand.spread) {
                 env[camelCase(selectedCommand.spread)] = rest;
-
-            else if (rest.length > 0)
+            } else if (rest.length > 0) {
                 throw new UsageError(`Too many arguments`);
+            }
 
-            for (let option of [ ... selectedCommand.options, ... this.options ]) {
+        }
 
-                let envName = option.longName
-                    ? camelCase(option.longName)
-                    : option.shortName;
+        for (let option of [ ... selectedCommand.options, ... this.options ]) {
 
-                if (Object.prototype.hasOwnProperty.call(env, envName))
-                    continue;
+            let envName = option.longName
+                ? camelCase(option.longName)
+                : option.shortName;
 
-                env[envName] = option.initialValue;
+            if (Object.prototype.hasOwnProperty.call(env, envName))
+                continue;
+
+            env[envName] = option.initialValue;
+
+        }
+
+        return { commandPath, selectedCommand, rest, env };
+
+    }
+
+    async run(argv0, argv, { stdin = process.stdin, stdout = process.stdout, stderr = process.stderr, ... initialEnv } = {}) {
+
+        // This object is the one we'll fill with the parsed options
+        let env = { argv0, stdin, stdout, stderr, ... initialEnv };
+
+        // The command that we'll want to run
+        let selectedCommand = null;
+
+        // We copy the global options from our initial environment into our new one (it's a form of inheritance)
+        for (let option of this.options) {
+
+            if (option.longName) {
+
+                if (Object.prototype.hasOwnProperty.call(initialEnv, option.longName)) {
+                    env[option.longName] = initialEnv[option.longName];
+                }
+
+            } else {
+
+                if (Object.prototype.hasOwnProperty.call(initialEnv, option.shortName)) {
+                    env[option.shortName] = initialEnv[option.shortName];
+                }
+
+            }
+
+        }
+
+        try {
+
+            // Parse the command line
+            const {
+                selectedCommand: parsedCommand,
+                env: parsedEnv,
+                rest,
+            } = this.parse(argv);
+
+            selectedCommand = parsedCommand;
+            Object.assign(env, parsedEnv);
+
+            // Sanity check to make sure that the configuration makes sense
+            if (!process.env.NODE_ENV || process.env.NODE_ENV === 'development')
+                this.check();
+
+            if (env.help) {
+
+                if (argv.length === 0 || (argv.length === 1 && (argv[0] === `-h` || argv[0] === `--help`)))
+                    this.usage(argv0, { stream: stdout });
+                else
+                    this.usage(argv0, { command: selectedCommand, stream: stdout });
+
+                return 0;
+
+            }
+
+            if (env.clipanionDefinitions) {
+
+                this.definitions({ stream: stdout });
+
+                return 0;
 
             }
 
