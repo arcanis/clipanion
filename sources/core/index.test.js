@@ -464,4 +464,13 @@ describe(`clipanion`, () => {
 
     });
 
+    it(`should take values by default from the initial environemnt`, async () => {
+
+        let [ command, env ] = await clipanion.run(null, [ `command-a` ], { arg: `foo` });
+
+        expect(command).to.equal(`command-a`);
+        expect(env.arg).to.equal(`foo`);
+
+    });
+
 });

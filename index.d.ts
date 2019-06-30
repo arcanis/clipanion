@@ -46,6 +46,8 @@ export class Clipanion {
 
   check(): void;
 
+  parse(argv: Array<string>, initialEnv?: Partial<Environment>): {commandPath: Array<string>, selectedCommand: Command, rest: Array<string>, env: Environment};
+
   run(argv0: string, argv: Array<string>, opts?: Partial<Environment>): ExitCode | Promise<ExitCode>;
   runExit(argv0: string, argv: Array<string>, opts?: Partial<Environment>): Promise<void>;
 }

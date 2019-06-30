@@ -365,13 +365,13 @@ exports.Clipanion = class Clipanion {
 
     }
 
-    parse(argv) {
+    parse(argv, initialEnv) {
 
         // This array will contain the literals that will be forwarded to the command as positional arguments
         let rest = [];
 
         // This object is the one we'll fill with the parsed options
-        let env = {};
+        let env = { ... initialEnv };
 
         // This pointer contains the command we'll be using if nothing prevents it
         let selectedCommand = this.commands.find(command => command.defaultCommand);
@@ -766,10 +766,10 @@ exports.Clipanion = class Clipanion {
                 selectedCommand: parsedCommand,
                 env: parsedEnv,
                 rest,
-            } = this.parse(argv);
+            } = this.parse(argv, env);
 
             selectedCommand = parsedCommand;
-            Object.assign(env, parsedEnv);
+            env = parsedEnv;
 
             // Sanity check to make sure that the configuration makes sense
             if (!process.env.NODE_ENV || process.env.NODE_ENV === 'development')
