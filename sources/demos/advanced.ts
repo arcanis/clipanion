@@ -1,0 +1,126 @@
+import * as yup                   from 'yup';
+
+import {Cli, Command, Context} from '../advanced';
+
+yup.addMethod(yup.object, `atMostOneOf`, function (list: Array<string>) {
+    return this.test({
+        name: `atMostOneOf`,
+        message: `\${path} must only have at most one of these keys: \${keys}`,
+        params: { keys: list.join(`, `) },
+        test: value => value == null || list.filter(f => !!value[f]).length <= 1,
+    });
+});
+
+declare module 'yup' {
+    interface Schema<T> {
+        atMostOneOf(keys: string[]): this;
+    }
+}
+
+class YarnDefaultInstall extends Command {
+    async execute(cli: Cli) {
+        return await cli.run([`install`]);
+    }
+}
+
+class YarnDefaultRun extends Command {
+    @Command.String()
+    public scriptName!: string;
+
+    @Command.Proxy()
+    public rest!: Array<string>;
+
+    async execute(cli: Cli) {
+        return await cli.run([`run`, this.scriptName, ...this.rest]);
+    }
+}
+
+class YarnInstall extends Command {
+    @Command.Path(`install`)
+    async execute(cli: Cli, context: Context) {
+        context.stdout.write(`Running an install\n`);
+    }
+}
+
+class YarnRunListing extends Command {
+    @Command.Boolean(`--json`)
+    public json: boolean = false;
+
+    @Command.Path(`run`)
+    async execute(cli: Cli, context: Context) {
+        context.stdout.write(`Listing all the commands (json = ${this.json})\n`);
+    }
+}
+
+class YarnRunExec extends Command {
+    @Command.String()
+    public scriptName!: string;
+
+    @Command.Proxy()
+    public rest!: string[];
+
+    @Command.Path(`run`)
+    async execute(cli: Cli, context: Context) {
+        context.stdout.write(`Executing a script named ${this.scriptName} ${this.rest}\n`)
+    }
+}
+
+@Command.Validate(yup.object()
+    .atMostOneOf([`dev`, `peer`])
+    .atMostOneOf([`exact`, `tilde`])
+)
+export default class YarnAdd extends Command {
+    @Command.Boolean(`-D,--dev`)
+    public dev: boolean = false;
+
+    @Command.Boolean(`-P,--peer`)
+    public peer: boolean = false;
+
+    @Command.Boolean(`-E,--exact`)
+    public exact: boolean = false;
+
+    @Command.Boolean(`-T,--tilde`)
+    public tilde: boolean = false;
+
+    usage = Command.Usage({
+        description: `
+            add dependencies to the project
+        `,
+        details: `
+            This command adds a package to the package.json for the nearest workspace.
+    
+            - The package will by default be added to the regular \`dependencies\` field, but this behavior can be overriden thanks to the \`-D,--dev\` flag (which will cause the dependency to be added to the \`devDependencies\` field instead) and the \`-P,--peer\` flag (which will do the same but for \`peerDependencies\`).
+    
+            - If the added package doesn't specify a range at all its \`latest\` tag will be resolved and the returned version will be used to generate a new semver range (using the \`^\` modifier by default, or the \`~\` modifier if \`-T,--tilde\` is specified, or no modifier at all if \`-E,--exact\` is specified). Two exceptions to this rule: the first one is that if the package is a workspace then its local version will be used, and the second one is that if you use \`-P,--peer\` the default range will be \`*\` and won't be resolved at all.
+    
+            - If the added package specifies a tag range (such as \`latest\` or \`rc\`), Yarn will resolve this tag to a semver version and use that in the resulting package.json entry (meaning that \`yarn add foo@latest\` will have exactly the same effect as \`yarn add foo\`).
+    
+            If the \`-i,--interactive\` option is used (or if the \`preferInteractive\` settings is toggled on) the command will first try to check whether other workspaces in the project use the specified package and, if so, will offer to reuse them.
+    
+            If the \`--cached\` option is used, Yarn will preferably reuse the highest version already used somewhere within the project, even if through a transitive dependency.
+    
+            For a compilation of all the supported protocols, please consult the dedicated page from our website: .
+        `,
+    });
+
+    @Command.Path(`add`)
+    async execute(cli: Cli, context: Context) {
+        if (this.dev) {
+            context.stdout.write(`Adding a dev dependency\n`);
+        } else if (this.peer) {
+            context.stdout.write(`Adding a peer dependency\n`);
+        } else {
+            context.stdout.write(`Adding a dependency\n`);
+        }
+    }
+}
+
+const cli = new Cli({name: `yarn`});
+cli.register(YarnDefaultInstall);
+cli.register(YarnDefaultRun);
+cli.register(YarnInstall);
+cli.register(YarnRunListing);
+cli.register(YarnRunExec);
+cli.register(YarnAdd);
+
+cli.runExit(process.argv.slice(2));
