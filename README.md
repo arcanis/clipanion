@@ -9,7 +9,7 @@
 ## Installation
 
 ```
-$> yarn add clipanion
+$> yarn add clipanion@2.0.0-rc.0
 ```
 
 ## Why
@@ -24,8 +24,11 @@ Clipanion is used in [Yarn](https://github.com/yarnpkg/berry) with great success
 
 ## Recommended Usage
 
+**Note:** This syntax assumes you have some way to compile decorators. TypeScript supports them via the `experimentalDecorators` setting, and Babel via the `@babel/plugin-proposal-decorators` plugin.
+
 ```ts
 import {Cli, Command, Context} from 'clipanion';
+import * as yup                from 'yup';
 
 class GreetCommand extends Command {
     @Command.Boolean(`-v,--verbose`)
