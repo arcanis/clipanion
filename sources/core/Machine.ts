@@ -1,7 +1,12 @@
-import {Command}                   from './Command';
-import {AmbiguousSyntaxError}      from './errors';
-import {DEBUG, reconciliateValues} from './helpers';
-import {prettyCommand}             from './pretty';
+import {Command, NODE_ERRORED, NODE_SUCCESS}      from './Command';
+import {builders}                                 from './builders';
+import {conditions}                               from './conditions';
+import {AmbiguousSyntaxError, UnknownSyntaxError} from './errors';
+import {DEBUG, Parsed, reconciliateValues}        from './helpers';
+import {prettyCommand}                            from './pretty';
+
+type Success<Context> = {command: Command<Context>, parsed: Parsed};
+type Failure<Context> = {command: Command<Context>, reason: string | null};
 
 export class Machine<T> {
     private states: State<T>[];
@@ -16,13 +21,23 @@ export class Machine<T> {
     }
 
     write(segment: string) {
+        this._write(segment);
+
+        return this;
+    }
+
+    private _write(segment: string | null) {
         if (DEBUG)
             console.log(`=== ${segment}`);
+
+        for (const state of this.states)
+            state.write(segment);
 
         let maxWeight = 0;
 
         for (const state of this.states)
-            maxWeight = Math.max(maxWeight, state.write(segment));
+            for (const {weight} of state.options)
+                maxWeight = Math.max(maxWeight, weight);
 
         for (const state of this.states) {
             state.trimLighterBranches(maxWeight);
@@ -30,18 +45,20 @@ export class Machine<T> {
     }
 
     digest() {
-        const candidates = [];
+        this._write(null);
+
+        const successes: Success<T>[] = [];
+        const failures: Failure<T>[] = [];
 
         for (const state of this.states)
-            for (const candidate of state.digest())
-                candidates.push(candidate);
+            state.digest({successes, failures});
 
-        if (candidates.length < 1)
-            throw new Error(`No matches`);
-        if (candidates.length > 1)
-            throw new AmbiguousSyntaxError(candidates.map(({command}) => command.definition));
+        if (successes.length < 1)
+            throw new UnknownSyntaxError(failures.map(({command, reason}) => [command.definition, reason]));
+        if (successes.length > 1)
+            throw new AmbiguousSyntaxError(successes.map(({command}) => command.definition));
 
-        const [{command, parsed}] = candidates;
+        const [{command, parsed}] = successes;
         if (DEBUG)
             console.log(`Selected ${prettyCommand(command.definition)}`);
 
@@ -50,28 +67,32 @@ export class Machine<T> {
 }
 
 class State<T> {
-    private options: ({weight: number, node: number, values: any[]})[];
+    public options: ({weight: number, node: number, values: any[]})[];
 
-    constructor(private readonly command: Command<T>) {
+    constructor(public readonly command: Command<T>) {
         this.options = [{weight: 0, node: 0, values: []}];
     }
 
-    write(segment: string) {
+    write(segment: string | null) {
         if (DEBUG)
-            console.log(`  ${prettyCommand(this.command.definition)}`);
+            console.log(`  [${prettyCommand(this.command.definition)}]`);
 
         const options = this.options;
         this.options = [];
 
         for (const {weight, node, values} of options) {
-            const {transitions, dynamics, terminal} = this.command.nodes[node];
+            const {transitions, dynamics, suggested} = this.command.nodes[node];
             const transition = transitions.get(segment);
+
+            let transitioned = false;
 
             if (DEBUG)
                 console.log(`    ${this.command.nodes[node].label}`)
 
             if (typeof transition !== `undefined`) {
-                const nextValues = typeof transition.builder === `undefined` ? values : values.concat(transition.builder(segment));
+                transitioned = true;
+
+                const nextValues = typeof transition.builder === `undefined` ? values : values.concat(builders[transition.builder](segment!));
                 this.options.push({weight: weight + this.command.nodes[transition.target].weight, node: transition.target, values: nextValues});
 
                 if (DEBUG) {
@@ -79,44 +100,54 @@ class State<T> {
                 }
             }
 
-            for (const {condition, target, builder} of dynamics) {
-                if (condition(segment)) {
-                    const nextValues = typeof builder === `undefined` ? values : values.concat(builder(segment));
-                    this.options.push({weight: weight + this.command.nodes[target].weight, node: target, values: nextValues});
+            if (segment !== null) {
+                for (const {condition, target, builder} of dynamics) {
+                    if (conditions[condition](segment, this.command.definition)) {
+                        if (this.command.nodes[target].suggested)
+                            transitioned = true;
 
-                    if (DEBUG) {
-                        console.log(`      -> ${this.command.nodes[target].label} (dynamic, via ${condition.name})`);
+                        const nextValues = typeof builder === `undefined` ? values : values.concat(builders[builder](segment));
+                        this.options.push({weight: weight + this.command.nodes[target].weight, node: target, values: nextValues});
+
+                        if (DEBUG) {
+                            console.log(`      -> ${this.command.nodes[target].label} (dynamic, via ${condition})`);
+                        }
+                    } else {
+                        if (DEBUG) {
+                            console.log(`      -> doesn't match ${condition}`);
+                        }
                     }
-                } else {
-                    if (DEBUG) {
-                        console.log(`      -> doesn't match ${condition.name}`);
-                    }
+                }
+            }
+
+            if (!transitioned && suggested) {
+                this.options.push({weight, node: NODE_ERRORED, values: values.concat({reason: `Invalid token "${segment}"`})})
+                if (DEBUG) {
+                    console.log(`      -> entering an error state`);
                 }
             }
         }
 
         if (DEBUG)
             console.log(`    Went from ${options.length} -> ${this.options.length}`);
-
-        let maxWeight = 0;
-
-        for (const option of this.options)
-            maxWeight = Math.max(maxWeight, option.weight);
-
-        return maxWeight;
+        
+        return this.options;
     }
 
     trimLighterBranches(requirement: number) {
         this.options = this.options.filter(({weight}) => weight >= requirement);
     }
 
-    digest() {
-        const candidates = [];
-
-        for (const {node, values} of this.options)
-            if (this.command.nodes[node].terminal)
-                candidates.push({command: this.command, parsed: reconciliateValues(values)});
-
-        return candidates;
+    digest({successes, failures}: {successes: Success<T>[], failures: Failure<T>[]}) {
+        for (const {node, values} of this.options) {
+            switch (node) {
+                case NODE_SUCCESS: {
+                    successes.push({command: this.command, parsed: reconciliateValues(values)});
+                } break;
+                case NODE_ERRORED: {
+                    failures.push({command: this.command, reason: values[values.length - 1].reason});
+                } break;
+            }
+        }
     }
 }

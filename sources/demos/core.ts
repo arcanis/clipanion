@@ -41,5 +41,3 @@ for (const arg of process.argv.slice(2))
 
 const command = machine.digest();
 console.timeEnd();
-
-console.log(command);

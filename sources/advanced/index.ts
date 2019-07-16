@@ -1,2 +1,2 @@
-export {Cli, Context} from './Cli';
-export {Command}      from './Command';
+export {Cli, DefaultContext} from './Cli';
+export {Command}             from './Command';

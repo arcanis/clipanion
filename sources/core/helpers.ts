@@ -1,15 +1,6 @@
-import {ParseEntry} from './Command';
+import {ParseEntry} from './builders';
 
 export const DEBUG = process.env.DEBUG === `1`;
-
-export type RecursivePartial<T> = {
-    [P in keyof T]?:
-        T[P] extends (infer U)[]
-            ? RecursivePartial<U>[]
-            : T[P] extends object
-                ? RecursivePartial<T[P]>
-                : T[P];
-};
 
 export function deepMerge<T extends any>(target: T, ...sources: ({[key: string]: any})[]) {
     for (const source of sources) {
@@ -46,6 +37,10 @@ export function reconciliateValues(sources: ParseEntry[]) {
 
             case `option`: {
                 result.options.push(source);
+            } break;
+
+            case `patch`: {
+                result.options[result.options.length - 1].value = source.value;
             } break;
         }
     }

@@ -1,6 +1,6 @@
-import {expect}                           from 'chai';
+import {expect}               from 'chai';
 
-import {Cli, Command, Definition, Parsed} from '../sources/core';
+import {Cli, Command, Parsed} from '../sources/core';
 
 const makeCli = <T>(definitions: T[]) => {
     const cli = new Cli<{
@@ -88,6 +88,13 @@ describe(`Core`, () => {
         expect(index).to.equal(1);
     });
 
+    it(`should prefer longer paths over mandatory arguments (prefixed)`, () => {
+        const cli = makeCli([{path: [`prfx`, `foo`]}, {path: [`prfx`], positionals: {minimum: 1}}]);
+
+        const {index} = cli.process([`prfx`, `foo`]);
+        expect(index).to.equal(0);
+    });
+
     it(`should prefer longer paths over optional arguments`, () => {
         const cli = makeCli([{path: [`foo`]}, {positionals: {maximum: Infinity}}]);
 
@@ -100,6 +107,13 @@ describe(`Core`, () => {
 
         const {index} = cli.process([`foo`]);
         expect(index).to.equal(1);
+    });
+
+    it(`should prefer longer paths over optional arguments (prefixed)`, () => {
+        const cli = makeCli([{path: [`prfx`, `foo`]}, {path: [`prfx`], positionals: {maximum: Infinity}}]);
+
+        const {index} = cli.process([`prfx`, `foo`]);
+        expect(index).to.equal(0);
     });
 
     it(`should prefer mandatory arguments over optional arguments`, () => {
@@ -116,6 +130,13 @@ describe(`Core`, () => {
         expect(index).to.equal(1);
     });
 
+    it(`should prefer mandatory arguments over optional arguments`, () => {
+        const cli = makeCli([{path: [`prfx`], positionals: {minimum: 1}}, {path: [`prfx`], positionals: {maximum: Infinity}}]);
+
+        const {index} = cli.process([`prfx`, `foo`]);
+        expect(index).to.equal(0);
+    });
+
     it(`should fallback from path to mandatory arguments if needed`, () => {
         const cli = makeCli([{path: [`foo`]}, {positionals: {minimum: 1}}]);
 
@@ -130,6 +151,13 @@ describe(`Core`, () => {
         expect(index).to.equal(0);
     });
 
+    it(`should fallback from path to mandatory arguments if needed (prefixed)`, () => {
+        const cli = makeCli([{path: [`prfx`, `foo`]}, {path: [`prfx`], positionals: {minimum: 1}}]);
+
+        const {index} = cli.process([`prfx`, `bar`]);
+        expect(index).to.equal(1);
+    });
+
     it(`should fallback from path to optional arguments if needed`, () => {
         const cli = makeCli([{path: [`foo`]}, {positionals: {maximum: Infinity}}]);
 
@@ -142,6 +170,13 @@ describe(`Core`, () => {
 
         const {index} = cli.process([`bar`]);
         expect(index).to.equal(0);
+    });
+
+    it(`should fallback from path to optional arguments if needed (prefixed)`, () => {
+        const cli = makeCli([{path: [`prfx`, `foo`]}, {path: [`prfx`], positionals: {maximum: Infinity}}]);
+
+        const {index} = cli.process([`prfx`, `bar`]);
+        expect(index).to.equal(1);
     });
 
     it(`should extract booleans from simple options`, () => {
@@ -217,5 +252,37 @@ describe(`Core`, () => {
 
         const {parsed: parsed1} = cli.process([`--foo`, `--bar`]);
         expect(parsed1.positionals).to.deep.equal([`--foo`, `--bar`]);
+    });
+
+    it(`should throw acceptable errors when passing an extraneous option`, () => {
+        const cli = makeCli([{}]);
+
+        expect(() => {
+            cli.process([`--foo`]);
+        }).to.throw(`Unsupported option "--foo"`);
+    });
+
+    it(`should throw acceptable errors when passing extraneous arguments`, () => {
+        const cli = makeCli([{}]);
+
+        expect(() => {
+            cli.process([`foo`]);
+        }).to.throw(`Extraneous positional argument "foo"`);
+    });
+
+    it(`should throw acceptable errors when omitting mandatory positional arguments`, () => {
+        const cli = makeCli([{positionals: {minimum: 1}}]);
+
+        expect(() => {
+            cli.process([]);
+        }).to.throw(`Not enough positional arguments`);
+    });
+
+    it(`should throw acceptable errors when writing invalid arguments`, () => {
+        const cli = makeCli([{}]);
+
+        expect(() => {
+            cli.process([`-%#@$%#()@`]);
+        }).to.throw(`Invalid token "-%#@$%#()@"`);
     });
 });

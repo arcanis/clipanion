@@ -5,14 +5,24 @@ import * as core            from '../core';
 
 import {Command}            from './Command';
 
-export interface Context {
+export interface DefaultContext {
     stdin: Readable;
     stdout: Writable;
     stderr: Writable;
 }
 
-export class Cli {
-    private readonly core: core.Cli<Command> = new core.Cli();
+interface CommandFactory<Context extends DefaultContext> {
+    new(): Command<Context>;
+    compile(): core.Command<(cli: Cli<Context>, context: Context) => Command<Context>>;
+}
+
+export interface MiniCli<Context extends DefaultContext> {
+    process(argv: string[]): Command<Context>;
+    run(argv: string[], subContext?: Partial<Context>): Promise<number | void>;
+}
+
+export class Cli<Context extends DefaultContext = DefaultContext> {
+    private readonly core: core.Cli<(cli: Cli<Context>, context: Context) => Command<Context>> = new core.Cli();
 
     public readonly name?: string;
 
@@ -20,7 +30,7 @@ export class Cli {
         this.name = name;
     }
 
-    register(command: typeof Command) {
+    register(command: CommandFactory<Context>) {
         this.core.register(command.compile());
 
         return this;
@@ -34,41 +44,35 @@ export class Cli {
         return this.core.process(argv);
     }
 
-    async run(argv: string[], context?: Partial<Context>): Promise<number> {
-        const fullContext = Object.assign({
-            stdin: process.stdin,
-            stdout: process.stdout,
-            stderr: process.stderr,
-        }, context);
-
-        const miniApi = {
+    async run(argv: string[], context: Context): Promise<number> {
+        const miniCli: MiniCli<Context> = {
             process: (argv: string[]) => {
-                return this.process(argv);
+                return this.process(argv)(this, context);
             },
             run: (argv: string[], subContext?: Partial<Context>) => {
-                return this.run(argv, Object.assign({}, fullContext, subContext));
+                return this.run(argv, Object.assign({}, context, subContext));
             },
         };
-
-        let command;
+        
+        let command: Command<Context>;
         try {
-            command = this.core.process(argv);
+            command = this.core.process(argv)(miniCli as any, context);
         } catch (error) {
             if (typeof error.setBinaryName !== `undefined`)
                 error.setBinaryName(this.name);
-            return this.error(fullContext, error, null);
+            return this.error(context, error, null);
         }
 
         if (command.help) {
-            fullContext.stdout.write(this.usage(command, true));
+            context.stdout.write(this.usage(command, true));
             return 0;
         }
 
         let exitCode;
         try {
-            exitCode = await command.execute(miniApi as any, fullContext);
+            exitCode = await command.execute();
         } catch (error) {
-            return this.error(fullContext, error, command);
+            return this.error(context, error, command);
         }
 
         if (typeof exitCode === `undefined`)
@@ -77,11 +81,11 @@ export class Cli {
         return exitCode;
     }
 
-    async runExit(argv: string[], context?: Partial<Context>) {
+    async runExit(argv: string[], context: Context) {
         process.exitCode = await this.run(argv, context);
     }
 
-    private usage(command: Command | null, detailed: boolean = false) {
+    private usage(command: Command<Context> | null, detailed: boolean = false) {
         let result = ``;
 
         if (command) {
@@ -104,7 +108,7 @@ export class Cli {
         return result;
     }
 
-    private error(context: Context, error: Error, command: Command | null) {
+    private error(context: Context, error: Error, command: Command<Context> | null) {
         let name = error.name.replace(/([a-z])([A-Z])/g, `$1 $2`);
 
         if (name === `Error`)

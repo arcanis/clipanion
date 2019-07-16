@@ -46,7 +46,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/chai@npm:^4.1.7":
+"@types/chai-as-promised@npm:^7.1.0":
+  version: 7.1.0
+  resolution: "@types/chai-as-promised@npm:7.1.0"
+  dependencies:
+    "@types/chai": "npm:*"
+  checksum: 21f0a658c50ed581f1cd6d2162c7e5d4a9d58b997c0b3a1cfb93e31a5f0f5f79fae7947e52cea5a8a6c95bf8f2d97eb1a38b269b7a68eec1f3d61bb2fd3e3dd7
+  languageName: node
+  linkType: hard
+
+"@types/chai@npm:*, @types/chai@npm:^4.1.7":
   version: 4.1.7
   resolution: "@types/chai@npm:4.1.7"
   checksum: 5e21f0c333b9ed7582830895dc7a7f8a28c259ac7aae8a9ded4433c3863990528348671d33d6f31d2da7944b16fdf1c26d932d5ec3355572b41f292e202d79e4
@@ -181,6 +190,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"chai-as-promised@npm:^7.1.1":
+  version: 7.1.1
+  resolution: "chai-as-promised@npm:7.1.1"
+  dependencies:
+    check-error: "npm:^1.0.2"
+  peerDependencies:
+    chai: ">= 2.1.2 < 5"
+  checksum: d19dbe18e59ba1e00deb1d6fd080fd30e4c8a83f726fd87ac42d686dc11456b83c61b47b001db1e0f0d0667efc505bd40aca492ad0f21956c37dc95059b4308b
+  languageName: node
+  linkType: hard
+
 "chai@npm:^4.2.0":
   version: 4.2.0
   resolution: "chai@npm:4.2.0"
@@ -219,12 +239,15 @@ __metadata:
   dependencies:
     "@berry/pnpify": "npm:^0.0.6"
     "@types/chai": "npm:^4.1.7"
+    "@types/chai-as-promised": "npm:^7.1.0"
     "@types/chalk": "npm:^2.2.0"
     "@types/mocha": "npm:^5.2.7"
     "@types/node": "npm:^12.6.2"
     "@types/yup": "npm:^0.26.21"
     chai: "npm:^4.2.0"
+    chai-as-promised: "npm:^7.1.1"
     chalk: "npm:^2.4.2"
+    get-stream: "npm:^5.1.0"
     mocha: "npm:^6.1.4"
     ts-node: "npm:^8.3.0"
     typescript: "npm:^3.5.3"
@@ -475,6 +498,15 @@ __metadata:
   dependencies:
     pump: "npm:^3.0.0"
   checksum: c6b0e9200d55c52f6f5166ad9dd8a1ab4e20f07244cc12ef26e38b3a106cbf693e7b098d0da935fdcec09f4ae1bfd90ad0354ce51173ed13a1b8b4b85e87bf82
+  languageName: node
+  linkType: hard
+
+"get-stream@npm:^5.1.0":
+  version: 5.1.0
+  resolution: "get-stream@npm:5.1.0"
+  dependencies:
+    pump: "npm:^3.0.0"
+  checksum: 8d5f10e2cc708b4f175c0a055940cd376fe07ca480984d57515d6e6903121795445978ec54410d63e5261f680c3d2273044eabc7e7736556c7889dc7de9bc220
   languageName: node
   linkType: hard
 

@@ -1,6 +1,14 @@
-import * as yup                   from 'yup';
+import {Readable, Writable} from 'stream';
+import * as yup             from 'yup';
 
-import {Cli, Command, Context} from '../advanced';
+import {Cli, Command}       from '../advanced';
+
+type Context = {
+    cwd: string;
+    stdin: Readable;
+    stdout: Writable;
+    stderr: Writable;
+}
 
 yup.addMethod(yup.object, `atMostOneOf`, function (list: Array<string>) {
     return this.test({
@@ -17,42 +25,42 @@ declare module 'yup' {
     }
 }
 
-class YarnDefaultInstall extends Command {
-    async execute(cli: Cli) {
-        return await cli.run([`install`]);
+class YarnDefaultInstall extends Command<Context> {
+    async execute() {
+        return await this.cli.run([`install`], {});
     }
 }
 
-class YarnDefaultRun extends Command {
+class YarnDefaultRun extends Command<Context> {
     @Command.String()
     public scriptName!: string;
 
     @Command.Proxy()
     public rest!: Array<string>;
 
-    async execute(cli: Cli) {
-        return await cli.run([`run`, this.scriptName, ...this.rest]);
+    async execute() {
+        return await this.cli.run([`run`, this.scriptName, ...this.rest], {});
     }
 }
 
-class YarnInstall extends Command {
+class YarnInstall extends Command<Context> {
     @Command.Path(`install`)
-    async execute(cli: Cli, context: Context) {
-        context.stdout.write(`Running an install\n`);
+    async execute() {
+        this.context.stdout.write(`Running an install: ${this.context.cwd}\n`);
     }
 }
 
-class YarnRunListing extends Command {
+class YarnRunListing extends Command<Context> {
     @Command.Boolean(`--json`)
     public json: boolean = false;
 
     @Command.Path(`run`)
-    async execute(cli: Cli, context: Context) {
-        context.stdout.write(`Listing all the commands (json = ${this.json})\n`);
+    async execute() {
+        this.context.stdout.write(`Listing all the commands (json = ${this.json})\n`);
     }
 }
 
-class YarnRunExec extends Command {
+class YarnRunExec extends Command<Context> {
     @Command.String()
     public scriptName!: string;
 
@@ -60,8 +68,8 @@ class YarnRunExec extends Command {
     public rest!: string[];
 
     @Command.Path(`run`)
-    async execute(cli: Cli, context: Context) {
-        context.stdout.write(`Executing a script named ${this.scriptName} ${this.rest}\n`)
+    async execute() {
+        this.context.stdout.write(`Executing a script named ${this.scriptName} ${this.rest}\n`)
     }
 }
 
@@ -69,7 +77,7 @@ class YarnRunExec extends Command {
     .atMostOneOf([`dev`, `peer`])
     .atMostOneOf([`exact`, `tilde`])
 )
-export default class YarnAdd extends Command {
+export default class YarnAdd extends Command<Context> {
     @Command.Boolean(`-D,--dev`)
     public dev: boolean = false;
 
@@ -81,6 +89,9 @@ export default class YarnAdd extends Command {
 
     @Command.Boolean(`-T,--tilde`)
     public tilde: boolean = false;
+
+    @Command.Rest({required: 1})
+    public pkgs: string[] = [];
 
     usage = Command.Usage({
         description: `
@@ -104,23 +115,29 @@ export default class YarnAdd extends Command {
     });
 
     @Command.Path(`add`)
-    async execute(cli: Cli, context: Context) {
+    async execute() {
         if (this.dev) {
-            context.stdout.write(`Adding a dev dependency\n`);
+            this.context.stdout.write(`Adding a dev dependency\n`);
         } else if (this.peer) {
-            context.stdout.write(`Adding a peer dependency\n`);
+            this.context.stdout.write(`Adding a peer dependency\n`);
         } else {
-            context.stdout.write(`Adding a dependency\n`);
+            this.context.stdout.write(`Adding a dependency\n`);
         }
     }
 }
 
-const cli = new Cli({name: `yarn`});
+const cli = new Cli<Context>({name: `yarn`});
+
 cli.register(YarnDefaultInstall);
-cli.register(YarnDefaultRun);
+//cli.register(YarnDefaultRun);
 cli.register(YarnInstall);
 cli.register(YarnRunListing);
 cli.register(YarnRunExec);
 cli.register(YarnAdd);
 
-cli.runExit(process.argv.slice(2));
+cli.runExit(process.argv.slice(2), {
+    cwd: process.cwd(),
+    stdin: process.stdin,
+    stdout: process.stdout,
+    stderr: process.stderr,
+});

@@ -64,12 +64,15 @@ function $$SETUP_STATE(hydrateRuntimeState) {
           "packageDependencies": [
             ["@berry/pnpify", "virtual:ec1fa2ef10239c0753f13fe759c922d2607ef63fba941a9914713842443140ad2aa5858c3b90f3057d8387a12c240fa6438127ac4115612e6caae112b6807012#npm:0.0.6"],
             ["@types/chai", "npm:4.1.7"],
+            ["@types/chai-as-promised", "npm:7.1.0"],
             ["@types/chalk", "npm:2.2.0"],
             ["@types/mocha", "npm:5.2.7"],
             ["@types/node", "npm:12.6.2"],
             ["@types/yup", "npm:0.26.21"],
             ["chai", "npm:4.2.0"],
+            ["chai-as-promised", "virtual:ec1fa2ef10239c0753f13fe759c922d2607ef63fba941a9914713842443140ad2aa5858c3b90f3057d8387a12c240fa6438127ac4115612e6caae112b6807012#npm:7.1.1"],
             ["chalk", "npm:2.4.2"],
+            ["get-stream", "npm:5.1.0"],
             ["mocha", "npm:6.1.4"],
             ["ts-node", "virtual:ec1fa2ef10239c0753f13fe759c922d2607ef63fba941a9914713842443140ad2aa5858c3b90f3057d8387a12c240fa6438127ac4115612e6caae112b6807012#npm:8.3.0"],
             ["typescript", "npm:3.5.3"],
@@ -127,6 +130,15 @@ function $$SETUP_STATE(hydrateRuntimeState) {
         ["npm:4.1.7", {
           "packageLocation": "./.yarn/cache/@types-chai-npm-4.1.7-9c0fb91014c15d4c7eedf4b6b1d7bc9c4cd8a1178a653d496e653d576d86d23b.zip/node_modules/@types/chai/",
           "packageDependencies": [
+            ["@types/chai", "npm:4.1.7"]
+          ]
+        }]
+      ]],
+      ["@types/chai-as-promised", [
+        ["npm:7.1.0", {
+          "packageLocation": "./.yarn/cache/@types-chai-as-promised-npm-7.1.0-cad0c80f9d807510601b57269892812b1f1dfab5f279592afaa2b9987244dddf.zip/node_modules/@types/chai-as-promised/",
+          "packageDependencies": [
+            ["@types/chai-as-promised", "npm:7.1.0"],
             ["@types/chai", "npm:4.1.7"]
           ]
         }]
@@ -282,6 +294,24 @@ function $$SETUP_STATE(hydrateRuntimeState) {
           ]
         }]
       ]],
+      ["chai-as-promised", [
+        ["npm:7.1.1", {
+          "packageLocation": "./.yarn/cache/chai-as-promised-npm-7.1.1-08feefaf590c0fb5712e577a3243726cd6e021e3df82783446ebd4c50f5b9541.zip/node_modules/chai-as-promised/",
+          "packageDependencies": [
+            ["chai-as-promised", "npm:7.1.1"],
+            ["chai", null],
+            ["check-error", "npm:1.0.2"]
+          ]
+        }],
+        ["virtual:ec1fa2ef10239c0753f13fe759c922d2607ef63fba941a9914713842443140ad2aa5858c3b90f3057d8387a12c240fa6438127ac4115612e6caae112b6807012#npm:7.1.1", {
+          "packageLocation": "./.yarn/virtual/chai-as-promised-virtual-c8260fb01ef715a0bcdf07a0aaa4d627792e39389623589c6d6485c6609fcc05/node_modules/chai-as-promised/",
+          "packageDependencies": [
+            ["chai-as-promised", "virtual:ec1fa2ef10239c0753f13fe759c922d2607ef63fba941a9914713842443140ad2aa5858c3b90f3057d8387a12c240fa6438127ac4115612e6caae112b6807012#npm:7.1.1"],
+            ["chai", "npm:4.2.0"],
+            ["check-error", "npm:1.0.2"]
+          ]
+        }]
+      ]],
       ["chalk", [
         ["npm:2.4.2", {
           "packageLocation": "./.yarn/cache/chalk-npm-2.4.2-cc93ef6b9fd2f80bcd2ab0bc64882d3d792cbf8bc0a54d91d7320421024bca1a.zip/node_modules/chalk/",
@@ -308,12 +338,15 @@ function $$SETUP_STATE(hydrateRuntimeState) {
             ["clipanion", "workspace:."],
             ["@berry/pnpify", "virtual:ec1fa2ef10239c0753f13fe759c922d2607ef63fba941a9914713842443140ad2aa5858c3b90f3057d8387a12c240fa6438127ac4115612e6caae112b6807012#npm:0.0.6"],
             ["@types/chai", "npm:4.1.7"],
+            ["@types/chai-as-promised", "npm:7.1.0"],
             ["@types/chalk", "npm:2.2.0"],
             ["@types/mocha", "npm:5.2.7"],
             ["@types/node", "npm:12.6.2"],
             ["@types/yup", "npm:0.26.21"],
             ["chai", "npm:4.2.0"],
+            ["chai-as-promised", "virtual:ec1fa2ef10239c0753f13fe759c922d2607ef63fba941a9914713842443140ad2aa5858c3b90f3057d8387a12c240fa6438127ac4115612e6caae112b6807012#npm:7.1.1"],
             ["chalk", "npm:2.4.2"],
+            ["get-stream", "npm:5.1.0"],
             ["mocha", "npm:6.1.4"],
             ["ts-node", "virtual:ec1fa2ef10239c0753f13fe759c922d2607ef63fba941a9914713842443140ad2aa5858c3b90f3057d8387a12c240fa6438127ac4115612e6caae112b6807012#npm:8.3.0"],
             ["typescript", "npm:3.5.3"],
@@ -569,6 +602,13 @@ function $$SETUP_STATE(hydrateRuntimeState) {
           "packageLocation": "./.yarn/cache/get-stream-npm-4.1.0-81a3ec758bfa2fc11aca66841e1a83030994079877f6193a70f73685979b267f.zip/node_modules/get-stream/",
           "packageDependencies": [
             ["get-stream", "npm:4.1.0"],
+            ["pump", "npm:3.0.0"]
+          ]
+        }],
+        ["npm:5.1.0", {
+          "packageLocation": "./.yarn/cache/get-stream-npm-5.1.0-5b22f4d2d9202d29f4b79505900a5e606b71471a4b72742c045376a68eeea702.zip/node_modules/get-stream/",
+          "packageDependencies": [
+            ["get-stream", "npm:5.1.0"],
             ["pump", "npm:3.0.0"]
           ]
         }]
