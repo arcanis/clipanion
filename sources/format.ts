@@ -1,34 +1,6 @@
-import chalk        from 'chalk';
+import chalk from 'chalk';
 
-import {Definition} from './Command';
-
-export function prettyCommand(definition: Definition, {binaryName}: {binaryName?: string} = {}) {
-    const segments = [...definition.path];
-
-    if (typeof binaryName !== `undefined`)
-        segments.unshift(binaryName);
-
-    for (const opt of definition.options.simple)
-        segments.push(`[${opt}]`);
-
-    for (const opt of definition.options.complex)
-        segments.push(`[${opt} ARG]`);
-
-    for (let t = 0; t < definition.positionals.minimum; ++t)
-        segments.push(`<arg #${t}>`);
-
-    if (definition.positionals.maximum === Infinity) {
-        segments.push(`[...]`);
-    } else {
-        for (let t = definition.positionals.minimum; t < definition.positionals.maximum; ++t) {
-            segments.push(`[arg #${t}]`);
-        }
-    }
-
-    return segments.join(` `);
-}
-
-export function prettyMarkdownish(text: string, paragraphs: boolean) {
+export function formatMarkdownish(text: string, paragraphs: boolean) {
     // Enforce \n as newline character
     text = text.replace(/\r\n?/g, `\n`);
 
@@ -63,5 +35,4 @@ export function prettyMarkdownish(text: string, paragraphs: boolean) {
     });
 
     return text ? text + `\n` : ``;
-
 }

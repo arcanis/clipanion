@@ -1,7 +1,7 @@
 {
   "name": "clipanion",
-  "version": "2.0.0-rc.0",
-  "main": "sources/advanced",
+  "version": "2.0.0-rc.16",
+  "main": "sources/advanced/index.ts",
   "license": "MIT",
   "dependencies": {
     "chalk": "^2.4.2"

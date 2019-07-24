@@ -1,248 +1,263 @@
-import * as core                      from '../core';
+import {CommandBuilder, RunState}         from '../core';
 
-import {Cli, DefaultContext, MiniCli} from './Cli';
+import {BaseContext, CliContext, MiniCli} from './Cli';
 
-export type Help = {
-    description: string;
-    details: string;
-    examples: {description: string, command: string}[];
+export type Meta<Context extends BaseContext> = {
+    definitions: ((command: CommandBuilder<CliContext<Context>>) => void)[];
+    transformers: ((state: RunState, command: Command<Context>) => void)[];
 };
 
-export type Meta = {
-    definition: core.Definition;
-    transformers: ((command: any, parsed: core.Parsed) => void)[];
+export type Usage = {
+    category?: string;
+    description?: string;
+    details?: string;
+    examples?: [string, string][];
 };
 
-export abstract class Command<Context extends DefaultContext = DefaultContext> {
-    static meta: Meta | undefined;
+export type CommandClass<Context extends BaseContext = BaseContext> = {
+    new(): Command<Context>;
+    getMeta(prototype: Command<Context>): Meta<Context>;
+    schema?: {validate: (object: any) => void};
+    usage?: Usage;
+};
 
-    static getMeta<Context extends DefaultContext>(from?: Command<Context>): Meta {
-        if (typeof from !== `undefined`)
-            return (from.constructor as typeof Command).getMeta();
+export abstract class Command<Context extends BaseContext = BaseContext> {
+    private static meta?: any;
 
-        return this.meta = this.meta || {
-            definition: {
-                path: [],
-                options: {
-                    simple: new Set(),
-                    complex: new Set(),
-                },
-                positionals: {
-                    minimum: 0,
-                    maximum: 0,
-                    proxy: false,
-                },
-            },
+    public static getMeta<Context extends BaseContext>(prototype: Command<Context>): Meta<Context> {
+        const base = prototype.constructor as any;
+
+        return base.meta = base.meta || {
+            usage: [],
+            definitions: [],
             transformers: [
-                (command, parsed) => {
-                    for (const {name, value} of parsed.options) {
+                (state: RunState, command: Command<Context>) => {
+                    for (const {name, value} of state.options) {
                         if (name === `-h` || name === `--help`) {
+                            // @ts-ignore: The property is meant to have been defined by the child class
                             command.help = value;
                         }
-                    }
+                    }                
                 },
             ],
         };
     }
 
-    static Validate(schema: any) {
-        return (klass: any) => {
-            const parent = klass.prototype.execute;
-
-            klass.prototype.execute = async function execute(cli: Cli) {
-                try {
-                    await schema.validate(this);
-                } catch (error) {
-                    if (error.name === `ValidationError`)
-                        error.clipanion = {type: `usage`};
-                    throw error;
-                }
-
-                // @ts-ignore
-                return parent.call(this, cli);
-            };
-        };
+    private static registerDefinition<Context extends BaseContext>(prototype: Command<Context>, definition: (command: CommandBuilder<CliContext<Context>>) => void) {
+        this.getMeta(prototype).definitions.push(definition);
     }
 
-    static Array(descriptor: string) {
-        const optionNames = new Set(descriptor.split(/,/g));
+    private static registerTransformer<Context extends BaseContext>(prototype: Command<Context>, transformer: (state: RunState, command: Command<Context>) => void) {
+        this.getMeta(prototype).transformers.push(transformer);
+    }
 
-        return <Context extends DefaultContext>(prototype: Command<Context>, propertyName: string) => {
-            const {definition, transformers} = (prototype.constructor as typeof Command).getMeta();
-  
-            for (const optionName of optionNames)
-                definition.options.complex.add(optionName);
-
-            transformers.push((command, parsed) => {
-                for (const {name, value} of parsed.options) {
-                    if (optionNames.has(name) && typeof value !== `undefined`) {
-                        command[propertyName] = command[propertyName] || [];
-                        command[propertyName].push(value);
-                    }
-                }
+    /**
+     * Wrap the specified command to be attached to the given path on the command line.
+     * The first path thus attached will be considered the "main" one, and all others will be aliases.
+     * @param path The command path.
+     */
+    static Path(...path: string[]) {
+        return <Context extends BaseContext>(prototype: Command<Context>, propertyName: string) => {
+            this.registerDefinition(prototype, command => {
+                command.addPath(path);
             });
         };
     }
 
-    static Rest(): PropertyDecorator;
-    static Rest(opts: {required: number}): PropertyDecorator;
-    static Rest({required = 0}: {required?: number} = {}) {
-        return <Context extends DefaultContext>(prototype: Command<Context>, propertyName: string) => {
-            const {definition, transformers} = (prototype.constructor as typeof Command).getMeta();
-
-            const index = definition.positionals.maximum;
-            definition.positionals.minimum += required;
-            definition.positionals.maximum = Infinity;
-
-            transformers.push((command, parsed) => {
-                command[propertyName] = parsed.positionals.slice(index);
-            });
-        };
-    }
-
-    static Proxy() {
-        return <Context extends DefaultContext>(prototype: Command<Context>, propertyName: string) => {
-            const {definition, transformers} = (prototype.constructor as typeof Command).getMeta();
-
-            const index = definition.positionals.maximum;
-            definition.positionals.maximum = Infinity;
-            definition.positionals.proxy = true;
-
-            transformers.push((command, parsed) => {
-                command[propertyName] = parsed.positionals.slice(index);
-            });
-        };
-    }
-
+    /**
+     * Register a boolean listener for the given option names. When Clipanion detects that this argument is present, the value will be set to false. The value won't be set unless the option is found, so you must remember to set it to an appropriate default value.
+     * @param descriptor the option names.
+     */
     static Boolean(descriptor: string) {
-        const optionNames = new Set(descriptor.split(/,/g));
-        const reversedNames = new Set<string>();
+        return <Context extends BaseContext>(prototype: Command<Context>, propertyName: string) => {
+            const optNames = descriptor.split(`,`);
 
-        for (const optionName of descriptor)
-            if (optionName.startsWith(`--`) && !optionName.startsWith(`--no-`))
-                reversedNames.add(optionName);
+            this.registerDefinition(prototype, command => {
+                command.addOption({names: optNames, arity: 0});
+            });
 
-        return <Context extends DefaultContext>(prototype: Command<Context>, propertyName: string) => {
-            const {definition, transformers} = (prototype.constructor as typeof Command).getMeta();
-
-            for (const optionName of optionNames)
-                definition.options.simple.add(optionName);
-
-            for (const reversedName of reversedNames)
-                definition.options.simple.add(reversedName);
-
-            transformers.push((command, parsed) => {
-                for (const {name, value} of parsed.options) {
-                    if (optionNames.has(name) && typeof value !== `undefined`)
+            this.registerTransformer(prototype, (state, command) => {
+                for (const {name, value} of state.options) {
+                    if (optNames.includes(name)) {
+                        // @ts-ignore: The property is meant to have been defined by the child class
                         command[propertyName] = value;
-                    if (reversedNames.has(name) && typeof value !== `undefined`) {
-                        command[propertyName] = !value;
                     }
                 }
             });
         };
     }
 
-    static String(): PropertyDecorator;
-    static String(opts: {required: boolean}): PropertyDecorator;
+    /**
+     * Register a listener that looks for an option and its followup argument. When Clipanion detects that this argument is present, the value will be set to whatever follows the option in the input. The value won't be set unless the option is found, so you must remember to set it to an appropriate default value.
+     * Note that all methods affecting positional arguments are evaluated in the definition order; don't mess with it (for example sorting your properties in ascendent order might have adverse results).
+     * @param descriptor The option names.
+     */
     static String(descriptor: string): PropertyDecorator;
+
+    /**
+     * Register a listener that looks for positional arguments. When Clipanion detects that an argument isn't an option, it will put it in this property and continue processing the rest of the command line.
+     * Note that all methods affecting positional arguments are evaluated in the definition order; don't mess with it (for example sorting your properties in ascendent order might have adverse results).
+     * @param descriptor Whether or not filling the positional argument is required for the command to be a valid selection.
+     */
+    static String(descriptor?: {required: boolean}): PropertyDecorator;
+
     static String(descriptor: string | {required: boolean} = {required: true}) {
-        return <Context extends DefaultContext>(prototype: Command<Context>, propertyName: string) => {
-            const {definition, transformers} = (prototype.constructor as typeof Command).getMeta();
-
+        return <Context extends BaseContext>(prototype: Command<Context>, propertyName: string) => {
             if (typeof descriptor === `string`) {
-                const optionNames = new Set(descriptor.split(/,/));
+                const optNames = descriptor.split(`,`);
 
-                for (const optionName of optionNames)
-                    definition.options.complex.add(optionName);
+                this.registerDefinition(prototype, command => {
+                    command.addOption({names: optNames, arity: 1});
+                });
 
-                transformers.push((command, parsed) => {
-                    for (const {name, value} of parsed.options) {
-                        if (optionNames.has(name) && typeof value !== `undefined`) {
+                this.registerTransformer(prototype, (state, command) => {
+                    for (const {name, value} of state.options) {
+                        if (optNames.includes(name)) {
+                            // @ts-ignore: The property is meant to have been defined by the child class
                             command[propertyName] = value;
                         }
                     }
                 });
             } else {
-                const index = definition.positionals.maximum;
+                this.registerDefinition(prototype, command => {
+                    command.addPositional({required: descriptor.required});
+                });
 
-                definition.positionals.maximum += 1;
-
-                if (descriptor.required)
-                    definition.positionals.minimum += 1;
-
-                transformers.push((command, parsed) => {
-                    const value = parsed.positionals[index];
-
-                    if (typeof value !== `undefined`) {
-                        command[propertyName] = value;
+                this.registerTransformer(prototype, (state, command) => {
+                    if (state.positionals.length > 0) {
+                        // @ts-ignore: The property is meant to have been defined by the child class
+                        command[propertyName] = state.positionals.shift()!.value;
                     }
                 });
             }
+        }
+    }
+
+
+    /**
+     * Register a listener that looks for an option and its followup argument. When Clipanion detects that this argument is present, the value will be pushed into the array represented in the property.
+     */
+    static Array(descriptor: string) {
+        return <Context extends BaseContext>(prototype: Command<Context>, propertyName: string) => {
+            const optNames = descriptor.split(`,`);
+
+            this.registerDefinition(prototype, command => {
+                command.addOption({names: optNames, arity: 1});
+            });
+
+            this.registerTransformer(prototype, (state, command) => {
+                for (const {name, value} of state.options) {
+                    if (optNames.includes(name)) {
+                        // @ts-ignore: The property is meant to have been defined by the child class
+                        command[propertyName] = command[propertyName] || [];
+                        // @ts-ignore: The property is meant to have been defined by the child class
+                        command[propertyName].push(value);
+                    }
+                }
+            });
+        };        
+    }
+
+    /**
+     * Register a listener that takes all the positional arguments remaining and store them into the selected property.
+     * Note that all methods affecting positional arguments are evaluated in the definition order; don't mess with it (for example sorting your properties in ascendent order might have adverse results).
+     */
+    static Rest(): PropertyDecorator;
+
+    /**
+     * Register a listener that takes all the positional arguments remaining and store them into the selected property.
+     * Note that all methods affecting positional arguments are evaluated in the definition order; don't mess with it (for example sorting your properties in ascendent order might have adverse results).
+     * @param opts.required The minimal number of arguments required for the command to be successful.
+     */
+    static Rest(opts: {required: number}): PropertyDecorator;
+
+    static Rest({required = 0}: {required?: number} = {}) {
+        return <Context extends BaseContext>(prototype: Command<Context>, propertyName: string) => {
+            this.registerDefinition(prototype, command => {
+                command.addRest({required});
+            });
+
+            this.registerTransformer(prototype, (state, command) => {
+                // @ts-ignore: The property is meant to have been defined by the child class
+                command[propertyName] = state.positionals.map(({value}) => value);
+            });
         };
     }
 
-    static Path(... segments: string[]) {
-        return <Context extends DefaultContext>(prototype: Command<Context>, propertyName: `execute`) => {
-            const {definition} = (prototype.constructor as typeof Command).getMeta();
-            
-            definition.path = segments;
+    /**
+     * Register a listener that takes all the arguments remaining (including options and such) and store them into the selected property.
+     * Note that all methods affecting positional arguments are evaluated in the definition order; don't mess with it (for example sorting your properties in ascendent order might have adverse results).
+     */
+     static Proxy() {
+        return <Context extends BaseContext>(prototype: Command<Context>, propertyName: string) => {
+            this.registerDefinition(prototype, command => {
+                command.addProxy();
+            });
+
+            this.registerTransformer(prototype, (state, command) => {
+                // @ts-ignore: The property is meant to have been defined by the child class
+                command[propertyName] = state.positionals.map(({value}) => value);
+            });
         };
     }
 
-    static Usage({description, details}: Partial<Help> = {}) {
-        return () => {
-            let result = ``;
+    /**
+     * Defines the usage information for the given command.
+     * @param usage 
+     */
+    static Usage(usage: Usage) {
+        return usage;
+    }
 
-            if (typeof details !== `undefined`) {
-                if (result !== ``)
-                    result += `\n`;
-                result += core.prettyMarkdownish(details, true);
-            } else if (typeof description !== `undefined`) {
-                if (result !== ``)
-                    result += `\n`;
-                result += core.prettyMarkdownish(description, false);
+    /**
+     * Contains the usage information for the command. If undefined, the command will be hidden from the general listing.
+     */
+    static usage?: Usage;
+
+    /**
+     * Standard command that'll get executed by `Cli#run` and `Cli#runExit`. Expected to return an exit code or nothing (which Clipanion will treat as if 0 had been returned).
+     */
+    abstract async execute(): Promise<number | void>;
+
+    async validateAndExecute(): Promise<number> {
+        const commandClass = this.constructor as CommandClass<Context>;
+        const schema = commandClass.schema;
+   
+        if (typeof schema !== `undefined`) {
+            try {
+                await schema.validate(this);
+            } catch (error) {
+                if (error.name === `ValidationError`)
+                    error.clipanion = {type: `usage`};
+                throw error;
             }
-            
-            return result;
-        };
+        }
+
+        const exitCode = await this.execute();
+        if (typeof exitCode !== `undefined`) {
+            return exitCode;
+        } else {
+            return 0;
+        }
     }
 
-    static compile<Context extends DefaultContext>() {
-        const {definition, transformers} = (this as typeof Command).getMeta();
-
-        return new core.Command<(cli: Cli<Context>, context: Context) => Command<Context>>(definition, parsed => (cli, context) => {
-            // @ts-ignore: In practice, "this" will be the subclass that
-            // inherit from Command (and thus not an abstract)
-            const bag = new this();
-
-            bag.cli = cli;
-            bag.context = context;
-
-            for (const transformer of transformers)
-                transformer(bag, parsed);
-
-            return bag;
-        });
-    }
-
-    // Those two fields are automatically populated
-    public cli!: MiniCli<Context>;
-    public context!: Context;
-
-    // This option is automatically added (it needs an extra logic to support
-    // ignoring the overall syntax of the command)
-    public help: boolean = false;
+    /**
+     * Predefined that will be set to true if `-h,--help` has been used, in which case `Command#execute` shouldn't be called.
+     */
+    help: boolean = false;
 
     /**
-     * If defined, must contain a function that returns the string displayed
-     * when the command help message is generated.
+     * Predefined variable that will be populated with a miniature API that can be used to query Clipanion and forward commands.
      */
-    public usage: (() => string) | undefined;
+    cli!: MiniCli<Context>;
 
     /**
-     * Executed by Cli#run and Cli#runExit.
+     * Predefined variable that will be populated with the context of the application.
      */
+    context!: Context;
 
-    abstract execute(): Promise<number | void>;
+    /**
+     * The path that got used to access the command being executed.
+     */
+    path!: string[];
 }

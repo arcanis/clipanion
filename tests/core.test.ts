@@ -1,277 +1,469 @@
-import {expect}               from 'chai';
+import {expect}                         from 'chai';
 
-import {Cli, Command, Parsed} from '../sources/core';
+import {CliBuilderCallback, CliBuilder} from '../sources/core';
 
-const makeCli = <T>(definitions: T[]) => {
-    const cli = new Cli<{
-        index: number;
-        definition: T;
-        parsed: Parsed;
-    }>();
-
-    for (let t = 0; t < definitions.length; ++t) {
-        const definition = definitions[t];
-
-        cli.register(new Command(definition, parsed => ({
-            index: t,
-            definition,
-            parsed,
-        })));
-    }
-
-    return cli;
+const makeCli = (definitions: CliBuilderCallback<{}>[]) => {
+    return CliBuilder.build<{}>(definitions.map(cb => {
+        return builder => {
+            builder.setContext({});
+            cb(builder);
+        };
+    }));
 }
 
 describe(`Core`, () => {
     it(`should select the default command when using no arguments`, () => {
-        const cli = makeCli([{path: []}]);
+        const cli = makeCli([
+            () => {},
+        ]);
 
-        const {index} = cli.process([]);
-        expect(index).to.equal(0);
+        const {selectedIndex} = cli.process([]);
+        expect(selectedIndex).to.equal(0);
     });
 
     it(`should select the default command when using mandatory positional arguments`, () => {
-        const cli = makeCli([{path: [], positionals: {minimum: 2}}]);
+        const cli = makeCli([
+            b => {
+                b.addPositional();
+                b.addPositional();
+            },
+        ]);
 
-        const {index} = cli.process([`foo`, `bar`]);
-        expect(index).to.equal(0);
+        const {selectedIndex} = cli.process([`foo`, `bar`]);
+        expect(selectedIndex).to.equal(0);
     });
 
     it(`should select commands by their path`, () => {
-        const cli = makeCli([{path: [`foo`]}, {path: [`bar`]}]);
+        const cli = makeCli([
+            b => {
+                b.addPath([`foo`]);
+            },
+            b => {
+                b.addPath([`bar`]);
+            },
+        ]);
 
-        const {index: index1} = cli.process([`foo`]);
-        expect(index1).to.equal(0);
+        const {selectedIndex: selectedIndex1} = cli.process([`foo`]);
+        expect(selectedIndex1).to.equal(0);
 
-        const {index: index2} = cli.process([`bar`]);
-        expect(index2).to.equal(1);
+        const {selectedIndex: selectedIndex2} = cli.process([`bar`]);
+        expect(selectedIndex2).to.equal(1);
     });
 
     it(`should select commands by their mandatory positional arguments`, () => {
-        const cli = makeCli([{path: []}, {path: [], positionals: {minimum: 1}}]);
+        const cli = makeCli([
+            () => {
+                // Nothing to do
+            },
+            b => {
+                b.addPositional();
+            },
+        ]);
 
-        const {index} = cli.process([`foo`]);
-        expect(index).to.equal(1);
+        const {selectedIndex} = cli.process([`foo`]);
+        expect(selectedIndex).to.equal(1);
     });
 
     it(`should select commands by their simple options`, () => {
-        const cli = makeCli([{options: {simple: new Set([`-x`])}}, {options: {simple: new Set([`-y`])}}]);
+        const cli = makeCli([
+            b => {
+                b.addOption({names: [`-x`]});
+            },
+            b => {
+                b.addOption({names: [`-y`]});
+            },
+        ]);
 
-        const {index: index1} = cli.process([`-x`]);
-        expect(index1).to.equal(0);
+        const {selectedIndex: selectedIndex1} = cli.process([`-x`]);
+        expect(selectedIndex1).to.equal(0);
 
-        const {index: index2} = cli.process([`-y`]);
-        expect(index2).to.equal(1);
+        const {selectedIndex: selectedIndex2} = cli.process([`-y`]);
+        expect(selectedIndex2).to.equal(1);
     });
 
     it(`should select commands by their complex values`, () => {
-        const cli = makeCli([{options: {complex: new Set([`-x`])}}, {options: {complex: new Set([`-y`])}}]);
+        const cli = makeCli([
+            b => {
+                b.addOption({names: [`-x`], arity: 1});
+            },
+            b => {
+                b.addOption({names: [`-y`], arity: 1});
+            },
+        ]);
 
-        const {index: index1} = cli.process([`-x`, `foo`]);
-        expect(index1).to.equal(0);
+        const {selectedIndex: selectedIndex1} = cli.process([`-x`, `foo`]);
+        expect(selectedIndex1).to.equal(0);
 
-        const {index: index2} = cli.process([`-y`, `bar`]);
-        expect(index2).to.equal(1);
+        const {selectedIndex: selectedIndex2} = cli.process([`-y`, `bar`]);
+        expect(selectedIndex2).to.equal(1);
     });
 
     it(`should prefer longer paths over mandatory arguments`, () => {
-        const cli = makeCli([{path: [`foo`]}, {positionals: {minimum: 1}}]);
+        const cli = makeCli([
+            b => {
+                b.addPath([`foo`]);
+            },
+            b => {
+                b.addPositional();
+            },
+        ]);
 
-        const {index} = cli.process([`foo`]);
-        expect(index).to.equal(0);
+        const {selectedIndex} = cli.process([`foo`]);
+        expect(selectedIndex).to.equal(0);
     });
 
     it(`should prefer longer paths over mandatory arguments (reversed)`, () => {
-        const cli = makeCli([{positionals: {minimum: 1}}, {path: [`foo`]}]);
+        const cli = makeCli([
+            b => {
+                b.addPositional();
+            },
+            b => {
+                b.addPath([`foo`]);
+            },
+        ]);
 
-        const {index} = cli.process([`foo`]);
-        expect(index).to.equal(1);
+        const {selectedIndex} = cli.process([`foo`]);
+        expect(selectedIndex).to.equal(1);
     });
 
     it(`should prefer longer paths over mandatory arguments (prefixed)`, () => {
-        const cli = makeCli([{path: [`prfx`, `foo`]}, {path: [`prfx`], positionals: {minimum: 1}}]);
+        const cli = makeCli([
+            b => {
+                b.addPath([`prfx`, `foo`]);
+            },
+            b => {
+                b.addPath([`prfx`]);
+                b.addPositional();
+            },
+        ]);
 
-        const {index} = cli.process([`prfx`, `foo`]);
-        expect(index).to.equal(0);
+        const {selectedIndex} = cli.process([`prfx`, `foo`]);
+        expect(selectedIndex).to.equal(0);
     });
 
     it(`should prefer longer paths over optional arguments`, () => {
-        const cli = makeCli([{path: [`foo`]}, {positionals: {maximum: Infinity}}]);
+        const cli = makeCli([
+            b => {
+                b.addPath([`foo`]);
+            },
+            b => {
+                b.addPositional({required: false});
+            },
+        ]);
 
-        const {index} = cli.process([`foo`]);
-        expect(index).to.equal(0);
+        const {selectedIndex} = cli.process([`foo`]);
+        expect(selectedIndex).to.equal(0);
     });
 
     it(`should prefer longer paths over optional arguments (reversed)`, () => {
-        const cli = makeCli([{positionals: {maximum: Infinity}}, {path: [`foo`]}]);
+        const cli = makeCli([
+            b => {
+                b.addPositional({required: false});
+            },
+            b => {
+                b.addPath([`foo`]);
+            },
+        ]);
 
-        const {index} = cli.process([`foo`]);
-        expect(index).to.equal(1);
+        const {selectedIndex} = cli.process([`foo`]);
+        expect(selectedIndex).to.equal(1);
     });
 
     it(`should prefer longer paths over optional arguments (prefixed)`, () => {
-        const cli = makeCli([{path: [`prfx`, `foo`]}, {path: [`prfx`], positionals: {maximum: Infinity}}]);
+        const cli = makeCli([
+            b => {
+                b.addPath([`prfx`, `foo`]);
+            },
+            b => {
+                b.addPath([`prfx`]);
+                b.addPositional({required: false});
+            },
+        ]);
 
-        const {index} = cli.process([`prfx`, `foo`]);
-        expect(index).to.equal(0);
+        const {selectedIndex} = cli.process([`prfx`, `foo`]);
+        expect(selectedIndex).to.equal(0);
     });
 
     it(`should prefer mandatory arguments over optional arguments`, () => {
-        const cli = makeCli([{positionals: {minimum: 1}}, {positionals: {maximum: Infinity}}]);
+        const cli = makeCli([
+            b => {
+                b.addPositional();
+            },
+            b => {
+                b.addPositional({required: false});
+            },
+        ]);
 
-        const {index} = cli.process([`foo`]);
-        expect(index).to.equal(0);
+        const {selectedIndex} = cli.process([`foo`]);
+        expect(selectedIndex).to.equal(0);
     });
 
     it(`should prefer mandatory arguments over optional arguments (reversed)`, () => {
-        const cli = makeCli([{positionals: {maximum: Infinity}}, {positionals: {minimum: 1}}]);
+        const cli = makeCli([
+            b => {
+                b.addPositional({required: false});
+            },
+            b => {
+                b.addPositional();
+            },
+        ]);
 
-        const {index} = cli.process([`foo`]);
-        expect(index).to.equal(1);
-    });
-
-    it(`should prefer mandatory arguments over optional arguments`, () => {
-        const cli = makeCli([{path: [`prfx`], positionals: {minimum: 1}}, {path: [`prfx`], positionals: {maximum: Infinity}}]);
-
-        const {index} = cli.process([`prfx`, `foo`]);
-        expect(index).to.equal(0);
+        const {selectedIndex} = cli.process([`foo`]);
+        expect(selectedIndex).to.equal(1);
     });
 
     it(`should fallback from path to mandatory arguments if needed`, () => {
-        const cli = makeCli([{path: [`foo`]}, {positionals: {minimum: 1}}]);
+        const cli = makeCli([
+            b => {
+                b.addPath([`foo`]);
+            },
+            b => {
+                b.addPositional();
+            },
+        ]);
 
-        const {index} = cli.process([`bar`]);
-        expect(index).to.equal(1);
+        const {selectedIndex} = cli.process([`bar`]);
+        expect(selectedIndex).to.equal(1);
     });
 
     it(`should fallback from path to mandatory arguments if needed (reversed)`, () => {
-        const cli = makeCli([{positionals: {minimum: 1}}, {path: [`foo`]}]);
+        const cli = makeCli([
+            b => {
+                b.addPositional();
+            },
+            b => {
+                b.addPath([`foo`]);
+            },
+        ]);
 
-        const {index} = cli.process([`bar`]);
-        expect(index).to.equal(0);
+        const {selectedIndex} = cli.process([`bar`]);
+        expect(selectedIndex).to.equal(0);
     });
 
     it(`should fallback from path to mandatory arguments if needed (prefixed)`, () => {
-        const cli = makeCli([{path: [`prfx`, `foo`]}, {path: [`prfx`], positionals: {minimum: 1}}]);
+        const cli = makeCli([
+            b => {
+                b.addPath([`prfx`, `foo`]);
+            },
+            b => {
+                b.addPath([`prfx`]);
+                b.addPositional();
+            },
+        ]);
 
-        const {index} = cli.process([`prfx`, `bar`]);
-        expect(index).to.equal(1);
+        const {selectedIndex} = cli.process([`prfx`, `bar`]);
+        expect(selectedIndex).to.equal(1);
     });
 
     it(`should fallback from path to optional arguments if needed`, () => {
-        const cli = makeCli([{path: [`foo`]}, {positionals: {maximum: Infinity}}]);
+        const cli = makeCli([
+            b => {
+                b.addPath([`foo`]);
+            },
+            b => {
+                b.addPositional({required: false});
+            },
+        ]);
 
-        const {index} = cli.process([`bar`]);
-        expect(index).to.equal(1);
+        const {selectedIndex} = cli.process([`bar`]);
+        expect(selectedIndex).to.equal(1);
     });
 
     it(`should fallback from path to optional arguments if needed (reversed)`, () => {
-        const cli = makeCli([{positionals: {maximum: Infinity}}, {path: [`foo`]}]);
+        const cli = makeCli([
+            b => {
+                b.addPositional({required: false});
+            },
+            b => {
+                b.addPath([`foo`]);
+            },
+        ]);
 
-        const {index} = cli.process([`bar`]);
-        expect(index).to.equal(0);
+        const {selectedIndex} = cli.process([`bar`]);
+        expect(selectedIndex).to.equal(0);
     });
 
     it(`should fallback from path to optional arguments if needed (prefixed)`, () => {
-        const cli = makeCli([{path: [`prfx`, `foo`]}, {path: [`prfx`], positionals: {maximum: Infinity}}]);
+        const cli = makeCli([
+            b => {
+                b.addPath([`prfx`, `foo`]);
+            },
+            b => {
+                b.addPath([`prfx`]);
+                b.addPositional();
+            },
+        ]);
 
-        const {index} = cli.process([`prfx`, `bar`]);
-        expect(index).to.equal(1);
+        const {selectedIndex} = cli.process([`prfx`, `bar`]);
+        expect(selectedIndex).to.equal(1);
     });
 
     it(`should extract booleans from simple options`, () => {
-        const cli = makeCli([{options: {simple: new Set([`-x`])}}]);
+        const cli = makeCli([
+            b => {
+                b.addOption({names: [`-x`]});
+            },
+        ]);
 
-        const {parsed} = cli.process([`-x`]);
-        expect(parsed.options).to.deep.equal([{type: `option`, name: `-x`, value: true}]);
+        const {options} = cli.process([`-x`]);
+        expect(options).to.deep.equal([
+            {name: `-x`, value: true},
+        ]);
     });
 
     it(`should extract strings from complex options`, () => {
-        const cli = makeCli([{options: {complex: new Set([`-x`])}}]);
+        const cli = makeCli([
+            b => {
+                b.addOption({names: [`-x`], arity: 1});
+            },
+        ]);
 
-        const {parsed} = cli.process([`-x`, `foo`]);
-        expect(parsed.options).to.deep.equal([{type: `option`, name: `-x`, value: `foo`}]);
+        const {options} = cli.process([`-x`, `foo`]);
+        expect(options).to.deep.equal([
+            {name: `-x`, value: `foo`},
+        ]);
     });
 
     it(`should aggregate the options as they are found`, () => {
-        const cli = makeCli([{options: {simple: new Set([`-x`, `-y`, `-z`]), complex: new Set([`-u`, `-v`, `-w`])}}]);
-
-        const {parsed: parsed1} = cli.process([`-x`, `-u`, `foo`, `-y`, `-v`, `bar`, `-y`]);
-        expect(parsed1.options).to.deep.equal([
-            {type: `option`, name: `-x`, value: true},
-            {type: `option`, name: `-u`, value: `foo`},
-            {type: `option`, name: `-y`, value: true},
-            {type: `option`, name: `-v`, value: `bar`},
-            {type: `option`, name: `-y`, value: true},
+        const cli = makeCli([
+            b => {
+                b.addOption({names: [`-x`]});
+                b.addOption({names: [`-y`]});
+                b.addOption({names: [`-z`]});
+                b.addOption({names: [`-u`], arity: 1});
+                b.addOption({names: [`-v`], arity: 1});
+                b.addOption({names: [`-w`], arity: 1});
+            },
         ]);
 
-        const {parsed: parsed2} = cli.process([`-z`, `-y`, `-x`]);
-        expect(parsed2.options).to.deep.equal([
-            {type: `option`, name: `-z`, value: true},
-            {type: `option`, name: `-y`, value: true},
-            {type: `option`, name: `-x`, value: true},
+        const {options: options1} = cli.process([`-x`, `-u`, `foo`, `-y`, `-v`, `bar`, `-y`]);
+        expect(options1).to.deep.equal([
+            {name: `-x`, value: true},
+            {name: `-u`, value: `foo`},
+            {name: `-y`, value: true},
+            {name: `-v`, value: `bar`},
+            {name: `-y`, value: true},
+        ]);
+
+        const {options: options2} = cli.process([`-z`, `-y`, `-x`]);
+        expect(options2).to.deep.equal([
+            {name: `-z`, value: true},
+            {name: `-y`, value: true},
+            {name: `-x`, value: true},
         ]);
     });
 
     it(`should aggregate the mandatory arguments`, () => {
-        const cli = makeCli([{positionals: {minimum: 2}}]);
+        const cli = makeCli([
+            b => {
+                b.addPositional();
+                b.addPositional();
+            },
+        ]);
 
-        const {parsed} = cli.process([`foo`, `bar`]);
-        expect(parsed.positionals).to.deep.equal([`foo`, `bar`]);
+        const {positionals} = cli.process([`foo`, `bar`]);
+        expect(positionals).to.deep.equal([
+            {value: `foo`, extra: false},
+            {value: `bar`, extra: false},
+        ]);
     });
 
     it(`should aggregate the optional arguments`, () => {
-        const cli = makeCli([{positionals: {maximum: 2}}]);
+        const cli = makeCli([
+            b => {
+                b.addPositional({required: false});
+                b.addPositional({required: false});
+            },
+        ]);
 
-        const {parsed} = cli.process([`foo`, `bar`]);
-        expect(parsed.positionals).to.deep.equal([`foo`, `bar`]);
+        const {positionals} = cli.process([`foo`, `bar`]);
+        expect(positionals).to.deep.equal([
+            {value: `foo`, extra: true},
+            {value: `bar`, extra: true},
+        ]);
     });
 
     it(`should accept as few optional arguments as possible`, () => {
-        const cli = makeCli([{positionals: {maximum: 2}}]);
+        const cli = makeCli([
+            b => {
+                b.addPositional({required: false});
+                b.addPositional({required: false});
+            },
+        ]);
 
-        const {parsed: parsed1} = cli.process([]);
-        expect(parsed1.positionals).to.deep.equal([]);
+        const {positionals: positionals1} = cli.process([]);
+        expect(positionals1).to.deep.equal([]);
 
-        const {parsed: parsed2} = cli.process([`foo`]);
-        expect(parsed2.positionals).to.deep.equal([`foo`]);
+        const {positionals: positionals2} = cli.process([`foo`]);
+        expect(positionals2).to.deep.equal([
+            {value: `foo`, extra: true},
+        ]);
     });
 
     it(`should accept a mix of mandatory and optional arguments`, () => {
-        const cli = makeCli([{positionals: {minimum: 1, maximum: 2}}]);
+        const cli = makeCli([
+            b => {
+                b.addPositional();
+                b.addPositional({required: false});
+            },
+        ]);
 
-        const {parsed: parsed1} = cli.process([`foo`]);
-        expect(parsed1.positionals).to.deep.equal([`foo`]);
+        const {positionals: positionals1} = cli.process([`foo`]);
+        expect(positionals1).to.deep.equal([
+            {value: `foo`, extra: false},
+        ]);
 
-        const {parsed: parsed2} = cli.process([`foo`, `bar`]);
-        expect(parsed2.positionals).to.deep.equal([`foo`, `bar`]);
+        const {positionals: positionals2} = cli.process([`foo`, `bar`]);
+        expect(positionals2).to.deep.equal([
+            {value: `foo`, extra: false},
+            {value: `bar`, extra: true},
+        ]);
     });
 
     it(`should accept any option as positional argument when proxies are enabled`, () => {
-        const cli = makeCli([{positionals: {maximum: Infinity, proxy: true}}]);
+        const cli = makeCli([
+            b => {
+                b.addProxy();
+            },
+        ]);
 
-        const {parsed: parsed1} = cli.process([`--foo`, `--bar`]);
-        expect(parsed1.positionals).to.deep.equal([`--foo`, `--bar`]);
+        const {positionals} = cli.process([`--foo`, `--bar`]);
+        expect(positionals).to.deep.equal([
+            {value: `--foo`, extra: true},
+            {value: `--bar`, extra: true},
+        ]);
     });
 
     it(`should throw acceptable errors when passing an extraneous option`, () => {
-        const cli = makeCli([{}]);
+        const cli = makeCli([
+            () => {
+                // Nothing to do
+            },
+        ]);
 
         expect(() => {
             cli.process([`--foo`]);
-        }).to.throw(`Unsupported option "--foo"`);
+        }).to.throw(`Unsupported option name ("--foo")`);
     });
 
     it(`should throw acceptable errors when passing extraneous arguments`, () => {
-        const cli = makeCli([{}]);
+        const cli = makeCli([
+            b => {
+                // Nothing to do
+            },
+        ]);
 
         expect(() => {
             cli.process([`foo`]);
-        }).to.throw(`Extraneous positional argument "foo"`);
+        }).to.throw(`Extraneous positional argument ("foo")`);
     });
 
     it(`should throw acceptable errors when omitting mandatory positional arguments`, () => {
-        const cli = makeCli([{positionals: {minimum: 1}}]);
+        const cli = makeCli([
+            b => {
+                b.addPositional();
+            },
+        ]);
 
         expect(() => {
             cli.process([]);
@@ -279,7 +471,11 @@ describe(`Core`, () => {
     });
 
     it(`should throw acceptable errors when writing invalid arguments`, () => {
-        const cli = makeCli([{}]);
+        const cli = makeCli([
+            b => {
+                // Nothing to do
+            },
+        ]);
 
         expect(() => {
             cli.process([`-%#@$%#()@`]);

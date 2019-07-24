@@ -1,17 +1,37 @@
-import chaiAsPromised                 from 'chai-as-promised';
-import chai, {expect}                 from 'chai';
-import getStream                      from 'get-stream';
-import {PassThrough}                  from 'stream';
+import chaiAsPromised               from 'chai-as-promised';
+import chai, {expect}               from 'chai';
+import getStream                    from 'get-stream';
+import {PassThrough}                from 'stream';
 
-import {Cli, Command, DefaultContext} from '../sources/advanced';
+import {Cli, CommandClass, Command} from '../sources/advanced';
 
 chai.use(chaiAsPromised);
 
-const runCli = async (cli: Cli, args: string[]) => {
+const log = <T extends Command>(command: T, properties: (keyof T)[] = []) => {
+    command.context.stdout.write(`Running ${command.constructor.name}\n`);
+
+    for (const property of properties) {
+        command.context.stdout.write(`${JSON.stringify(command[property])}\n`);
+    }
+};
+
+const runCli = async (cli: Cli | (() => CommandClass[]), args: string[]) => {
+    let finalCli;
+
+    if (typeof cli === `function`) {
+        finalCli = new Cli();
+
+        for (const command of cli()) {
+            finalCli.register(command);
+        }
+    } else {
+        finalCli = cli;
+    }
+
     const stream = new PassThrough();
     const promise = getStream(stream);
 
-    const exitCode = await cli.run(args, {
+    const exitCode = await finalCli.run(args, {
         stdin: process.stdin,
         stdout: stream,
         stderr: stream,
@@ -27,95 +47,108 @@ const runCli = async (cli: Cli, args: string[]) => {
     return output;
 };
 
-class NoopCommand extends Command {
-    async execute() {
-        this.context.stdout.write(`Executing ${this.constructor.name}`);
-    }
-}
-
-class OptFooCommand extends Command {
-    @Command.Boolean(`--foo`)
-    public foo: boolean = false;
-
-    async execute() {
-        this.context.stdout.write(`Executing ${this.constructor.name}`);
-    }
-}
-
-class OptBarCommand extends Command {
-    @Command.Boolean(`--bar`)
-    public bar: boolean = false;
-
-    async execute() {
-        this.context.stdout.write(`Executing ${this.constructor.name}`);
-    }
-}
-
-class PositionalCommand extends Command {
-    @Command.String()
-    public baz?: string;
-
-    async execute() {
-        this.context.stdout.write(`Executing ${this.constructor.name}`);
-    }
-}
-
-const noOptCli = new Cli({name: `bin`});
-noOptCli.register(NoopCommand);
-
-const singleOptCli = new Cli({name: `bin`});
-singleOptCli.register(OptFooCommand);
-
-const forkedOptCli = new Cli({name: `bin`});
-forkedOptCli.register(OptFooCommand);
-forkedOptCli.register(OptBarCommand);
-
-const positionalCli = new Cli({name: `bin`});
-positionalCli.register(PositionalCommand);
+const prefix = `\u001b[1m$ \u001b[22m`;
 
 describe(`Advanced`, () => {
-    it(`should print the help message when using --help (single option)`, async () => {
-        const output = await runCli(singleOptCli, [`--help`]);
-        expect(output).to.include(`$ bin [--foo]\n`);
+    it(`should print the general help listing when using --help on the raw command`, async () => {
+        const output = await runCli(() => {
+            class CommandHelp extends Command {
+                @Command.Path(`--help`)
+                @Command.Path(`-h`)
+                async execute() {
+                    this.context.stdout.write(this.cli.usage(null));
+                }
+            }
+            class CommandA extends Command {
+                async execute() {log(this)}
+            }
+            return [
+                CommandHelp,
+                CommandA,
+            ];
+        }, [
+            `--help`,
+        ]);
+
+        expect(output).to.include(`${prefix}... <command>\n`);
     });
 
-    it(`should print the help message when using --help (single option, --help after other options)`, async () => {
-        const output = await runCli(singleOptCli, [`--foo`, `--help`]);
-        expect(output).to.include(`$ bin [--foo]\n`);
+    it(`should print the help message when using --help`, async () => {
+        const output = await runCli(() => {
+            class CommandA extends Command {
+                @Command.Boolean(`--foo`)
+                foo: boolean = false;
+
+                async execute() {log(this)}
+            }
+            return [
+                CommandA,
+            ];
+        }, [
+            `--help`,
+        ]);
+
+        expect(output).to.equal(`${prefix}... [--foo]\n`);
     });
 
-    it(`should print the help message when using --help (single option, --help before other options)`, async () => {
-        const output = await runCli(singleOptCli, [`--help`, `--foo`]);
-        expect(output).to.include(`$ bin [--foo]\n`);
+    it(`shouldn't detect --help past the -- separator`, async () => {
+        const output = await runCli(() => {
+            class CommandA extends Command {
+                @Command.String()
+                arg!: string;
+
+                async execute() {log(this)}
+            }
+            return [
+                CommandA,
+            ];
+        }, [
+            `--`,
+            `--help`,
+        ]);
+
+        expect(output).to.equal(`Running CommandA\n`);
     });
 
-    it(`should print the help message when using --help (single option, --help after junk option)`, async () => {
-        const output = await runCli(singleOptCli, [`--not-supported`, `--help`]);
-        expect(output).to.include(`$ bin [--foo]\n`);
+    it(`shouldn't detect --help on proxies`, async () => {
+        const output = await runCli(() => {
+            class CommandA extends Command {
+                @Command.Proxy()
+                args: string[] = [];
+
+                async execute() {log(this, [`args`])}
+            }
+            return [
+                CommandA,
+            ];
+        }, [
+            `--help`,
+        ]);
+
+        expect(output).to.equal(`Running CommandA\n["--help"]\n`);
     });
 
-    it(`should print the help message when using --help (single option, --help before junk option)`, async () => {
-        const output = await runCli(singleOptCli, [`--help`, `--not-supported`]);
-        expect(output).to.include(`$ bin [--foo]\n`);
-    });
+    it(`should allow calling a command from another`, async () => {
+        const output = await runCli(() => {
+            class CommandA extends Command {
+                @Command.Path(`foo`)
+                async execute() {
+                    log(this);
+                    this.cli.run([`bar`]);
+                }
+            }
+            class CommandB extends Command {
+                @Command.Path(`bar`)
+                async execute() {
+                    log(this);
+                }
+            }
+            return [
+                CommandA,
+                CommandB,
+            ];
+        }, [`foo`]);
 
-    it(`should print the help message when using --help (no options, --help after junk positional arguments)`, async () => {
-        const output = await runCli(noOptCli, [`not-supported`, `--help`]);
-        expect(output).to.include(`$ bin \n`);
-    });
-
-    it(`should print the help message when using --help (no options, --help before junk positional arguments)`, async () => {
-        const output = await runCli(noOptCli, [`--help`, `not-supported`]);
-        expect(output).to.include(`$ bin \n`);
-    });
-
-    it(`shouldn't detect --help past the -- separator (valid case)`, async () => {
-        const output = await runCli(positionalCli, [`--`, `--help`]);
-        expect(output).to.equal(`Executing PositionalCommand`);
-    });
-
-    it(`shouldn't detect --help past the -- separator (invalid case)`, async () => {
-        const promise = runCli(positionalCli, [`--`, `foobar`, `--help`]);
-        await expect(promise).to.eventually.be.rejectedWith(/Extraneous positional argument "--help"/);
+        expect(output).to.equal(`Running CommandA\nRunning CommandB\n`);
     });
 });

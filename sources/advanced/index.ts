@@ -1,2 +1,4 @@
-export {Cli, DefaultContext} from './Cli';
-export {Command}             from './Command';
+export {BaseContext, Cli}             from './Cli';
+export {CommandClass, Command, Usage} from './Command';
+
+export {UsageError}                   from '../errors';

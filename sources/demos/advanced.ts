@@ -25,9 +25,18 @@ declare module 'yup' {
     }
 }
 
-class YarnDefaultInstall extends Command<Context> {
+class YarnDefaultDefinitions extends Command<Context> {
+    @Command.Path(`--clipanion=definitions`)
     async execute() {
-        return await this.cli.run([`install`], {});
+        this.context.stdout.write(`${JSON.stringify(this.cli.definitions(), null, 2)}\n`);
+    }
+}
+
+class YarnDefaultHelp extends Command<Context> {
+    @Command.Path(`-h`)
+    @Command.Path(`--help`)
+    async execute() {
+        this.context.stdout.write(this.cli.usage());
     }
 }
 
@@ -44,7 +53,11 @@ class YarnDefaultRun extends Command<Context> {
 }
 
 class YarnInstall extends Command<Context> {
+    @Command.Boolean(`--frozen-lockfile`)
+    public frozenLockfile: boolean = false;
+
     @Command.Path(`install`)
+    @Command.Path()
     async execute() {
         this.context.stdout.write(`Running an install: ${this.context.cwd}\n`);
     }
@@ -67,16 +80,16 @@ class YarnRunExec extends Command<Context> {
     @Command.Proxy()
     public rest!: string[];
 
+    static usage = Command.Usage({
+        category: `Foo`,
+    });
+
     @Command.Path(`run`)
     async execute() {
         this.context.stdout.write(`Executing a script named ${this.scriptName} ${this.rest}\n`)
     }
 }
 
-@Command.Validate(yup.object()
-    .atMostOneOf([`dev`, `peer`])
-    .atMostOneOf([`exact`, `tilde`])
-)
 export default class YarnAdd extends Command<Context> {
     @Command.Boolean(`-D,--dev`)
     public dev: boolean = false;
@@ -93,24 +106,28 @@ export default class YarnAdd extends Command<Context> {
     @Command.Rest({required: 1})
     public pkgs: string[] = [];
 
-    usage = Command.Usage({
+    static schema = yup.object()
+        .atMostOneOf([`dev`, `peer`])
+        .atMostOneOf([`exact`, `tilde`]);
+
+    static usage = Command.Usage({
         description: `
             add dependencies to the project
         `,
         details: `
             This command adds a package to the package.json for the nearest workspace.
-    
+
             - The package will by default be added to the regular \`dependencies\` field, but this behavior can be overriden thanks to the \`-D,--dev\` flag (which will cause the dependency to be added to the \`devDependencies\` field instead) and the \`-P,--peer\` flag (which will do the same but for \`peerDependencies\`).
-    
+
             - If the added package doesn't specify a range at all its \`latest\` tag will be resolved and the returned version will be used to generate a new semver range (using the \`^\` modifier by default, or the \`~\` modifier if \`-T,--tilde\` is specified, or no modifier at all if \`-E,--exact\` is specified). Two exceptions to this rule: the first one is that if the package is a workspace then its local version will be used, and the second one is that if you use \`-P,--peer\` the default range will be \`*\` and won't be resolved at all.
-    
+
             - If the added package specifies a tag range (such as \`latest\` or \`rc\`), Yarn will resolve this tag to a semver version and use that in the resulting package.json entry (meaning that \`yarn add foo@latest\` will have exactly the same effect as \`yarn add foo\`).
-    
+
             If the \`-i,--interactive\` option is used (or if the \`preferInteractive\` settings is toggled on) the command will first try to check whether other workspaces in the project use the specified package and, if so, will offer to reuse them.
-    
+
             If the \`--cached\` option is used, Yarn will preferably reuse the highest version already used somewhere within the project, even if through a transitive dependency.
-    
-            For a compilation of all the supported protocols, please consult the dedicated page from our website: .
+
+            For a compilation of all the supported protocols, please consult the dedicated page from our website: http://example.org.
         `,
     });
 
@@ -126,10 +143,15 @@ export default class YarnAdd extends Command<Context> {
     }
 }
 
-const cli = new Cli<Context>({name: `yarn`});
+const cli = new Cli<Context>({
+    binaryLabel: `Yarn Project Manager`,
+    binaryName: `yarn`,
+    binaryVersion: `v0.0.0`,
+});
 
-cli.register(YarnDefaultInstall);
-//cli.register(YarnDefaultRun);
+cli.register(YarnDefaultDefinitions);
+cli.register(YarnDefaultHelp);
+cli.register(YarnDefaultRun);
 cli.register(YarnInstall);
 cli.register(YarnRunListing);
 cli.register(YarnRunExec);
