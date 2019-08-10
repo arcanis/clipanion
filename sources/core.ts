@@ -13,6 +13,8 @@ export const END_OF_INPUT = `\u0000`;
 export const HELP_COMMAND_INDEX = -1;
 
 export const HELP_REGEX = /^(-h|--help)(?:=([0-9]+))?$/;
+export const OPTION_REGEX = /^(--[a-z]+(-[a-z]+)*|-[a-zA-Z]+)$/;
+export const BATCH_REGEX = /^-[a-zA-Z]{2,}$/;
 
 // ------------------------------------------------------------------------
 
@@ -185,10 +187,16 @@ export function runMachine(machine: StateMachine, input: string[]) {
             }
         }
 
-        if (nextBranches.every(({node}) => node === NODE_ERRORED)) {
-            throw new errors.UnknownSyntaxError(nextBranches.filter(({state}) => {
-                return state.candidateUsage !== null;
+        if (nextBranches.length === 0) {
+            throw new errors.UnknownSyntaxError(branches.filter(({node}) => {
+                return node !== NODE_ERRORED;
             }).map(({state}) => {
+                return {usage: state.candidateUsage!, reason: null};
+            }));
+        }
+
+        if (nextBranches.every(({node}) => node === NODE_ERRORED)) {
+            throw new errors.UnknownSyntaxError(nextBranches.map(({state}) => {
                 return {usage: state.candidateUsage!, reason: state.errorMessage};
             }));
         }
@@ -378,11 +386,20 @@ export const tests = {
     isOption: (state: RunState, segment: string, name: string) => {
         return !state.ignoreOptions && segment === name;
     },
+    isBatchOption: (state: RunState, segment: string, names: string[]) => {
+        return !state.ignoreOptions && BATCH_REGEX.test(segment) && [...segment.slice(1)].every(name => names.includes(`-${name}`));
+    },
+    isNegatedOption: (state: RunState, segment: string, name: string) => {
+        return !state.ignoreOptions && segment === `--no-${name.slice(2)}`;
+    },
     isHelp: (state: RunState, segment: string) => {
         return !state.ignoreOptions && HELP_REGEX.test(segment);
     },
     isUnsupportedOption: (state: RunState, segment: string, names: string[]) => {
-        return !state.ignoreOptions && segment.startsWith(`-`) && !names.includes(segment);
+        return !state.ignoreOptions && segment.startsWith(`-`) && OPTION_REGEX.test(segment) && !names.includes(segment);
+    },
+    isInvalidOption: (state: RunState, segment: string) => {
+        return !state.ignoreOptions && segment.startsWith(`-`) && !OPTION_REGEX.test(segment);
     },
 };
 
@@ -393,6 +410,9 @@ export const reducers = {
     setSelectedIndex: (state: RunState, segment: string, index: number) => {
         return {...state, selectedIndex: index};
     },
+    pushBatch: (state: RunState, segment: string) => {
+        return {...state, options: state.options.concat([...segment.slice(1)].map(name => ({name: `-${name}`, value: true})))};
+    },
     pushPath: (state: RunState, segment: string) => {
         return {...state, path: state.path.concat(segment)};
     },
@@ -402,10 +422,13 @@ export const reducers = {
     pushExtra: (state: RunState, segment: string) => {
         return {...state, positionals: state.positionals.concat({value: segment, extra: true})}
     },
-    pushBoolean: (state: RunState, segment: string) => {
+    pushTrue: (state: RunState, segment: string, name: string = segment) => {
         return {...state, options: state.options.concat({name: segment, value: true})};
     },
-    pushString: (state: RunState, segment: string) => {
+    pushFalse: (state: RunState, segment: string, name: string = segment) => {
+        return {...state, options: state.options.concat({name, value: false})};
+    },
+    pushUndefined: (state: RunState, segment: string) => {
         return {...state, options: state.options.concat({name: segment, value: undefined})}
     },
     setStringValue: (state: RunState, segment: string) => {
@@ -617,7 +640,7 @@ export class CommandBuilder<Context> {
 
                 lastExtraNode = extraShortcutNode;
             }
-        
+
             if (this.arity.trailing > 0)
                 registerStatic(machine, lastExtraNode, END_OF_INPUT, NODE_ERRORED, [`setError`, `Not enough positional arguments`]);
 
@@ -645,19 +668,25 @@ export class CommandBuilder<Context> {
 
     private registerOptions(machine: StateMachine, node: number) {
         registerDynamic(machine, node, [`isOption`, `--`], node, `inhibateOptions`);
+        registerDynamic(machine, node, [`isBatchOption`, this.allOptionNames], node, `pushBatch`);
         registerDynamic(machine, node, [`isUnsupportedOption`, this.allOptionNames], NODE_ERRORED, [`setError`, `Unsupported option name`]);
+        registerDynamic(machine, node, [`isInvalidOption`], NODE_ERRORED, [`setError`, `Invalid option name`]);
 
         for (const option of this.options) {
             if (option.arity === 0) {
                 for (const name of option.names) {
-                    registerDynamic(machine, node, [`isOption`, name], node, `pushBoolean`);
+                    registerDynamic(machine, node, [`isOption`, name], node, `pushTrue`);
+
+                    if (name.startsWith(`--`)) {
+                        registerDynamic(machine, node, [`isNegatedOption`, name], node, [`pushFalse`, name]);
+                    }
                 }
             } else if (option.arity === 1) {
                 const argNode = injectNode(machine, makeNode());
                 registerDynamic(machine, argNode, `isNotOptionLike`, node, `setStringValue`);
 
                 for (const name of option.names) {
-                    registerDynamic(machine, node, [`isOption`, name], argNode, `pushString`);
+                    registerDynamic(machine, node, [`isOption`, name], argNode, `pushUndefined`);
                 }
             } else {
                 throw new Error(`Unsupported option arity (${option.arity})`);
@@ -695,14 +724,14 @@ export class CliBuilder<Context> {
     commands(cbs: CliBuilderCallback<Context>[]) {
         for (const cb of cbs)
             cb(this.command());
-        
+
         return this;
     }
 
     command() {
         const builder = new CommandBuilder<Context>(this.builders.length, this.opts);
         this.builders.push(builder);
-    
+
         return builder;
     }
 

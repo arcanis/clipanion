@@ -37,7 +37,7 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
                             // @ts-ignore: The property is meant to have been defined by the child class
                             command.help = value;
                         }
-                    }                
+                    }
                 },
             ],
         };
@@ -49,6 +49,14 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
 
     private static registerTransformer<Context extends BaseContext>(prototype: Command<Context>, transformer: (state: RunState, command: Command<Context>) => void) {
         this.getMeta(prototype).transformers.push(transformer);
+    }
+
+    static addPath(...path: string[]) {
+        this.Path(...path)(this.prototype, `execute`);
+    }
+
+    static addOption<Context extends BaseContext>(name: string, builder: (prototype: Command<Context>, propertyName: string) => void) {
+        builder(this.prototype, name);
     }
 
     /**
@@ -155,7 +163,7 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
                     }
                 }
             });
-        };        
+        };
     }
 
     /**
@@ -203,7 +211,7 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
 
     /**
      * Defines the usage information for the given command.
-     * @param usage 
+     * @param usage
      */
     static Usage(usage: Usage) {
         return usage;
@@ -222,7 +230,7 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
     async validateAndExecute(): Promise<number> {
         const commandClass = this.constructor as CommandClass<Context>;
         const schema = commandClass.schema;
-   
+
         if (typeof schema !== `undefined`) {
             try {
                 await schema.validate(this);

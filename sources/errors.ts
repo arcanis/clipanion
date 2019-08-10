@@ -22,9 +22,12 @@ export class UnknownSyntaxError extends Error {
 
         if (this.candidates.length === 0) {
             this.message = `Command not found, but we're not sure what's the alternative.`;
-        } else if (this.candidates.length === 1) {
+        } else if (this.candidates.length === 1 && this.candidates[0].reason !== null) {
             const [{usage, reason}] = this.candidates;
             this.message = `${reason}\n\n$ ${usage}`;
+        } else if (this.candidates.length === 1) {
+            const [{usage}] = this.candidates;
+            this.message = `Command not found; did you mean:\n\n$ ${usage}`;
         } else {
             this.message = `Command not found; did you mean one of:\n\n${this.candidates.map(({usage}, index) => {
                 return `${`${index}.`.padStart(4)} ${usage}`;

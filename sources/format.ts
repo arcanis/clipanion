@@ -10,12 +10,15 @@ export function formatMarkdownish(text: string, paragraphs: boolean) {
     // Remove surrounding newlines, since they got added for JS formatting
     text = text.replace(/^\n+|\n+$/g, ``);
 
+    // List items always end with at least two newlines (in order to not be collapsed)
+    text = text.replace(/^-([^\n]*?)\n+/gm, `-$1\n\n`);
+
     // Single newlines are removed; larger than that are collapsed into one
     text = text.replace(/\n(\n)?\n*/g, `$1`);
 
     if (paragraphs) {
         text = text.split(/\n/).map(function (paragraph) {
-            // Does the paragraph starts with a bullet?
+            // Does the paragraph starts with a list?
             let bulletMatch = paragraph.match(/^[*-][\t ]+(.*)/);
 
             if (!bulletMatch)

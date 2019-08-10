@@ -311,6 +311,33 @@ describe(`Core`, () => {
         ]);
     });
 
+    it(`should extract booleans from batch options`, () => {
+        const cli = makeCli([
+            b => {
+                b.addOption({names: [`-x`, `-y`]});
+            },
+        ]);
+
+        const {options} = cli.process([`-xy`]);
+        expect(options).to.deep.equal([
+            {name: `-x`, value: true},
+            {name: `-y`, value: true},
+        ]);
+    });
+
+    it(`should invert booleans when using --no-`, () => {
+        const cli = makeCli([
+            b => {
+                b.addOption({names: [`--foo`]});
+            },
+        ]);
+
+        const {options} = cli.process([`--no-foo`]);
+        expect(options).to.deep.equal([
+            {name: `--foo`, value: false},
+        ]);
+    });
+
     it(`should extract strings from complex options`, () => {
         const cli = makeCli([
             b => {
@@ -458,6 +485,33 @@ describe(`Core`, () => {
         }).to.throw(`Extraneous positional argument ("foo")`);
     });
 
+    it(`should throw acceptable errors when a command is incomplete`, () => {
+        const cli = makeCli([
+            b => {
+                b.addPath([`foo`]);
+            },
+        ]);
+
+        expect(() => {
+            cli.process([]);
+        }).to.throw(`Command not found; did you mean:`);
+    });
+
+    it(`should throw acceptable errors when a command is incomplete (multiple choices)`, () => {
+        const cli = makeCli([
+            b => {
+                b.addPath([`foo`]);
+            },
+            b => {
+                b.addPath([`bar`]);
+            },
+        ]);
+
+        expect(() => {
+            cli.process([]);
+        }).to.throw(`Command not found; did you mean one of:`);
+    });
+
     it(`should throw acceptable errors when omitting mandatory positional arguments`, () => {
         const cli = makeCli([
             b => {
@@ -479,6 +533,6 @@ describe(`Core`, () => {
 
         expect(() => {
             cli.process([`-%#@$%#()@`]);
-        }).to.throw(`Invalid token "-%#@$%#()@"`);
+        }).to.throw(`Invalid option name ("-%#@$%#()@")`);
     });
 });

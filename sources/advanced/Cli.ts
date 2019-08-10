@@ -35,6 +35,15 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
     public readonly binaryName: string;
     public readonly binaryVersion?: string;
 
+    static from<Context extends BaseContext = BaseContext>(commands: Command<Context>[]) {
+        const cli = new Cli<Context>();
+
+        for (const command of commands)
+            cli.register(command);
+
+        return cli;
+    }
+
     constructor({binaryLabel, binaryName = `...`, binaryVersion}: {binaryLabel?: string, binaryName?: string, binaryVersion?: string} = {}) {
         this.builder = new CliBuilder({binaryName});
 
@@ -42,7 +51,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
         this.binaryName = binaryName;
         this.binaryVersion = binaryVersion;
     }
-    
+
     register(commandClass: CommandClass<Context>) {
         const commandBuilder = this.builder.command();
         this.registrations.set(commandClass, commandBuilder.cliIndex);
@@ -70,7 +79,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
 
                 const command = new commandClass();
                 command.path = state.path;
-    
+
                 const {transformers} = commandClass.getMeta(commandClass.prototype);
                 for (const transformer of transformers)
                     transformer(state, command);
@@ -93,7 +102,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
             context.stdout.write(this.usage(command, {detailed: true}));
             return 0;
         }
-    
+
         command.context = context;
         command.cli = {
             definitions: () => this.definitions(),
@@ -102,7 +111,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
             run: (input, subContext?) => this.run(input, {...context, ...subContext}),
             usage: (command, opts) => this.usage(command, opts),
         };
-    
+
         let exitCode;
         try {
             exitCode = await command.validateAndExecute();
@@ -258,12 +267,11 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
                 if (examples.length > 0) {
                     result += `\n`;
                     result += `${chalk.bold(`Examples:`)}\n`;
-            
+
                     for (let [description, example] of examples) {
                         result += `\n`;
-                        result += description;
-                        result += `\n`;
-                        result += example.replace(/^/m, `  `);
+                        result += formatMarkdownish(description, false);
+                        result += (<string[]>[]).concat(example.replace(/^/m, `  ${chalk.bold(prefix)}${this.binaryName} `)).join(`\n`) + `\n`;
                     }
                 }
             }
