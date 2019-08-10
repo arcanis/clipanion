@@ -1,6 +1,4 @@
-<img src="./logo.svg" width="100" />
-
-# Clipanion
+# <img src="./logo.svg" width="80" /> Clipanion
 
 > A companion to manage your CLI applications without hassle
 
@@ -14,12 +12,12 @@ yarn add clipanion
 
 ## Why
 
-  - Clipanion supports better typing than its competitor (particularly useful to detect unused or undeclared options at compile time)
-  - Clipanion supports both simple CLI and more complex ones with multiple level of commands (for example `yarn constraints fix`)
-  - Clipanion supports proxy commands (for example `yarn run eslint --help`, where `--help` is an option that must be forwarded to `eslint`, not consumed by `yarn run`)
-  - Clipanion supports a bunch of option types: boolean, batches (`-lhS`), with arguments (`-x VAL`), arrays (`-x VAL1 -x VAL2`), negations (`--no-optionals`), ...
-  - Clipanion supports parameter validation for when the default cohercion isn't enough (using [Yup](https://github.com/jquense/yup))
-  - Clipanion generates good-looking help pages
+  - Clipanion supports better typing than its competitor
+  - Clipanion supports nested commands (`yarn workspaces list`)
+  - Clipanion supports transparent option proxying without `--` (for example `yarn dlx eslint --fix`)
+  - Clipanion supports all option types you could think of (including negations, batches, ...)
+  - Clipanion offers a [Yup](https://github.com/jquense/yup) integration for increased validation capabilities
+  - Clipanion generates good-looking help pages out of the box
 
 Clipanion is used in [Yarn](https://github.com/yarnpkg/berry) with great success.
 
