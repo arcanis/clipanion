@@ -1,6 +1,6 @@
 # <img src="./logo.svg" height="25" /> Clipanion
 
-> A companion to manage your CLI applications without hassle
+> Type-safe CLI library with no dependencies
 
 [![](https://img.shields.io/npm/v/clipanion.svg)]() [![](https://img.shields.io/npm/l/clipanion.svg)]() [![](https://img.shields.io/badge/developed%20with-Yarn%202-blue)](https://github.com/yarnpkg/berry)
 
@@ -17,6 +17,7 @@ yarn add clipanion
   - Clipanion supports transparent option proxying without `--` (for example `yarn dlx eslint --fix`)
   - Clipanion supports all option types you could think of (including negations, batches, ...)
   - Clipanion offers a [Yup](https://github.com/jquense/yup) integration for increased validation capabilities
+  - Clipanion generates an optimized state machine out of your commands
   - Clipanion generates good-looking help pages out of the box
 
 Clipanion is used in [Yarn](https://github.com/yarnpkg/berry) with great success.
