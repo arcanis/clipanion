@@ -35,11 +35,11 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
     public readonly binaryName: string;
     public readonly binaryVersion?: string;
 
-    static from<Context extends BaseContext = BaseContext>(commands: Command<Context>[]) {
+    static from<Context extends BaseContext = BaseContext>(commandClasses: CommandClass<Context>[]) {
         const cli = new Cli<Context>();
 
-        for (const command of commands)
-            cli.register(command);
+        for (const commandClass of commandClasses)
+            cli.register(commandClass);
 
         return cli;
     }

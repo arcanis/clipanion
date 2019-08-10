@@ -1,4 +1,4 @@
-# <img src="./logo.svg" width="80" /> Clipanion
+# <img src="./logo.svg" height="32" /> Clipanion
 
 > A companion to manage your CLI applications without hassle
 
@@ -12,7 +12,7 @@ yarn add clipanion
 
 ## Why
 
-  - Clipanion supports better typing than its competitor
+  - Clipanion supports advanced typing mechanisms
   - Clipanion supports nested commands (`yarn workspaces list`)
   - Clipanion supports transparent option proxying without `--` (for example `yarn dlx eslint --fix`)
   - Clipanion supports all option types you could think of (including negations, batches, ...)
@@ -142,9 +142,9 @@ This will print a block similar to the following:
 
 ## Composition
 
-Commands can call each other by making use of their `cli` property:
+Commands can call each other by making use of their `cli` internal property:
 
-```
+```ts
 class FooCommand extends Command {
     @Command.Path(`foo`)
     async execute() {

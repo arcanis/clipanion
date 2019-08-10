@@ -81,7 +81,7 @@ class YarnRunExec extends Command<Context> {
     public rest!: string[];
 
     static usage = Command.Usage({
-        category: `Foo`,
+        category: `Script-related commands`,
     });
 
     @Command.Path(`run`)
@@ -148,6 +148,29 @@ export default class YarnAdd extends Command<Context> {
     }
 }
 
+class YarnRemove extends Command<Context> {
+    @Command.Rest()
+    packages: string[] = [];
+
+    static usage = Command.Usage({
+        description: `remove dependencies from the project`,
+        details: `
+            This command will remove the specified packages from the current workspace. If the \`-A,--all\` option is set, the operation will be applied to all workspaces from the current project.
+        `,
+        examples: [[
+            `Remove a dependency from the current project`,
+            `yarn remove lodash`,
+        ], [
+            `Remove a dependency from all workspaces at once`,
+            `yarn remove lodash --all`,
+        ]],
+    });
+
+    @Command.Path(`remove`)
+    async execute() {
+    }
+}
+
 const cli = new Cli<Context>({
     binaryLabel: `Yarn Project Manager`,
     binaryName: `yarn`,
@@ -158,6 +181,7 @@ cli.register(YarnDefaultDefinitions);
 cli.register(YarnDefaultHelp);
 cli.register(YarnDefaultRun);
 cli.register(YarnInstall);
+cli.register(YarnRemove);
 cli.register(YarnRunListing);
 cli.register(YarnRunExec);
 cli.register(YarnAdd);
