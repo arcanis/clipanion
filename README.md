@@ -1,8 +1,8 @@
-# <img src="./logo.svg" height="32" /> Clipanion
+# <img src="./logo.svg" height="25" /> Clipanion
 
 > A companion to manage your CLI applications without hassle
 
-[![](https://img.shields.io/npm/v/clipanion.svg)]() [![](https://img.shields.io/npm/l/clipanion.svg)]()
+[![](https://img.shields.io/npm/v/clipanion.svg)]() [![](https://img.shields.io/npm/l/clipanion.svg)]() [![](https://img.shields.io/badge/developed%20with-Yarn%202-blue)](https://github.com/yarnpkg/berry)
 
 ## Installation
 
