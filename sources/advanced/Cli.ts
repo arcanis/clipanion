@@ -56,7 +56,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
         const commandBuilder = this.builder.command();
         this.registrations.set(commandClass, commandBuilder.cliIndex);
 
-        const {definitions} = commandClass.getMeta(commandClass.prototype);
+        const {definitions} = commandClass.resolveMeta(commandClass.prototype);
         for (const definition of definitions)
             definition(commandBuilder);
 
@@ -80,7 +80,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
                 const command = new commandClass();
                 command.path = state.path;
 
-                const {transformers} = commandClass.getMeta(commandClass.prototype);
+                const {transformers} = commandClass.resolveMeta(commandClass.prototype);
                 for (const transformer of transformers)
                     transformer(state, command);
 

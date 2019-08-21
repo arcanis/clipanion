@@ -467,6 +467,7 @@ export type ArityDefinition = {
 export type OptDefinition = {
     names: string[];
     arity: 1 | 0;
+    hidden: boolean;
 };
 
 export class CommandBuilder<Context> {
@@ -525,9 +526,9 @@ export class CommandBuilder<Context> {
         this.arity.proxy = true;
     }
 
-    addOption({names, arity = 0}: {names: string[], arity?: 0 | 1}) {
+    addOption({names, arity = 0, hidden = false}: Partial<OptDefinition> & {names: string[]}) {
         this.allOptionNames.push(...names);
-        this.options.push({names, arity});
+        this.options.push({names, arity, hidden});
     }
 
     setContext(context: Context) {
@@ -541,7 +542,10 @@ export class CommandBuilder<Context> {
             segments.push(...this.paths[0]);
 
         if (detailed) {
-            for (const {names, arity} of this.options) {
+            for (const {names, arity, hidden} of this.options) {
+                if (hidden)
+                    continue;
+
                 const args = [];
 
                 for (let t = 0; t < arity; ++t)

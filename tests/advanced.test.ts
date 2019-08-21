@@ -151,4 +151,25 @@ describe(`Advanced`, () => {
 
         expect(output).to.equal(`Running CommandA\nRunning CommandB\n`);
     });
+
+    it.only(`should support inheritance`, async () => {
+        const output = await runCli(() => {
+            abstract class CommandA extends Command {
+                @Command.String(`--foo`)
+                foo!: string;
+
+                abstract execute(): Promise<number | void>;
+            }
+            class CommandB extends CommandA {
+                async execute() {
+                    log(this, [`foo`]);
+                }
+            }
+            return [
+                CommandB,
+            ];
+        }, [`--foo`, `hello`]);
+
+        expect(output).to.equal(`Running CommandB\n"hello"\n`);
+    });
 });

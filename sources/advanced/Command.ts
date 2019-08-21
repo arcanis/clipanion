@@ -16,7 +16,7 @@ export type Usage = {
 
 export type CommandClass<Context extends BaseContext = BaseContext> = {
     new(): Command<Context>;
-    getMeta(prototype: Command<Context>): Meta<Context>;
+    resolveMeta(prototype: Command<Context>): Meta<Context>;
     schema?: {validate: (object: any) => void};
     usage?: Usage;
 };
@@ -27,8 +27,7 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
     public static getMeta<Context extends BaseContext>(prototype: Command<Context>): Meta<Context> {
         const base = prototype.constructor as any;
 
-        return base.meta = base.meta || {
-            usage: [],
+        return base.meta = Object.prototype.hasOwnProperty.call(base, `meta`) ? base.meta : {
             definitions: [],
             transformers: [
                 (state: RunState, command: Command<Context>) => {
@@ -40,6 +39,26 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
                     }
                 },
             ],
+        };
+    }
+
+    public static resolveMeta<Context extends BaseContext>(prototype: Command<Context>): Meta<Context> {
+        const definitions = [];
+        const transformers = [];
+
+        for (let proto = prototype; proto instanceof Command; proto = (proto as any).__proto__ as any) {
+            const meta = this.getMeta<Context>(proto);
+
+            for (const definition of meta.definitions)
+                definitions.push(definition);
+            for (const transformer of meta.transformers) {
+                transformers.push(transformer);
+            }
+        }
+
+        return {
+            definitions,
+            transformers,
         };
     }
 
