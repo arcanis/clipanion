@@ -617,7 +617,7 @@ export class CommandBuilder<Context> {
             }
 
             let lastExtraNode = lastLeadingNode;
-            if (this.arity.extra !== undefined && this.arity.extra.length > 0) {
+            if (this.arity.extra === undefined || this.arity.extra.length > 0) {
                 const extraShortcutNode = injectNode(machine, makeNode());
                 registerShortcut(machine, lastLeadingNode, extraShortcutNode);
 

@@ -152,7 +152,7 @@ describe(`Advanced`, () => {
         expect(output).to.equal(`Running CommandA\nRunning CommandB\n`);
     });
 
-    it.only(`should support inheritance`, async () => {
+    it(`should support inheritance`, async () => {
         const output = await runCli(() => {
             abstract class CommandA extends Command {
                 @Command.String(`--foo`)
@@ -173,7 +173,7 @@ describe(`Advanced`, () => {
         expect(output).to.equal(`Running CommandB\n"hello"\n`);
     });
 
-    it.only(`derives positional argument names from the property name`, async () => {
+    it(`derives positional argument names from the property name`, async () => {
         class CommandA extends Command {
             @Command.String()
             workspaceName!: string;
@@ -195,7 +195,7 @@ describe(`Advanced`, () => {
         expect(cli.usage(CommandA)).to.equal(`\u001b[1m$ \u001b[22m... workspace <workspaceName> [extra] <scriptName>\n`);
     });
 
-    it.only(`derives rest argument names from the property name`, async () => {
+    it(`derives rest argument names from the property name`, async () => {
         class CommandA extends Command {
             @Command.Rest({required: 2})
             workspaceNames!: string;
