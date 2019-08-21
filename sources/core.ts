@@ -495,7 +495,7 @@ export class CommandBuilder<Context> {
     }
 
     addPositional({name = 'arg', required = true}: {name?: string, required?: boolean} = {}) {
-        if (!required && this.arity.extra === undefined)
+        if (!required && this.arity.extra === NoLimits)
             throw new Error(`Optional parameters cannot be declared when using .rest() or .proxy()`);
         if (!required && this.arity.trailing.length > 0)
             throw new Error(`Optional parameters cannot be declared after the required trailing positional arguments`);
@@ -510,7 +510,7 @@ export class CommandBuilder<Context> {
     }
 
     addRest({name = 'arg', required = 0}: {name?: string, required?: number} = {}) {
-        if (this.arity.extra === undefined)
+        if (this.arity.extra === NoLimits)
             throw new Error(`Infinite lists cannot be declared multiple times in the same command`);
         if (this.arity.trailing.length > 0)
             throw new Error(`Infinite lists cannot be declared after the required trailing positional arguments`);
