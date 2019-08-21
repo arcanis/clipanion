@@ -173,19 +173,19 @@ describe(`Advanced`, () => {
         expect(output).to.equal(`Running CommandB\n"hello"\n`);
     });
 
-    it.only(`derives positional argument names from the fiel name`, async () => {
+    it.only(`derives positional argument names from the property name`, async () => {
         class CommandA extends Command {
             @Command.String()
             workspaceName!: string;
 
             @Command.Path(`workspace`)
             async execute() {
-                log(this, [`workspaceName`]);
+                throw new Error('not implemented, just testing usage()')
             }
         }
 
         const cli = Cli.from([CommandA])
 
-        expect(cli.usage(CommandA)).to.equal(`\u001b[1m$ \u001b[22m... workspace <arg>\n`);
+        expect(cli.usage(CommandA)).to.equal(`\u001b[1m$ \u001b[22m... workspace <workspaceName>\n`);
     });
 });

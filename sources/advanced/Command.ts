@@ -147,7 +147,7 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
                 });
             } else {
                 this.registerDefinition(prototype, command => {
-                    command.addPositional({required: descriptor.required});
+                    command.addPositional({name: propertyName, required: descriptor.required});
                 });
 
                 this.registerTransformer(prototype, (state, command) => {
