@@ -194,4 +194,20 @@ describe(`Advanced`, () => {
 
         expect(cli.usage(CommandA)).to.equal(`\u001b[1m$ \u001b[22m... workspace <workspaceName> [extra] <scriptName>\n`);
     });
+
+    it.only(`derives rest argument names from the property name`, async () => {
+        class CommandA extends Command {
+            @Command.Rest({required: 2})
+            workspaceNames!: string;
+
+            @Command.Path(`clean`)
+            async execute() {
+                throw new Error('not implemented, just testing usage()')
+            }
+        }
+
+        const cli = Cli.from([CommandA])
+
+        expect(cli.usage(CommandA)).to.equal(`\u001b[1m$ \u001b[22m... clean <workspaceNames> <workspaceNames> ...\n`);
+    });
 });

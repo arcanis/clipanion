@@ -509,14 +509,14 @@ export class CommandBuilder<Context> {
         }
     }
 
-    addRest({required = 0}: {required?: number} = {}) {
+    addRest({name = 'arg', required = 0}: {name?: string, required?: number} = {}) {
         if (this.arity.extra === undefined)
             throw new Error(`Infinite lists cannot be declared multiple times in the same command`);
         if (this.arity.trailing.length > 0)
             throw new Error(`Infinite lists cannot be declared after the required trailing positional arguments`);
 
         for (let t = 0; t < required; ++t)
-            this.addPositional();
+            this.addPositional({name});
 
         this.arity.extra = undefined;
     }

@@ -201,7 +201,7 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
     static Rest({required = 0}: {required?: number} = {}) {
         return <Context extends BaseContext>(prototype: Command<Context>, propertyName: string) => {
             this.registerDefinition(prototype, command => {
-                command.addRest({required});
+                command.addRest({name: propertyName, required});
             });
 
             this.registerTransformer(prototype, (state, command) => {
