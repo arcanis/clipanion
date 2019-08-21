@@ -95,12 +95,12 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
      * Register a boolean listener for the given option names. When Clipanion detects that this argument is present, the value will be set to false. The value won't be set unless the option is found, so you must remember to set it to an appropriate default value.
      * @param descriptor the option names.
      */
-    static Boolean(descriptor: string) {
+    static Boolean(descriptor: string, {hidden = false}: {hidden?: boolean} = {}) {
         return <Context extends BaseContext>(prototype: Command<Context>, propertyName: string) => {
             const optNames = descriptor.split(`,`);
 
             this.registerDefinition(prototype, command => {
-                command.addOption({names: optNames, arity: 0});
+                command.addOption({names: optNames, arity: 0, hidden});
             });
 
             this.registerTransformer(prototype, (state, command) => {
@@ -119,7 +119,7 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
      * Note that all methods affecting positional arguments are evaluated in the definition order; don't mess with it (for example sorting your properties in ascendent order might have adverse results).
      * @param descriptor The option names.
      */
-    static String(descriptor: string): PropertyDecorator;
+    static String(descriptor: string, opts?: {hidden?: boolean}): PropertyDecorator;
 
     /**
      * Register a listener that looks for positional arguments. When Clipanion detects that an argument isn't an option, it will put it in this property and continue processing the rest of the command line.
@@ -128,13 +128,13 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
      */
     static String(descriptor?: {required: boolean}): PropertyDecorator;
 
-    static String(descriptor: string | {required: boolean} = {required: true}) {
+    static String(descriptor: string | {required: boolean} = {required: true}, {hidden = false}: {hidden?: boolean} = {}) {
         return <Context extends BaseContext>(prototype: Command<Context>, propertyName: string) => {
             if (typeof descriptor === `string`) {
                 const optNames = descriptor.split(`,`);
 
                 this.registerDefinition(prototype, command => {
-                    command.addOption({names: optNames, arity: 1});
+                    command.addOption({names: optNames, arity: 1, hidden});
                 });
 
                 this.registerTransformer(prototype, (state, command) => {
@@ -164,12 +164,12 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
     /**
      * Register a listener that looks for an option and its followup argument. When Clipanion detects that this argument is present, the value will be pushed into the array represented in the property.
      */
-    static Array(descriptor: string) {
+    static Array(descriptor: string, {hidden = false}: {hidden?: boolean} = {}) {
         return <Context extends BaseContext>(prototype: Command<Context>, propertyName: string) => {
             const optNames = descriptor.split(`,`);
 
             this.registerDefinition(prototype, command => {
-                command.addOption({names: optNames, arity: 1});
+                command.addOption({names: optNames, arity: 1, hidden});
             });
 
             this.registerTransformer(prototype, (state, command) => {
