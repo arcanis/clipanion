@@ -456,10 +456,10 @@ export const reducers = {
 };
 
 // ------------------------------------------------------------------------
-
+export const NoLimits = Symbol();
 export type ArityDefinition = {
     leading: string[];
-    extra: string[] | undefined;
+    extra: string[] | typeof NoLimits;
     trailing: string[];
     proxy: boolean;
 };
@@ -500,9 +500,9 @@ export class CommandBuilder<Context> {
         if (!required && this.arity.trailing.length > 0)
             throw new Error(`Optional parameters cannot be declared after the required trailing positional arguments`);
 
-        if (!required && this.arity.extra !== undefined) {
+        if (!required && this.arity.extra !== NoLimits) {
             this.arity.extra.push(name);
-        } else if (this.arity.extra !== undefined && this.arity.extra.length === 0) {
+        } else if (this.arity.extra !== NoLimits && this.arity.extra.length === 0) {
             this.arity.leading.push(name);
         } else {
             this.arity.trailing.push(name);
@@ -518,7 +518,7 @@ export class CommandBuilder<Context> {
         for (let t = 0; t < required; ++t)
             this.addPositional({name});
 
-        this.arity.extra = undefined;
+        this.arity.extra = NoLimits;
     }
 
     addProxy() {
@@ -556,7 +556,7 @@ export class CommandBuilder<Context> {
 
             segments.push(...this.arity.leading.map(name => `<${name}>`))
 
-            if (this.arity.extra === undefined)
+            if (this.arity.extra === NoLimits)
                 segments.push(`...`);
             else 
                 segments.push(...this.arity.extra.map(name => `[${name}]`))
@@ -617,11 +617,11 @@ export class CommandBuilder<Context> {
             }
 
             let lastExtraNode = lastLeadingNode;
-            if (this.arity.extra === undefined || this.arity.extra.length > 0) {
+            if (this.arity.extra === NoLimits || this.arity.extra.length > 0) {
                 const extraShortcutNode = injectNode(machine, makeNode());
                 registerShortcut(machine, lastLeadingNode, extraShortcutNode);
 
-                if (this.arity.extra === undefined) {
+                if (this.arity.extra === NoLimits) {
                     const extraNode = injectNode(machine, makeNode());
                     this.registerOptions(machine, extraNode);
 
