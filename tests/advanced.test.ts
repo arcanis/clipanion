@@ -178,6 +178,12 @@ describe(`Advanced`, () => {
             @Command.String()
             workspaceName!: string;
 
+            @Command.String({required: false})
+            extra!: string;
+
+            @Command.String()
+            scriptName!: string;
+
             @Command.Path(`workspace`)
             async execute() {
                 throw new Error('not implemented, just testing usage()')
@@ -186,6 +192,6 @@ describe(`Advanced`, () => {
 
         const cli = Cli.from([CommandA])
 
-        expect(cli.usage(CommandA)).to.equal(`\u001b[1m$ \u001b[22m... workspace <workspaceName>\n`);
+        expect(cli.usage(CommandA)).to.equal(`\u001b[1m$ \u001b[22m... workspace <workspaceName> [extra] <scriptName>\n`);
     });
 });
