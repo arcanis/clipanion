@@ -89,13 +89,18 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
         }
     }
 
-    async run(input: string[], context: Context) {
+    async run(input: Command<Context> | string[], context: Context) {
         let command;
-        try {
-            command = this.process(input);
-        } catch (error) {
-            context.stdout.write(this.error(error));
-            return 1;
+
+        if (!Array.isArray(input)) {
+            command = input;
+        } else {
+            try {
+                command = this.process(input);
+            } catch (error) {
+                context.stdout.write(this.error(error));
+                return 1;
+            }
         }
 
         if (command.help) {
@@ -123,7 +128,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
         return exitCode;
     }
 
-    async runExit(input: string[], context: Context) {
+    async runExit(input: Command<Context> | string[], context: Context) {
         process.exitCode = await this.run(input, context);
     }
 
