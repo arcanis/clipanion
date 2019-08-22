@@ -152,7 +152,7 @@ describe(`Advanced`, () => {
         expect(output).to.equal(`Running CommandA\nRunning CommandB\n`);
     });
 
-    it.only(`should support inheritance`, async () => {
+    it(`should support inheritance`, async () => {
         const output = await runCli(() => {
             abstract class CommandA extends Command {
                 @Command.String(`--foo`)
@@ -171,5 +171,43 @@ describe(`Advanced`, () => {
         }, [`--foo`, `hello`]);
 
         expect(output).to.equal(`Running CommandB\n"hello"\n`);
+    });
+
+    it(`derives positional argument names from the property name`, async () => {
+        class CommandA extends Command {
+            @Command.String()
+            workspaceName!: string;
+
+            @Command.String({required: false})
+            extra!: string;
+
+            @Command.String()
+            scriptName!: string;
+
+            @Command.Path(`workspace`)
+            async execute() {
+                throw new Error('not implemented, just testing usage()')
+            }
+        }
+
+        const cli = Cli.from([CommandA])
+
+        expect(cli.usage(CommandA)).to.equal(`\u001b[1m$ \u001b[22m... workspace <workspaceName> [extra] <scriptName>\n`);
+    });
+
+    it(`derives rest argument names from the property name`, async () => {
+        class CommandA extends Command {
+            @Command.Rest({required: 2})
+            workspaceNames!: string;
+
+            @Command.Path(`clean`)
+            async execute() {
+                throw new Error('not implemented, just testing usage()')
+            }
+        }
+
+        const cli = Cli.from([CommandA])
+
+        expect(cli.usage(CommandA)).to.equal(`\u001b[1m$ \u001b[22m... clean <workspaceNames> <workspaceNames> ...\n`);
     });
 });

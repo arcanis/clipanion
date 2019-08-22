@@ -456,11 +456,11 @@ export const reducers = {
 };
 
 // ------------------------------------------------------------------------
-
+export const NoLimits = Symbol();
 export type ArityDefinition = {
-    leading: number;
-    extra: number;
-    trailing: number;
+    leading: string[];
+    extra: string[] | typeof NoLimits;
+    trailing: string[];
     proxy: boolean;
 };
 
@@ -475,7 +475,7 @@ export class CommandBuilder<Context> {
     public readonly cliOpts: Readonly<CliOptions>;
 
     private readonly allOptionNames: string[] = [];
-    private readonly arity: ArityDefinition = {leading: 0, trailing: 0, extra: 0, proxy: false};
+    private readonly arity: ArityDefinition = {leading: [], trailing: [], extra: [], proxy: false};
     private readonly options: OptDefinition[] = [];
     private readonly paths: string[][] = [];
 
@@ -494,31 +494,31 @@ export class CommandBuilder<Context> {
         Object.assign(this.arity, {leading, trailing, extra, proxy});
     }
 
-    addPositional({required = true}: {required?: boolean} = {}) {
-        if (!required && this.arity.extra === Infinity)
+    addPositional({name = 'arg', required = true}: {name?: string, required?: boolean} = {}) {
+        if (!required && this.arity.extra === NoLimits)
             throw new Error(`Optional parameters cannot be declared when using .rest() or .proxy()`);
-        if (!required && this.arity.trailing > 0)
+        if (!required && this.arity.trailing.length > 0)
             throw new Error(`Optional parameters cannot be declared after the required trailing positional arguments`);
 
-        if (!required) {
-            this.arity.extra += 1;
-        } else if (this.arity.extra === 0) {
-            this.arity.leading += 1;
+        if (!required && this.arity.extra !== NoLimits) {
+            this.arity.extra.push(name);
+        } else if (this.arity.extra !== NoLimits && this.arity.extra.length === 0) {
+            this.arity.leading.push(name);
         } else {
-            this.arity.trailing += 1;
+            this.arity.trailing.push(name);
         }
     }
 
-    addRest({required = 0}: {required?: number} = {}) {
-        if (this.arity.extra === Infinity)
+    addRest({name = 'arg', required = 0}: {name?: string, required?: number} = {}) {
+        if (this.arity.extra === NoLimits)
             throw new Error(`Infinite lists cannot be declared multiple times in the same command`);
-        if (this.arity.trailing > 0)
+        if (this.arity.trailing.length > 0)
             throw new Error(`Infinite lists cannot be declared after the required trailing positional arguments`);
 
         for (let t = 0; t < required; ++t)
-            this.addPositional();
+            this.addPositional({name});
 
-        this.arity.extra = Infinity;
+        this.arity.extra = NoLimits;
     }
 
     addProxy() {
@@ -554,17 +554,14 @@ export class CommandBuilder<Context> {
                 segments.push(`[${names.join(`,`)}${args.join(``)}]`);
             }
 
-            for (let t = 0; t < this.arity.leading; ++t)
-                segments.push(`<arg>`);
+            segments.push(...this.arity.leading.map(name => `<${name}>`))
 
-            if (this.arity.extra === Infinity)
+            if (this.arity.extra === NoLimits)
                 segments.push(`...`);
-            else for (let t = 0; t < this.arity.extra; ++t)
-                segments.push(`[arg]`);
+            else 
+                segments.push(...this.arity.extra.map(name => `[${name}]`))
 
-            for (let t = 0; t < this.arity.trailing; ++t) {
-                segments.push(`<arg>`);
-            }
+            segments.push(...this.arity.trailing.map(name => `<${name}>`))
         }
 
         return segments.join(` `);
@@ -596,7 +593,7 @@ export class CommandBuilder<Context> {
                 lastPathNode = nextPathNode;
             }
 
-            if (this.arity.leading > 0 || !this.arity.proxy) {
+            if (this.arity.leading.length > 0 || !this.arity.proxy) {
                 const helpNode = injectNode(machine, makeNode());
                 registerDynamic(machine, lastPathNode, `isHelp`, helpNode, [`useHelp`, this.cliIndex]);
                 registerStatic(machine, helpNode, END_OF_INPUT, NODE_SUCCESS, [`setSelectedIndex`, HELP_COMMAND_INDEX]);
@@ -604,15 +601,15 @@ export class CommandBuilder<Context> {
 
             this.registerOptions(machine, lastPathNode);
 
-            if (this.arity.leading > 0)
+            if (this.arity.leading.length > 0)
                 registerStatic(machine, lastPathNode, END_OF_INPUT, NODE_ERRORED, [`setError`, `Not enough positional arguments`]);
 
             let lastLeadingNode = lastPathNode;
-            for (let t = 0; t < this.arity.leading; ++t) {
+            for (let t = 0; t < this.arity.leading.length; ++t) {
                 const nextLeadingNode = injectNode(machine, makeNode());
                 this.registerOptions(machine, nextLeadingNode);
 
-                if (this.arity.trailing > 0 || t + 1 !== this.arity.leading)
+                if (this.arity.trailing.length > 0 || t + 1 !== this.arity.leading.length)
                     registerStatic(machine, nextLeadingNode, END_OF_INPUT, NODE_ERRORED, [`setError`, `Not enough positional arguments`]);
 
                 registerDynamic(machine, lastLeadingNode, `isNotOptionLike`, nextLeadingNode, `pushPositional`);
@@ -620,11 +617,11 @@ export class CommandBuilder<Context> {
             }
 
             let lastExtraNode = lastLeadingNode;
-            if (this.arity.extra > 0) {
+            if (this.arity.extra === NoLimits || this.arity.extra.length > 0) {
                 const extraShortcutNode = injectNode(machine, makeNode());
                 registerShortcut(machine, lastLeadingNode, extraShortcutNode);
 
-                if (this.arity.extra === Infinity) {
+                if (this.arity.extra === NoLimits) {
                     const extraNode = injectNode(machine, makeNode());
                     this.registerOptions(machine, extraNode);
 
@@ -632,7 +629,7 @@ export class CommandBuilder<Context> {
                     registerDynamic(machine, extraNode, positionalArgument, extraNode, `pushExtra`);
                     registerShortcut(machine, extraNode, extraShortcutNode);
                 } else {
-                    for (let t = 0; t < this.arity.extra; ++t) {
+                    for (let t = 0; t < this.arity.extra.length; ++t) {
                         const nextExtraNode = injectNode(machine, makeNode());
                         this.registerOptions(machine, nextExtraNode);
 
@@ -645,15 +642,15 @@ export class CommandBuilder<Context> {
                 lastExtraNode = extraShortcutNode;
             }
 
-            if (this.arity.trailing > 0)
+            if (this.arity.trailing.length > 0)
                 registerStatic(machine, lastExtraNode, END_OF_INPUT, NODE_ERRORED, [`setError`, `Not enough positional arguments`]);
 
             let lastTrailingNode = lastExtraNode;
-            for (let t = 0; t < this.arity.trailing; ++t) {
+            for (let t = 0; t < this.arity.trailing.length; ++t) {
                 const nextTrailingNode = injectNode(machine, makeNode());
                 this.registerOptions(machine, nextTrailingNode);
 
-                if (t + 1 < this.arity.trailing)
+                if (t + 1 < this.arity.trailing.length)
                     registerStatic(machine, nextTrailingNode, END_OF_INPUT, NODE_ERRORED, [`setError`, `Not enough positional arguments`]);
 
                 registerDynamic(machine, lastTrailingNode, `isNotOptionLike`, nextTrailingNode, `pushPositional`);
