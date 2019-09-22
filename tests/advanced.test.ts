@@ -128,6 +128,25 @@ describe(`Advanced`, () => {
         expect(output).to.equal(`Running CommandA\n["--help"]\n`);
     });
 
+    it(`should replace binary name in command help`, async () => {
+        const output = await runCli(() => {
+            class CommandA extends Command {
+                @Command.Path(`add`)
+
+                async execute() {log(this)}
+            }
+            return [
+                CommandA,
+            ];
+        }, [
+            `add`,
+            `--help`,
+        ]);
+
+        expect(output).to.equal(`${prefix}... add\n`);
+        expect(output).not.to.equal(`$0`);
+    });
+
     it(`should allow calling a command from another`, async () => {
         const output = await runCli(() => {
             class CommandA extends Command {
