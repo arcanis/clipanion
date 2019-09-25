@@ -81,6 +81,25 @@ describe(`Core`, () => {
         expect(selectedIndex2).to.equal(1);
     });
 
+    it(`should allow options to precede the command paths`, () => {
+        const cli = makeCli([
+            b => {
+                b.addPath([`foo`]);
+                b.addOption({names: [`-x`]});
+            },
+            b => {
+                b.addPath([`bar`]);
+                b.addOption({names: [`-y`]});
+            },
+        ]);
+
+        const {selectedIndex: selectedIndex1} = cli.process([`-x`, `foo`]);
+        expect(selectedIndex1).to.equal(0);
+
+        const {selectedIndex: selectedIndex2} = cli.process([`-y`, `bar`]);
+        expect(selectedIndex2).to.equal(1);
+    });
+
     it(`should select commands by their complex values`, () => {
         const cli = makeCli([
             b => {

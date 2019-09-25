@@ -188,7 +188,7 @@ export function runMachine(machine: StateMachine, input: string[]) {
         }
 
         if (nextBranches.length === 0) {
-            throw new errors.UnknownSyntaxError(branches.filter(({node}) => {
+            throw new errors.UnknownSyntaxError(input, branches.filter(({node}) => {
                 return node !== NODE_ERRORED;
             }).map(({state}) => {
                 return {usage: state.candidateUsage!, reason: null};
@@ -196,7 +196,7 @@ export function runMachine(machine: StateMachine, input: string[]) {
         }
 
         if (nextBranches.every(({node}) => node === NODE_ERRORED)) {
-            throw new errors.UnknownSyntaxError(nextBranches.map(({state}) => {
+            throw new errors.UnknownSyntaxError(input, nextBranches.map(({state}) => {
                 return {usage: state.candidateUsage!, reason: state.errorMessage};
             }));
         }
@@ -213,7 +213,7 @@ export function runMachine(machine: StateMachine, input: string[]) {
         debug(`  No results`);
     }
 
-    return selectBestState(branches.map(({state}) => {
+    return selectBestState(input, branches.map(({state}) => {
         return state;
     }));
 }
@@ -229,7 +229,7 @@ export function trimSmallerBranches(branches: {node: number, state: RunState}[])
     });
 }
 
-export function selectBestState(states: RunState[]) {
+export function selectBestState(input: string[], states: RunState[]) {
     const terminalStates = states.filter(state => {
         return state.selectedIndex !== null;
     });
@@ -267,7 +267,7 @@ export function selectBestState(states: RunState[]) {
 
     const fixedStates = aggregateHelpStates(bestPositionalStates);
     if (fixedStates.length > 1)
-        throw new Error();
+        throw new errors.AmbiguousSyntaxError(input, fixedStates.map(state => state.candidateUsage!));
 
     return fixedStates[0];
 }
@@ -558,7 +558,7 @@ export class CommandBuilder<Context> {
 
             if (this.arity.extra === NoLimits)
                 segments.push(`...`);
-            else 
+            else
                 segments.push(...this.arity.extra.map(name => `[${name}]`))
 
             segments.push(...this.arity.trailing.map(name => `<${name}>`))
@@ -587,6 +587,17 @@ export class CommandBuilder<Context> {
 
         for (const path of paths) {
             let lastPathNode = firstNode;
+
+            // We allow options to be specified before the path. Note that we
+            // only do this when there is a path, otherwise there would be
+            // some redundancy with the options attached later.
+            if (path.length > 0) {
+                const optionPathNode = injectNode(machine, makeNode());
+                registerShortcut(machine, lastPathNode, optionPathNode);
+                this.registerOptions(machine, optionPathNode);
+                lastPathNode = optionPathNode;
+            }
+
             for (let t = 0; t < path.length; ++t) {
                 const nextPathNode = injectNode(machine, makeNode());
                 registerStatic(machine, lastPathNode, path[t], nextPathNode, `pushPath`);
