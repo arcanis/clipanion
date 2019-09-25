@@ -276,7 +276,10 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
                     for (let [description, example] of examples) {
                         result += `\n`;
                         result += formatMarkdownish(description, false);
-                        result += (<string[]>[]).concat(example.replace(/^/m, `  ${chalk.bold(prefix)}${this.binaryName} `)).join(`\n`) + `\n`;
+                        result += example
+                            .replace(/^/m, `  ${chalk.bold(prefix)}`)
+                            .replace(/\$0/m, this.binaryName)
+                         + `\n`;
                     }
                 }
             }

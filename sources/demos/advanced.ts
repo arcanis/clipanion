@@ -129,10 +129,10 @@ export default class YarnAdd extends Command<Context> {
         `,
         examples: [[
             `Add the latest version of a package`,
-            `add lodash`,
+            `$0 add lodash`,
         ], [
             `Add a specific version of a package`,
-            `add lodash@3.0.0`,
+            `$0 add lodash@3.0.0`,
         ]],
     });
 
@@ -159,10 +159,10 @@ class YarnRemove extends Command<Context> {
         `,
         examples: [[
             `Remove a dependency from the current project`,
-            `yarn remove lodash`,
+            `$0 remove lodash`,
         ], [
             `Remove a dependency from all workspaces at once`,
-            `yarn remove lodash --all`,
+            `$0 remove lodash --all`,
         ]],
     });
 
