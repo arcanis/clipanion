@@ -47,10 +47,6 @@ class GreetCommand extends Command {
     }
 }
 
-@Command.Validate(yup.object().shape({
-    a: yup.number().integer(),
-    b: yup.number().integer(),
-}))
 class FibonacciCommand extends Command {
     @Command.String({required: true})
     public a!: number;
@@ -62,6 +58,11 @@ class FibonacciCommand extends Command {
     async execute(cli: Cli, context: Context) {
         // ...
     }
+
+    static schema = yup.object().shape({
+        a: yup.number().integer(),
+        b: yup.number().integer(),
+    })
 }
 
 const cli = new Cli({
