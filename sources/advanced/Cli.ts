@@ -155,7 +155,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
                 : undefined;
 
             const examples = typeof commandClass.usage.examples !== `undefined`
-                ? commandClass.usage.examples.map(([label, cli]) => [formatMarkdownish(label, false), formatMarkdownish(cli, false)])
+                ? commandClass.usage.examples.map(([label, cli]) => [formatMarkdownish(label, false), cli.replace(/\$0/g, this.binaryName)])
                 : undefined;
 
             data.push({path, usage, category, description, details, examples});
@@ -278,7 +278,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
                         result += formatMarkdownish(description, false);
                         result += example
                             .replace(/^/m, `  ${chalk.bold(prefix)}`)
-                            .replace(/\$0/m, this.binaryName)
+                            .replace(/\$0/g, this.binaryName)
                          + `\n`;
                     }
                 }
