@@ -132,6 +132,11 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
         process.exitCode = await this.run(input, context);
     }
 
+    async suggestFor(input: string[]) {
+        const {contexts, process, suggest} = this.builder.compile();
+        return suggest(input);
+    }
+
     definitions() {
         const data = [];
 

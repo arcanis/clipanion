@@ -370,6 +370,66 @@ describe(`Core`, () => {
         ]);
     });
 
+    it(`should ignore options when they follow the -- separator`, () => {
+        const cli = makeCli([
+            b => {
+                b.addPath([`foo`]);
+                b.addOption({names: [`-x`]});
+                b.addPositional({required: false});
+            },
+        ]);
+
+        const {selectedIndex, options, positionals} = cli.process([`foo`, `--`, `-x`]);
+
+        expect(options).to.deep.equal([
+        ]);
+
+        expect(positionals).to.deep.equal([
+            {value: `-x`, extra: true},
+        ]);
+    });
+
+    it(`should ignore options when they appear after a required positional from a proxy`, () => {
+        const cli = makeCli([
+            b => {
+                b.addPath([`foo`]);
+                b.addOption({names: [`-x`]});
+                b.addPositional();
+                b.addProxy();
+            },
+        ]);
+
+        const {selectedIndex, options, positionals} = cli.process([`foo`, `foo`, `-x`]);
+
+        expect(options).to.deep.equal([
+        ]);
+
+        expect(positionals).to.deep.equal([
+            {value: `foo`, extra: false},
+            {value: `-x`, extra: true},
+        ]);
+    });
+
+    it(`should ignore options when they appear in a proxy extra`, () => {
+        const cli = makeCli([
+            b => {
+                b.addPath([`foo`]);
+                b.addOption({names: [`-x`]});
+                b.addProxy();
+            },
+        ]);
+
+        const {selectedIndex, options, positionals} = cli.process([`foo`, `-x`]);
+        expect(selectedIndex).to.equal(0);
+
+        expect(options).to.deep.equal([
+        ]);
+
+        expect(positionals).to.deep.equal([
+            {value: `-x`, extra: true},
+        ]);
+    });
+
     it(`should aggregate the options as they are found`, () => {
         const cli = makeCli([
             b => {

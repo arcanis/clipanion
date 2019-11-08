@@ -135,7 +135,7 @@ export function debugMachine(machine: StateMachine, {prefix = ``}: {prefix?: str
     }
 }
 
-export function runMachine(machine: StateMachine, input: string[]) {
+export function runMachineInternal(machine: StateMachine, input: string[]) {
     debug(`Running a vm on ${JSON.stringify(input)}`);
     let branches: {node: number, state: RunState}[] = [{node: NODE_INITIAL, state: {
         candidateUsage: null,
@@ -149,7 +149,7 @@ export function runMachine(machine: StateMachine, input: string[]) {
 
     debugMachine(machine, {prefix: `  `});
 
-    for (const segment of [START_OF_INPUT, ...input, END_OF_INPUT]) {
+    for (const segment of [START_OF_INPUT, ...input]) {
         debug(`  Processing ${JSON.stringify(segment)}`)
         const nextBranches: {node: number, state: RunState}[] = [];
 
@@ -212,6 +212,41 @@ export function runMachine(machine: StateMachine, input: string[]) {
     } else {
         debug(`  No results`);
     }
+
+    return branches;
+}
+
+function suggestMachine(machine: StateMachine, input: string[]) {
+    const branches = runMachineInternal(machine, input);
+    const suggestions = new Set();
+
+    for (const {node, state} of branches) {
+        const nodeDef = machine.nodes[node];
+
+        for (const candidate of Object.keys(nodeDef.statics))
+            suggestions.add(candidate);
+
+        for (const [test, {to}] of nodeDef.dynamics) {
+            if (to === NODE_ERRORED)
+                continue;
+
+            const tokens = suggest(test, state);
+            if (tokens === null)
+                continue;
+
+            for (const token of tokens) {
+                suggestions.add(token);
+            }
+        }
+    }
+
+    suggestions.delete(END_OF_INPUT);
+
+    return suggestions;
+}
+
+function runMachine(machine: StateMachine, input: string[]) {
+    const branches = runMachineInternal(machine, [...input, END_OF_INPUT]);
 
     return selectBestState(input, branches.map(({state}) => {
         return state;
@@ -376,6 +411,23 @@ export function execute<T extends string>(store: CallbackStore<T>, callback: Cal
     }
 }
 
+export function suggest(callback: Callback<keyof typeof tests>, state: RunState): string[] | null {
+    const fn = Array.isArray(callback)
+        ? tests[callback[0]]
+        : tests[callback];
+
+    // @ts-ignore
+    if (typeof fn.suggest === `undefined`)
+        return null;
+
+    const args = Array.isArray(callback)
+        ? callback.slice(1)
+        : [];
+
+    // @ts-ignore
+    return fn.suggest(state, ...args);
+}
+
 export const tests = {
     always: () => {
         return true;
@@ -401,6 +453,11 @@ export const tests = {
     isInvalidOption: (state: RunState, segment: string) => {
         return !state.ignoreOptions && segment.startsWith(`-`) && !OPTION_REGEX.test(segment);
     },
+};
+
+// @ts-ignore
+tests.isOption.suggest = (state: RunState, name: string) => {
+    return [name];
 };
 
 export const reducers = {
@@ -608,9 +665,9 @@ export class CommandBuilder<Context> {
                 const helpNode = injectNode(machine, makeNode());
                 registerDynamic(machine, lastPathNode, `isHelp`, helpNode, [`useHelp`, this.cliIndex]);
                 registerStatic(machine, helpNode, END_OF_INPUT, NODE_SUCCESS, [`setSelectedIndex`, HELP_COMMAND_INDEX]);
-            }
 
-            this.registerOptions(machine, lastPathNode);
+                this.registerOptions(machine, lastPathNode);
+            }
 
             if (this.arity.leading.length > 0)
                 registerStatic(machine, lastPathNode, END_OF_INPUT, NODE_ERRORED, [`setError`, `Not enough positional arguments`]);
@@ -618,7 +675,9 @@ export class CommandBuilder<Context> {
             let lastLeadingNode = lastPathNode;
             for (let t = 0; t < this.arity.leading.length; ++t) {
                 const nextLeadingNode = injectNode(machine, makeNode());
-                this.registerOptions(machine, nextLeadingNode);
+
+                if (!this.arity.proxy)
+                    this.registerOptions(machine, nextLeadingNode);
 
                 if (this.arity.trailing.length > 0 || t + 1 !== this.arity.leading.length)
                     registerStatic(machine, nextLeadingNode, END_OF_INPUT, NODE_ERRORED, [`setError`, `Not enough positional arguments`]);
@@ -634,7 +693,9 @@ export class CommandBuilder<Context> {
 
                 if (this.arity.extra === NoLimits) {
                     const extraNode = injectNode(machine, makeNode());
-                    this.registerOptions(machine, extraNode);
+
+                    if (!this.arity.proxy)
+                        this.registerOptions(machine, extraNode);
 
                     registerDynamic(machine, lastLeadingNode, positionalArgument, extraNode, `pushExtra`);
                     registerDynamic(machine, extraNode, positionalArgument, extraNode, `pushExtra`);
@@ -642,7 +703,9 @@ export class CommandBuilder<Context> {
                 } else {
                     for (let t = 0; t < this.arity.extra.length; ++t) {
                         const nextExtraNode = injectNode(machine, makeNode());
-                        this.registerOptions(machine, nextExtraNode);
+
+                        if (!this.arity.proxy)
+                            this.registerOptions(machine, nextExtraNode);
 
                         registerDynamic(machine, lastExtraNode, positionalArgument, nextExtraNode, `pushExtra`);
                         registerShortcut(machine, nextExtraNode, extraShortcutNode);
@@ -659,7 +722,9 @@ export class CommandBuilder<Context> {
             let lastTrailingNode = lastExtraNode;
             for (let t = 0; t < this.arity.trailing.length; ++t) {
                 const nextTrailingNode = injectNode(machine, makeNode());
-                this.registerOptions(machine, nextTrailingNode);
+
+                if (!this.arity.proxy)
+                    this.registerOptions(machine, nextTrailingNode);
 
                 if (t + 1 < this.arity.trailing.length)
                     registerStatic(machine, nextTrailingNode, END_OF_INPUT, NODE_ERRORED, [`setError`, `Not enough positional arguments`]);
@@ -761,8 +826,15 @@ export class CliBuilder<Context> {
         const machine = makeAnyOfMachine(machines);
         simplifyMachine(machine);
 
-        return {machine, contexts, process: (input: string[]) => {
-            return runMachine(machine, input);
-        }};
+        return {
+            machine,
+            contexts,
+            process: (input: string[]) => {
+                return runMachine(machine, input);
+            },
+            suggest: (input: string[]) => {
+                return suggestMachine(machine, input);
+            },
+        };
     }
 }
