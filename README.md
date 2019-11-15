@@ -26,6 +26,10 @@ Clipanion is used in [Yarn](https://github.com/yarnpkg/berry) with great success
 
 **Note:** This syntax assumes you have some way to compile decorators. TypeScript supports them via the `experimentalDecorators` setting, and Babel via the `@babel/plugin-proposal-decorators` plugin.
 
+In essence you just need to declare a class that extends the `Command` abstract class, and implement the `execute` method. This function will then be called by Clipanion and its return value will be set as exit code by the engine (by default the exit code will be 0, which means success).
+
+Options and command paths are set using the `@Command` decorators, unless you're in an environment that doesn't support them (in which case check the next section to see how to use the fallback syntax). Because you're in a regular class, you can even set default values to your options as you would with any other property!
+
 ```ts
 import {Cli, Command, Context} from 'clipanion';
 import * as yup from 'yup';
@@ -95,6 +99,36 @@ GreetCommand.addOption(`name`, Command.String(`--name`));
 ```
 
 Note that in this case the option variables never get assigned default values, so they may be undefined within the `execute` block.
+
+## Decorators
+
+The `optionNames` parameters all indicate that you should put there a comma-separated list of option names (along with their leading `-`). For example, `-v,--verbose` is a valid parameter.
+
+#### `@Command.Path(segment1: string, segment2: string, ...)`
+
+Specifies through which CLI path should trigger the command. This decorator can only be set on the `execute` function itself, as it isn't linked to specific options.
+
+Note that you can add as many paths as you want to a single command. By default it will be connected on the main entry point (empty path), but if you add even one explicit path this behavior will be disabled. If you still want the command to be available on both a named path and as a default entry point (for example `yarn` which is an alias for `yarn install`), simply call the decorator without segments:
+
+```ts
+@Command.Path(`install`)
+@Command.Path()
+async execute() {
+  // ...
+}
+```
+
+#### `@Command.String({required?: boolean})`
+
+Specifies that the command accepts a positional argument. By default it will be required, but this can be toggled off.
+
+#### `@Command.String(optionNames: string)`
+
+Specifies that the command accepts an option that takes an argument.
+
+#### `@Command.Boolean(optionNames: string)`
+
+Specifies that the command 
 
 ## Command Help Pages
 
