@@ -370,6 +370,19 @@ describe(`Core`, () => {
         ]);
     });
 
+    it(`should extract strings from complex options (=)`, () => {
+        const cli = makeCli([
+            b => {
+                b.addOption({names: [`--foo`], arity: 1});
+            },
+        ]);
+
+        const {options} = cli.process([`--foo=foo`]);
+        expect(options).to.deep.equal([
+            {name: `--foo`, value: `foo`},
+        ]);
+    });
+
     it(`should ignore options when they follow the -- separator`, () => {
         const cli = makeCli([
             b => {

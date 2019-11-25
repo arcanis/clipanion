@@ -13,8 +13,9 @@ export const END_OF_INPUT = `\u0000`;
 export const HELP_COMMAND_INDEX = -1;
 
 export const HELP_REGEX = /^(-h|--help)(?:=([0-9]+))?$/;
-export const OPTION_REGEX = /^(--[a-z]+(-[a-z]+)*|-[a-zA-Z]+)$/;
+export const OPTION_REGEX = /^(--[a-z]+(?:-[a-z]+)*|-[a-zA-Z]+)$/;
 export const BATCH_REGEX = /^-[a-zA-Z]{2,}$/;
+export const BINDING_REGEX = /^([^=]+)=(.*)$/;
 
 // ------------------------------------------------------------------------
 
@@ -441,6 +442,10 @@ export const tests = {
     isBatchOption: (state: RunState, segment: string, names: string[]) => {
         return !state.ignoreOptions && BATCH_REGEX.test(segment) && [...segment.slice(1)].every(name => names.includes(`-${name}`));
     },
+    isBoundOption: (state: RunState, segment: string, names: string[]) => {
+        const optionParsing = segment.match(BINDING_REGEX);
+        return !state.ignoreOptions && !!optionParsing && OPTION_REGEX.test(optionParsing[1]) && names.includes(optionParsing[1]);
+    },
     isNegatedOption: (state: RunState, segment: string, name: string) => {
         return !state.ignoreOptions && segment === `--no-${name.slice(2)}`;
     },
@@ -469,6 +474,10 @@ export const reducers = {
     },
     pushBatch: (state: RunState, segment: string) => {
         return {...state, options: state.options.concat([...segment.slice(1)].map(name => ({name: `-${name}`, value: true})))};
+    },
+    pushBound: (state: RunState, segment: string) => {
+        const [, name, value] = segment.match(BINDING_REGEX)!;
+        return {...state, options: state.options.concat({name, value})};
     },
     pushPath: (state: RunState, segment: string) => {
         return {...state, path: state.path.concat(segment)};
@@ -746,6 +755,7 @@ export class CommandBuilder<Context> {
     private registerOptions(machine: StateMachine, node: number) {
         registerDynamic(machine, node, [`isOption`, `--`], node, `inhibateOptions`);
         registerDynamic(machine, node, [`isBatchOption`, this.allOptionNames], node, `pushBatch`);
+        registerDynamic(machine, node, [`isBoundOption`, this.allOptionNames], node, `pushBound`);
         registerDynamic(machine, node, [`isUnsupportedOption`, this.allOptionNames], NODE_ERRORED, [`setError`, `Unsupported option name`]);
         registerDynamic(machine, node, [`isInvalidOption`], NODE_ERRORED, [`setError`, `Invalid option name`]);
 
