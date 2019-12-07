@@ -78,7 +78,11 @@ const cli = new Cli({
 cli.register(GreetCommand);
 cli.register(FibonacciCommand);
 
-cli.runExit(process.argv.slice(2));
+cli.runExit(process.argv.slice(2), {
+    stdin: process.stdin,
+    stdout: process.stdout,
+    stderr: process.stderr,
+});
 ```
 
 ## Fallback Usage
@@ -128,7 +132,7 @@ Specifies that the command accepts an option that takes an argument.
 
 #### `@Command.Boolean(optionNames: string)`
 
-Specifies that the command 
+Specifies that the command
 
 ## Command Help Pages
 
