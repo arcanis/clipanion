@@ -132,7 +132,11 @@ Specifies that the command accepts an option that takes an argument.
 
 #### `@Command.Boolean(optionNames: string)`
 
-Specifies that the command
+Specifies that the command accepts a boolean flag as an option.
+
+#### `@Command.Array(optionNames: string)`
+
+Specifies that the command accepts a set of string arguments (`--arg value1 --arg value2`).
 
 ## Command Help Pages
 
