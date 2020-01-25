@@ -31,7 +31,7 @@ In essence you just need to declare a class that extends the `Command` abstract 
 Options and command paths are set using the `@Command` decorators, unless you're in an environment that doesn't support them (in which case check the next section to see how to use the fallback syntax). Because you're in a regular class, you can even set default values to your options as you would with any other property!
 
 ```ts
-import {Cli, Command, Context} from 'clipanion';
+import {Cli, Command} from 'clipanion';
 import * as yup from 'yup';
 
 class GreetCommand extends Command {
@@ -42,11 +42,11 @@ class GreetCommand extends Command {
     public name?: string;
 
     @Command.Path(`greet`)
-    async execute(cli: Cli, context: Context) {
+    async execute() {
         if (typeof this.name === `undefined`) {
-            context.stdout.write(`You're not registered.\n`);
+            this.context.stdout.write(`You're not registered.\n`);
         } else {
-            context.stdout.write(`Hello, ${this.name}!\n`);
+            this.context.stdout.write(`Hello, ${this.name}!\n`);
         }
     }
 }
@@ -59,7 +59,7 @@ class FibonacciCommand extends Command {
     public b!: number;
 
     @Command.Path(`fibo`)
-    async execute(cli: Cli, context: Context) {
+    async execute() {
         // ...
     }
 
@@ -91,7 +91,7 @@ In case the primary syntax isn't available (for example because you want to avoi
 
 ```js
 class GreetCommand extends Command {
-    async execute(cli, context) {
+    async execute() {
         // ...
     }
 }
