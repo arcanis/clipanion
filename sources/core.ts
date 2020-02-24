@@ -40,6 +40,7 @@ export type RunState = {
     options: {name: string, value: any}[];
     path: string[];
     positionals: {value: string, extra: boolean}[];
+    remainder: string | null;
     selectedIndex: number | null;
 };
 
@@ -136,7 +137,7 @@ export function debugMachine(machine: StateMachine, {prefix = ``}: {prefix?: str
     }
 }
 
-export function runMachineInternal(machine: StateMachine, input: string[]) {
+export function runMachineInternal(machine: StateMachine, input: string[], partial: boolean = false) {
     debug(`Running a vm on ${JSON.stringify(input)}`);
     let branches: {node: number, state: RunState}[] = [{node: NODE_INITIAL, state: {
         candidateUsage: null,
@@ -145,12 +146,16 @@ export function runMachineInternal(machine: StateMachine, input: string[]) {
         options: [],
         path: [],
         positionals: [],
+        remainder: null,
         selectedIndex: null,
     }}];
 
     debugMachine(machine, {prefix: `  `});
 
-    for (const segment of [START_OF_INPUT, ...input]) {
+    const tokens = [START_OF_INPUT, ...input];
+    for (let t = 0; t < tokens.length; ++t) {
+        const segment = tokens[t];
+
         debug(`  Processing ${JSON.stringify(segment)}`)
         const nextBranches: {node: number, state: RunState}[] = [];
 
@@ -168,14 +173,42 @@ export function runMachineInternal(machine: StateMachine, input: string[]) {
                 `Shortcuts should have been eliminated by now`,
             );
 
-            if (Object.prototype.hasOwnProperty.call(nodeDef.statics, segment)) {
-                const transitions = nodeDef.statics[segment];
-                for (const {to, reducer} of transitions) {
-                    nextBranches.push({node: to, state: typeof reducer !== `undefined` ? execute(reducers, reducer, state, segment) : state});
-                    debug(`      Static transition to ${to} found`);
+            const hasExactMatch = Object.prototype.hasOwnProperty.call(nodeDef.statics, segment);
+            if (!partial || t < tokens.length - 1 || hasExactMatch) {
+                if (hasExactMatch) {
+                    const transitions = nodeDef.statics[segment];
+                    for (const {to, reducer} of transitions) {
+                        nextBranches.push({node: to, state: typeof reducer !== `undefined` ? execute(reducers, reducer, state, segment) : state});
+                        debug(`      Static transition to ${to} found`);
+                    }
+                } else {
+                    debug(`      No static transition found`);
                 }
             } else {
-                debug(`      No static transition found`);
+                let hasMatches = false;
+
+                for (const candidate of Object.keys(nodeDef.statics)) {
+                    if (!candidate.startsWith(segment))
+                        continue;
+
+                    if (segment === candidate) {
+                        for (const {to, reducer} of nodeDef.statics[candidate]) {
+                            nextBranches.push({node: to, state: typeof reducer !== `undefined` ? execute(reducers, reducer, state, segment) : state});
+                            debug(`      Static transition to ${to} found`);
+                        }
+                    } else {
+                        for (const {to, reducer} of nodeDef.statics[candidate]) {
+                            nextBranches.push({node: to, state: {...state, remainder: candidate.slice(segment.length)}});
+                            debug(`      Static transition to ${to} found (partial match)`);
+                        }
+                    }
+
+                    hasMatches = true;
+                }
+
+                if (!hasMatches) {
+                    debug(`      No partial static transition found`);
+                }
             }
 
             if (segment !== END_OF_INPUT) {
@@ -217,15 +250,73 @@ export function runMachineInternal(machine: StateMachine, input: string[]) {
     return branches;
 }
 
-function suggestMachine(machine: StateMachine, input: string[]) {
-    const branches = runMachineInternal(machine, input);
+function checkIfNodeIsFinished(node: Node, state: RunState) {
+    if (state.selectedIndex !== null)
+        return true;
+
+    if (Object.prototype.hasOwnProperty.call(node.statics, END_OF_INPUT))
+        for (const {to} of node.statics[END_OF_INPUT])
+            if (to === NODE_SUCCESS)
+                return true;
+
+    return false;
+}
+
+function suggestMachine(machine: StateMachine, input: string[], partial: boolean) {
+    // If we're accepting partial matches, then exact matches need to be
+    // prefixed with an extra space.
+    const prefix = partial && input.length > 0 ? ` ` : ``;
+
+    const branches = runMachineInternal(machine, input, partial);
     const suggestions = new Set();
 
-    for (const {node, state} of branches) {
-        const nodeDef = machine.nodes[node];
+    const traverseSuggestion = (suggestion: string, node: number, skipFirst: boolean = true) => {
+        let nextNodes = [node];
 
-        for (const candidate of Object.keys(nodeDef.statics))
-            suggestions.add(candidate);
+        while (nextNodes.length > 0) {
+            const currentNodes = nextNodes;
+            nextNodes = [];
+
+            for (const node of currentNodes) {
+                const nodeDef = machine.nodes[node];
+                const keys = Object.keys(nodeDef.statics);
+
+                for (const key of Object.keys(nodeDef.statics)) {
+                    const segment = keys[0];
+
+                    for (const {to, reducer} of nodeDef.statics[segment]) {
+                        if (reducer !== `pushPath`)
+                            continue;
+
+                        if (!skipFirst)
+                            suggestion += ` ${segment}`;
+
+                        nextNodes.push(to);
+                    }
+                }
+            }
+
+            skipFirst = false;
+        }
+
+        suggestions.add(suggestion);
+    };
+
+    for (const {node, state} of branches) {
+        if (state.remainder !== null) {
+            traverseSuggestion(state.remainder, node);
+            continue;
+        }
+
+        const nodeDef = machine.nodes[node];
+        const isFinished = checkIfNodeIsFinished(nodeDef, state);
+
+        for (const [candidate, transitions] of Object.entries(nodeDef.statics))
+            if (isFinished || transitions.some(({reducer}) => reducer === `pushPath`))
+                traverseSuggestion(`${prefix}${candidate}`, node);
+
+        if (!isFinished)
+            continue;
 
         for (const [test, {to}] of nodeDef.dynamics) {
             if (to === NODE_ERRORED)
@@ -236,11 +327,12 @@ function suggestMachine(machine: StateMachine, input: string[]) {
                 continue;
 
             for (const token of tokens) {
-                suggestions.add(token);
+                traverseSuggestion(`${prefix}${token}`, node);
             }
         }
     }
 
+    suggestions.delete(`--`);
     suggestions.delete(END_OF_INPUT);
 
     return suggestions;
@@ -328,6 +420,7 @@ export function aggregateHelpStates(states: RunState[]) {
             path: [],
             positionals: [],
             options: helps,
+            remainder: null,
             selectedIndex: HELP_COMMAND_INDEX,
         });
     }
@@ -462,7 +555,7 @@ export const tests = {
 
 // @ts-ignore
 tests.isOption.suggest = (state: RunState, name: string) => {
-    return [name];
+    return name !== `--` ? [name] : null;
 };
 
 export const reducers = {
@@ -842,8 +935,8 @@ export class CliBuilder<Context> {
             process: (input: string[]) => {
                 return runMachine(machine, input);
             },
-            suggest: (input: string[]) => {
-                return suggestMachine(machine, input);
+            suggest: (input: string[], partial: boolean) => {
+                return suggestMachine(machine, input, partial);
             },
         };
     }
