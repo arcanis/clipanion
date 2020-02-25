@@ -265,12 +265,14 @@ function checkIfNodeIsFinished(node: Node, state: RunState) {
 function suggestMachine(machine: StateMachine, input: string[], partial: boolean) {
     // If we're accepting partial matches, then exact matches need to be
     // prefixed with an extra space.
-    const prefix = partial && input.length > 0 ? ` ` : ``;
+    const prefix = partial && input.length > 0 ? [``] : [];
 
     const branches = runMachineInternal(machine, input, partial);
-    const suggestions = new Set();
 
-    const traverseSuggestion = (suggestion: string, node: number, skipFirst: boolean = true) => {
+    const suggestions: string[][] = [];
+    const suggestionsJson = new Set<string>();
+
+    const traverseSuggestion = (suggestion: string[], node: number, skipFirst: boolean = true) => {
         let nextNodes = [node];
 
         while (nextNodes.length > 0) {
@@ -289,7 +291,7 @@ function suggestMachine(machine: StateMachine, input: string[], partial: boolean
                             continue;
 
                         if (!skipFirst)
-                            suggestion += ` ${segment}`;
+                            suggestion.push(segment);
 
                         nextNodes.push(to);
                     }
@@ -299,12 +301,17 @@ function suggestMachine(machine: StateMachine, input: string[], partial: boolean
             skipFirst = false;
         }
 
-        suggestions.add(suggestion);
+        const json = JSON.stringify(suggestion);
+        if (suggestionsJson.has(json))
+            return;
+
+        suggestions.push(suggestion);
+        suggestionsJson.add(json);
     };
 
     for (const {node, state} of branches) {
         if (state.remainder !== null) {
-            traverseSuggestion(state.remainder, node);
+            traverseSuggestion([state.remainder], node);
             continue;
         }
 
@@ -312,8 +319,8 @@ function suggestMachine(machine: StateMachine, input: string[], partial: boolean
         const isFinished = checkIfNodeIsFinished(nodeDef, state);
 
         for (const [candidate, transitions] of Object.entries(nodeDef.statics))
-            if (isFinished || transitions.some(({reducer}) => reducer === `pushPath`))
-                traverseSuggestion(`${prefix}${candidate}`, node);
+            if ((isFinished && candidate !== END_OF_INPUT) || (!candidate.startsWith(`-`) && transitions.some(({reducer}) => reducer === `pushPath`)))
+                traverseSuggestion([...prefix, candidate], node);
 
         if (!isFinished)
             continue;
@@ -327,15 +334,12 @@ function suggestMachine(machine: StateMachine, input: string[], partial: boolean
                 continue;
 
             for (const token of tokens) {
-                traverseSuggestion(`${prefix}${token}`, node);
+                traverseSuggestion([...prefix, token], node);
             }
         }
     }
 
-    suggestions.delete(`--`);
-    suggestions.delete(END_OF_INPUT);
-
-    return suggestions;
+    return [...suggestions].sort();
 }
 
 function runMachine(machine: StateMachine, input: string[]) {
@@ -529,7 +533,7 @@ export const tests = {
     isNotOptionLike: (state: RunState, segment: string) => {
         return state.ignoreOptions || !segment.startsWith(`-`);
     },
-    isOption: (state: RunState, segment: string, name: string) => {
+    isOption: (state: RunState, segment: string, name: string, hidden: boolean) => {
         return !state.ignoreOptions && segment === name;
     },
     isBatchOption: (state: RunState, segment: string, names: string[]) => {
@@ -554,8 +558,8 @@ export const tests = {
 };
 
 // @ts-ignore
-tests.isOption.suggest = (state: RunState, name: string) => {
-    return name !== `--` ? [name] : null;
+tests.isOption.suggest = (state: RunState, name: string, hidden: boolean = true) => {
+    return !hidden ? [name] : null;
 };
 
 export const reducers = {
@@ -853,12 +857,16 @@ export class CommandBuilder<Context> {
         registerDynamic(machine, node, [`isInvalidOption`], NODE_ERRORED, [`setError`, `Invalid option name`]);
 
         for (const option of this.options) {
+            const longestName = option.names.reduce((longestName, name) => {
+                return name.length > longestName.length ? name : longestName;
+            }, ``);
+
             if (option.arity === 0) {
                 for (const name of option.names) {
-                    registerDynamic(machine, node, [`isOption`, name], node, `pushTrue`);
+                    registerDynamic(machine, node, [`isOption`, name, option.hidden || name !== longestName], node, `pushTrue`);
 
                     if (name.startsWith(`--`)) {
-                        registerDynamic(machine, node, [`isNegatedOption`, name], node, [`pushFalse`, name]);
+                        registerDynamic(machine, node, [`isNegatedOption`, name, option.hidden || name !== longestName], node, [`pushFalse`, name]);
                     }
                 }
             } else if (option.arity === 1) {
@@ -866,7 +874,7 @@ export class CommandBuilder<Context> {
                 registerDynamic(machine, argNode, `isNotOptionLike`, node, `setStringValue`);
 
                 for (const name of option.names) {
-                    registerDynamic(machine, node, [`isOption`, name], argNode, `pushUndefined`);
+                    registerDynamic(machine, node, [`isOption`, name, option.hidden || name !== longestName], argNode, `pushUndefined`);
                 }
             } else {
                 throw new Error(`Unsupported option arity (${option.arity})`);

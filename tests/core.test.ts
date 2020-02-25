@@ -636,7 +636,7 @@ describe(`Core`, () => {
         ]);
 
         const suggestions = cli.suggest([], false);
-        expect([...suggestions]).to.deep.equal([`foo`]);
+        expect([...suggestions]).to.deep.equal([[`foo`]]);
     });
 
     it(`should suggest simple commands (partial match)`, () => {
@@ -647,7 +647,7 @@ describe(`Core`, () => {
         ]);
 
         const suggestions = cli.suggest([`fo`], true);
-        expect([...suggestions]).to.deep.equal([`o`]);
+        expect([...suggestions]).to.deep.equal([[`o`]]);
     });
 
     it(`should suggest simple commands (partial path)`, () => {
@@ -658,7 +658,7 @@ describe(`Core`, () => {
         ]);
 
         const suggestions = cli.suggest([`foo`], false);
-        expect([...suggestions]).to.deep.equal([`bar`]);
+        expect([...suggestions]).to.deep.equal([[`bar`]]);
     });
 
     it(`should add a leading space for exact matches on partial paths`, () => {
@@ -669,7 +669,7 @@ describe(`Core`, () => {
         ]);
 
         const suggestions = cli.suggest([`foo`], true);
-        expect([...suggestions]).to.deep.equal([` bar`]);
+        expect([...suggestions]).to.deep.equal([[``, `bar`]]);
     });
 
     it(`should return multiple suggestions when relevant (partial match)`, () => {
@@ -683,7 +683,7 @@ describe(`Core`, () => {
         ]);
 
         const suggestions = cli.suggest([`fo`], true);
-        expect([...suggestions]).to.deep.equal([`o1`, `o2`]);
+        expect([...suggestions]).to.deep.equal([[`o1`], [`o2`]]);
     });
 
     it(`should return multiple suggestions when relevant (no input)`, () => {
@@ -697,7 +697,7 @@ describe(`Core`, () => {
         ]);
 
         const suggestions = cli.suggest([], false);
-        expect([...suggestions]).to.deep.equal([`foo1`, `foo2`]);
+        expect([...suggestions]).to.deep.equal([[`foo1`], [`foo2`]]);
     });
 
     it(`should return multiple suggestions when relevant (partial paths)`, () => {
@@ -711,7 +711,7 @@ describe(`Core`, () => {
         ]);
 
         const suggestions = cli.suggest([`foo`], false);
-        expect([...suggestions]).to.deep.equal([`bar1`, `bar2`]);
+        expect([...suggestions]).to.deep.equal([[`bar1`], [`bar2`]]);
     });
 
     it(`should suggest options`, () => {
@@ -723,7 +723,7 @@ describe(`Core`, () => {
         ]);
 
         const suggestions = cli.suggest([`foo`], false);
-        expect([...suggestions]).to.deep.equal([`--bar`]);
+        expect([...suggestions]).to.deep.equal([[`--bar`]]);
     });
 
     it(`should suggest deep paths`, () => {
@@ -734,7 +734,7 @@ describe(`Core`, () => {
         ]);
 
         const suggestions = cli.suggest([], false);
-        expect([...suggestions]).to.deep.equal([`foo bar`]);
+        expect([...suggestions]).to.deep.equal([[`foo`, `bar`]]);
     });
 
     it(`should suggest deep paths and stop at options`, () => {
@@ -746,7 +746,7 @@ describe(`Core`, () => {
         ]);
 
         const suggestions = cli.suggest([], false);
-        expect([...suggestions]).to.deep.equal([`foo bar`]);
+        expect([...suggestions]).to.deep.equal([[`foo`, `bar`]]);
     });
 
     it(`should suggest as many options as needed`, () => {
@@ -759,6 +759,31 @@ describe(`Core`, () => {
         ]);
 
         const suggestions = cli.suggest([`foo`], false);
-        expect([...suggestions]).to.deep.equal([`--hello`, `--world`]);
+        expect([...suggestions]).to.deep.equal([[`--hello`], [`--world`]]);
+    });
+
+    it(`shouldn't suggest hidden options`, () => {
+        const cli = makeCli([
+            b => {
+                b.addPath([`foo`]);
+                b.addOption({names: [`--hello`], hidden: true});
+                b.addOption({names: [`--world`]});
+            },
+        ]);
+
+        const suggestions = cli.suggest([`foo`], false);
+        expect([...suggestions]).to.deep.equal([[`--world`]]);
+    });
+
+    it(`should only suggest the longest options`, () => {
+        const cli = makeCli([
+            b => {
+                b.addPath([`foo`]);
+                b.addOption({names: [`-h`, `--hello`]});
+            },
+        ]);
+
+        const suggestions = cli.suggest([`foo`], false);
+        expect([...suggestions]).to.deep.equal([[`--hello`]]);
     });
 });

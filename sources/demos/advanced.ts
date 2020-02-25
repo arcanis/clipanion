@@ -195,4 +195,4 @@ cli.runExit(process.argv.slice(2), {
 });
 */
 
-cli.suggestFor(process.argv.slice(2));
+console.log(cli.suggestFor(process.argv.slice(2), false));
