@@ -27,6 +27,12 @@ export type MiniCli<Context extends BaseContext> = {
 };
 
 export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<Context> {
+    static defaultContext = {
+        stdin: process.stdin,
+        stdout: process.stdout,
+        stderr: process.stderr,
+    };
+
     private readonly builder: CliBuilder<CliContext<Context>>;
 
     private readonly registrations: Map<CommandClass<Context>, number> = new Map();

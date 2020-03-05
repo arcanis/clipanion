@@ -79,9 +79,7 @@ cli.register(GreetCommand);
 cli.register(FibonacciCommand);
 
 cli.runExit(process.argv.slice(2), {
-    stdin: process.stdin,
-    stdout: process.stdout,
-    stderr: process.stderr,
+    ...Cli.defaultContext,
 });
 ```
 
@@ -226,10 +224,8 @@ const cli = Cli.from<MyContext>([
 ]);
 
 cli.runExit(process.argv.slice(2), {
+    ...Cli.defaultContext,
     cwd: process.cwd(),
-    stdin: process.std,
-    stdout: process.stdout,
-    stderr: process.stderr,
 });
 ```
 
