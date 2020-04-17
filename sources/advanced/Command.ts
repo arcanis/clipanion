@@ -282,10 +282,10 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
      * Register a listener that takes all the arguments remaining (including options and such) and store them into the selected property.
      * Note that all methods affecting positional arguments are evaluated in the definition order; don't mess with it (for example sorting your properties in ascendent order might have adverse results).
      */
-     static Proxy() {
+    static Proxy({required = 0}: {required?: number} = {}) {
         return <Context extends BaseContext>(prototype: Command<Context>, propertyName: string) => {
             this.registerDefinition(prototype, command => {
-                command.addProxy();
+                command.addProxy({required});
             });
 
             this.registerTransformer(prototype, (state, command) => {

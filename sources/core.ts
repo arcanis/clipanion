@@ -687,8 +687,8 @@ export class CommandBuilder<Context> {
         this.arity.extra = NoLimits;
     }
 
-    addProxy() {
-        this.addRest();
+    addProxy({required = 0}: {name?: string, required?: number} = {}) {
+        this.addRest({required});
         this.arity.proxy = true;
     }
 

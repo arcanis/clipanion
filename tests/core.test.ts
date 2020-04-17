@@ -559,6 +559,21 @@ describe(`Core`, () => {
         ]);
     });
 
+    it(`should prefer exact commands over empty proxies`, () => {
+        const cli = makeCli([
+            b => {
+                b.addPath([`foo`]);
+            },
+            b => {
+                b.addPath([`foo`]);
+                b.addProxy({required: 1});
+            },
+        ]);
+
+        const {selectedIndex} = cli.process([`foo`]);
+        expect(selectedIndex).to.equal(0);
+    });
+
     it(`should aggregate the options as they are found`, () => {
         const cli = makeCli([
             b => {
