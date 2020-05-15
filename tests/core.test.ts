@@ -383,6 +383,103 @@ describe(`Core`, () => {
         ]);
     });
 
+    it(`should extract arrays from complex options`, () => {
+        const cli = makeCli([
+            b => {
+                b.addOption({names: [`--foo`], arity: 1});
+            },
+        ]);
+
+        const {options} = cli.process([`--foo`, `bar`, `--foo`, `baz`]);
+        expect(options).to.deep.equal([
+            {name: `--foo`, value: `bar`},
+            {name: `--foo`, value: `baz`},
+        ]);
+    });
+
+    it(`should extract arrays from complex options (=)`, () => {
+        const cli = makeCli([
+            b => {
+                b.addOption({names: [`--foo`], arity: 1});
+            },
+        ]);
+
+        const {options} = cli.process([`--foo=bar`, `--foo=baz`]);
+        expect(options).to.deep.equal([
+            {name: `--foo`, value: `bar`},
+            {name: `--foo`, value: `baz`},
+        ]);
+    });
+
+    it(`should extract arrays from complex options (mixed)`, () => {
+        const cli = makeCli([
+            b => {
+                b.addOption({names: [`--foo`], arity: 1});
+            },
+        ]);
+
+        const {options} = cli.process([`--foo`, `bar`, `--foo=baz`]);
+        expect(options).to.deep.equal([
+            {name: `--foo`, value: `bar`},
+            {name: `--foo`, value: `baz`},
+        ]);
+    });
+
+    it(`should support rest arguments`, () => {
+        const cli = makeCli([
+            b => {
+                b.addRest();
+            },
+        ]);
+
+        const {positionals} = cli.process([`foo`, `bar`, `baz`]);
+        expect(positionals).to.deep.equal([
+            {value: `foo`, extra: true},
+            {value: `bar`, extra: true},
+            {value: `baz`, extra: true},
+        ]);
+    });
+
+    it(`should support rest arguments followed by mandatory arguments`, () => {
+        const cli = makeCli([
+            b => {
+                b.addRest();
+                b.addPositional();
+            },
+        ]);
+
+        const {positionals} = cli.process([`src1`, `src2`, `src3`, `dest`]);
+        expect(positionals).to.deep.equal([
+            {value: `src1`, extra: true},
+            {value: `src2`, extra: true},
+            {value: `src3`, extra: true},
+            {value: `dest`, extra: false},
+        ]);
+    });
+
+    it(`should support option arguments in between rest arguments`, () => {
+        const cli = makeCli([
+            b => {
+                b.addOption({names: [`--foo`]});
+                b.addOption({names: [`--bar`], arity: 1});
+                b.addRest();
+            },
+        ]);
+
+        const {options, positionals} = cli.process([`--foo`, `src1`, `src2`, `--bar`, `baz`, `src3`]);
+
+        expect(options).to.deep.equal([
+            {name: `--foo`, value: true},
+            {name: `--bar`, value: `baz`},
+        ]);
+
+        expect(positionals).to.deep.equal([
+            {value: `src1`, extra: true},
+            {value: `src2`, extra: true},
+            {value: `src3`, extra: true},
+        ]);
+    });
+
     it(`should ignore options when they follow the -- separator`, () => {
         const cli = makeCli([
             b => {
@@ -626,6 +723,18 @@ describe(`Core`, () => {
         expect(() => {
             cli.process([`-%#@$%#()@`]);
         }).to.throw(`Invalid option name ("-%#@$%#()@")`);
+    });
+
+    it(`should throw acceptable errors when writing bound boolean arguments`, () => {
+        const cli = makeCli([
+            b => {
+                b.addOption({names: [`--foo`]});
+            },
+        ]);
+
+        expect(() => {
+            cli.process([`--foo=bar`]);
+        }).to.throw(`Invalid option name ("--foo=bar")`);
     });
 
     it(`should suggest simple commands (no input)`, () => {
