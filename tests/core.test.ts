@@ -457,6 +457,25 @@ describe(`Core`, () => {
         ]);
     });
 
+    it(`should support rest arguments between mandatory arguments`, () => {
+        const cli = makeCli([
+            b => {
+                b.addPositional();
+                b.addRest();
+                b.addPositional();
+            },
+        ]);
+
+        const {positionals} = cli.process([`foo`, `src1`, `src2`, `src3`, `dest`]);
+        expect(positionals).to.deep.equal([
+            {value: `foo`, extra: false},
+            {value: `src1`, extra: true},
+            {value: `src2`, extra: true},
+            {value: `src3`, extra: true},
+            {value: `dest`, extra: false},
+        ]);
+    });
+
     it(`should support option arguments in between rest arguments`, () => {
         const cli = makeCli([
             b => {
@@ -466,7 +485,7 @@ describe(`Core`, () => {
             },
         ]);
 
-        const {options, positionals} = cli.process([`--foo`, `src1`, `src2`, `--bar`, `baz`, `src3`]);
+        const {options, positionals} = cli.process([`src1`, `--foo`, `src2`, `--bar`, `baz`, `src3`]);
 
         expect(options).to.deep.equal([
             {name: `--foo`, value: true},
