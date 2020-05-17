@@ -252,23 +252,36 @@ describe(`Advanced`, () => {
     });
 
     it(`supports strings that act like booleans if not bound to a value`, async () => {
-        const commandGenerator = () => {
-            class CommandA extends Command {
-                @Command.String(`--break`, { booleanIfNotBound: true })
-                enableDebugger: boolean | string = false;
+        class CommandA extends Command {
+            @Command.String(`--break`, { booleanIfNotBound: true })
+            enableDebugger: boolean | string = false;
 
-                async execute() {
-                    log(this, [`enableDebugger`]);
-                }
+            async execute() {
+                log(this, [`enableDebugger`]);
             }
-            return [
-                CommandA,
-            ];
-        };
+        }
 
-        expect(await runCli(commandGenerator, [])).to.equal(`Running CommandA\nfalse\n`);
-        expect(await runCli(commandGenerator, [`--break`])).to.equal(`Running CommandA\ntrue\n`);
-        expect(await runCli(commandGenerator, [`--break=1234`])).to.equal(`Running CommandA\n"1234"\n`);
-        await expect(runCli(commandGenerator, [`--break`, `1234`])).to.be.rejectedWith(Error);
+        class InvertedCommandA extends Command {
+            @Command.String(`--break`, { booleanIfNotBound: true })
+            enableDebugger: boolean | string = true;
+
+            async execute() {
+                log(this, [`enableDebugger`]);
+            }
+        }
+
+        let cli = Cli.from([CommandA])
+
+        expect(cli.process([])).to.contain({enableDebugger: false});
+        expect(cli.process([`--break`])).to.contain({enableDebugger: true});
+        expect(cli.process([`--no-break`])).to.contain({enableDebugger: false});
+        expect(cli.process([`--break=1234`])).to.contain({enableDebugger: "1234"});
+        expect(() => { cli.process([`--break`, `1234`])}).to.throw(Error);
+
+        cli = Cli.from([InvertedCommandA])
+
+        expect(cli.process([])).to.contain({enableDebugger: true});
+        expect(cli.process([`--break`])).to.contain({enableDebugger: true});
+        expect(cli.process([`--no-break`])).to.contain({enableDebugger: false});
     });
 });
