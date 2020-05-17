@@ -539,9 +539,11 @@ export const tests = {
     isBatchOption: (state: RunState, segment: string, names: string[]) => {
         return !state.ignoreOptions && BATCH_REGEX.test(segment) && [...segment.slice(1)].every(name => names.includes(`-${name}`));
     },
-    isBoundOption: (state: RunState, segment: string, names: string[]) => {
+    isBoundOption: (state: RunState, segment: string, names: string[], options: OptDefinition[]) => {
         const optionParsing = segment.match(BINDING_REGEX);
-        return !state.ignoreOptions && !!optionParsing && OPTION_REGEX.test(optionParsing[1]) && names.includes(optionParsing[1]);
+        return !state.ignoreOptions && !!optionParsing && OPTION_REGEX.test(optionParsing[1]) && names.includes(optionParsing[1])
+          // Disallow bound options with no arguments (i.e. booleans)
+          && options.filter(opt => opt.names.includes(optionParsing[1])).every(opt => opt.arity !== 0);
     },
     isNegatedOption: (state: RunState, segment: string, name: string) => {
         return !state.ignoreOptions && segment === `--no-${name.slice(2)}`;
@@ -852,7 +854,7 @@ export class CommandBuilder<Context> {
     private registerOptions(machine: StateMachine, node: number) {
         registerDynamic(machine, node, [`isOption`, `--`], node, `inhibateOptions`);
         registerDynamic(machine, node, [`isBatchOption`, this.allOptionNames], node, `pushBatch`);
-        registerDynamic(machine, node, [`isBoundOption`, this.allOptionNames], node, `pushBound`);
+        registerDynamic(machine, node, [`isBoundOption`, this.allOptionNames, this.options], node, `pushBound`);
         registerDynamic(machine, node, [`isUnsupportedOption`, this.allOptionNames], NODE_ERRORED, [`setError`, `Unsupported option name`]);
         registerDynamic(machine, node, [`isInvalidOption`], NODE_ERRORED, [`setError`, `Invalid option name`]);
 
