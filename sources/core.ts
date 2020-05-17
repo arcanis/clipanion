@@ -542,8 +542,8 @@ export const tests = {
     isBoundOption: (state: RunState, segment: string, names: string[], options: OptDefinition[]) => {
         const optionParsing = segment.match(BINDING_REGEX);
         return !state.ignoreOptions && !!optionParsing && OPTION_REGEX.test(optionParsing[1]) && names.includes(optionParsing[1])
-          // Disallow bound options with no arguments (i.e. booleans)
-          && options.filter(opt => opt.names.includes(optionParsing[1])).every(opt => opt.arity !== 0);
+            // Disallow bound options with no arguments (i.e. booleans)
+            && options.filter(opt => opt.names.includes(optionParsing[1])).every(opt => opt.allowBinding);
     },
     isNegatedOption: (state: RunState, segment: string, name: string) => {
         return !state.ignoreOptions && segment === `--no-${name.slice(2)}`;
@@ -633,6 +633,7 @@ export type OptDefinition = {
     names: string[];
     arity: 1 | 0;
     hidden: boolean;
+    allowBinding: boolean;
 };
 
 export class CommandBuilder<Context> {
@@ -691,9 +692,9 @@ export class CommandBuilder<Context> {
         this.arity.proxy = true;
     }
 
-    addOption({names, arity = 0, hidden = false}: Partial<OptDefinition> & {names: string[]}) {
+    addOption({names, arity = 0, hidden = false, allowBinding = true}: Partial<OptDefinition> & {names: string[]}) {
         this.allOptionNames.push(...names);
-        this.options.push({names, arity, hidden});
+        this.options.push({names, arity, hidden, allowBinding});
     }
 
     setContext(context: Context) {

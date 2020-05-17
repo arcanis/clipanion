@@ -250,4 +250,25 @@ describe(`Advanced`, () => {
 
         expect(cli.usage(CommandA)).to.equal(`\u001b[1m$ \u001b[22m... clean <workspaceNames> <workspaceNames> ...\n`);
     });
+
+    it(`supports strings that act like booleans if not bound to a value`, async () => {
+        const commandGenerator = () => {
+            class CommandA extends Command {
+                @Command.String(`--break`, { booleanIfNotBound: true })
+                enableDebugger: boolean | string = false;
+
+                async execute() {
+                    log(this, [`enableDebugger`]);
+                }
+            }
+            return [
+                CommandA,
+            ];
+        };
+
+        expect(await runCli(commandGenerator, [])).to.equal(`Running CommandA\nfalse\n`);
+        expect(await runCli(commandGenerator, [`--break`])).to.equal(`Running CommandA\ntrue\n`);
+        expect(await runCli(commandGenerator, [`--break=1234`])).to.equal(`Running CommandA\n"1234"\n`);
+        await expect(runCli(commandGenerator, [`--break`, `1234`])).to.be.rejectedWith(Error);
+    });
 });

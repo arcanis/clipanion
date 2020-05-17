@@ -144,7 +144,7 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
             const optNames = descriptor.split(`,`);
 
             this.registerDefinition(prototype, command => {
-                command.addOption({names: optNames, arity: 0, hidden});
+                command.addOption({names: optNames, arity: 0, hidden, allowBinding: false});
             });
 
             this.registerTransformer(prototype, (state, command) => {
@@ -163,7 +163,7 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
      * Note that all methods affecting positional arguments are evaluated in the definition order; don't mess with it (for example sorting your properties in ascendent order might have adverse results).
      * @param descriptor The option names.
      */
-    static String(descriptor: string, opts?: {hidden?: boolean}): PropertyDecorator;
+    static String(descriptor: string, opts?: {booleanIfNotBound?: boolean, hidden?: boolean}): PropertyDecorator;
 
     /**
      * Register a listener that looks for positional arguments. When Clipanion detects that an argument isn't an option, it will put it in this property and continue processing the rest of the command line.
@@ -172,13 +172,15 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
      */
     static String(descriptor?: {required: boolean}): PropertyDecorator;
 
-    static String(descriptor: string | {required: boolean} = {required: true}, {hidden = false}: {hidden?: boolean} = {}) {
+    static String(descriptor: string | {required: boolean} = {required: true}, {booleanIfNotBound = false, hidden = false}: {booleanIfNotBound?: boolean, hidden?: boolean} = {}) {
         return <Context extends BaseContext>(prototype: Command<Context>, propertyName: string) => {
             if (typeof descriptor === `string`) {
                 const optNames = descriptor.split(`,`);
 
                 this.registerDefinition(prototype, command => {
-                    command.addOption({names: optNames, arity: 1, hidden});
+                    // If booleanIfNotBound is specified, the command will only accept a string value
+                    // using the bind syntax and will otherwise act like a boolean option
+                    command.addOption({names: optNames, arity: booleanIfNotBound ? 0 : 1, hidden});
                 });
 
                 this.registerTransformer(prototype, (state, command) => {
