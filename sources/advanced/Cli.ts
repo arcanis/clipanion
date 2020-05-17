@@ -19,6 +19,9 @@ export type CliContext<Context extends BaseContext> = {
 };
 
 export type MiniCli<Context extends BaseContext> = {
+    binaryLabel?: string;
+    binaryName: string;
+    binaryVersion?: string;
     definitions(): Object;
     error(error: Error, opts?: {command?: Command<Context> | null}): string;
     process(input: string[]): Command<Context>;
@@ -116,6 +119,9 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
 
         command.context = context;
         command.cli = {
+            binaryLabel: this.binaryLabel,
+            binaryName: this.binaryName,
+            binaryVersion: this.binaryVersion,
             definitions: () => this.definitions(),
             error: (error, opts) => this.error(error, opts),
             process: input => this.process(input),
