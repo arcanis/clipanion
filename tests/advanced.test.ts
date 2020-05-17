@@ -277,6 +277,7 @@ describe(`Advanced`, () => {
         expect(cli.process([`--no-break`])).to.contain({enableDebugger: false});
         expect(cli.process([`--break=1234`])).to.contain({enableDebugger: "1234"});
         expect(() => { cli.process([`--break`, `1234`])}).to.throw(Error);
+        expect(() => { cli.process([`--no-break=1234`])}).to.throw(Error);
 
         cli = Cli.from([InvertedCommandA])
 
