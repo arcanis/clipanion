@@ -17,7 +17,7 @@ export type BaseContext = {
     /**
      * The input stream of the CLI.
      *
-     * @example
+     * @default
      * process.stdin
      */
     stdin: Readable;
@@ -25,7 +25,7 @@ export type BaseContext = {
     /**
      * The output stream of the CLI.
      *
-     * @example
+     * @default
      * process.stdout
      */
     stdout: Writable;
@@ -33,7 +33,7 @@ export type BaseContext = {
     /**
      * The error stream of the CLI.
      *
-     * @example
+     * @default
      * process.stderr
      */
     stderr: Writable;
@@ -238,7 +238,10 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
     /**
      * Runs a command and exits the current `process` with the exit code returned by the command.
      *
-     * @param input An array containing the name of the command and its arguments. You probably want to use `process.argv.slice(2)`.
+     * @param input An array containing the name of the command and its arguments.
+     *
+     * @example
+     * cli.runExit(process.argv.slice(2), Cli.defaultContext)
      */
     async runExit(input: Command<Context> | string[], context: Context) {
         process.exitCode = await this.run(input, context);
