@@ -1,16 +1,41 @@
-import chalk                   from 'chalk';
-import {Readable, Writable}    from 'stream';
+import chalk                               from 'chalk';
+import {Readable, Writable}                from 'stream';
 
-import {HELP_COMMAND_INDEX}    from '../core';
-import {CliBuilder}            from '../core';
-import {formatMarkdownish}     from '../format';
+import {HELP_COMMAND_INDEX}                from '../core';
+import {CliBuilder}                        from '../core';
+import {formatMarkdownish}                 from '../format';
 
-import {CommandClass, Command} from './Command';
-import {HelpCommand}           from './HelpCommand';
+import {CommandClass, Command, Definition} from './Command';
+import {HelpCommand}                       from './HelpCommand';
 
+/**
+ * The base context of the CLI.
+ *
+ * All Contexts have to extend it.
+ */
 export type BaseContext = {
+    /**
+     * The input stream of the CLI.
+     *
+     * @example
+     * process.stdin
+     */
     stdin: Readable;
+
+    /**
+     * The output stream of the CLI.
+     *
+     * @example
+     * process.stdout
+     */
     stdout: Writable;
+
+    /**
+     * The error stream of the CLI.
+     *
+     * @example
+     * process.stderr
+     */
     stderr: Writable;
 };
 
@@ -19,17 +44,78 @@ export type CliContext<Context extends BaseContext> = {
 };
 
 export type MiniCli<Context extends BaseContext> = {
-    binaryLabel?: string;
-    binaryName: string;
-    binaryVersion?: string;
-    definitions(): Object;
+    /**
+     * The label of the binary.
+     *
+     * Shown at the top of the usage information.
+     */
+    readonly binaryLabel?: string;
+
+    /**
+     * The name of the binary.
+     *
+     * Included in the path and the examples of the definitions.
+     */
+    readonly binaryName: string;
+
+    /**
+     * The version of the binary.
+     *
+     * Shown at the top of the usage information.
+     */
+    readonly binaryVersion?: string;
+
+    /**
+     * Returns an Array representing the definitions of all registered commands.
+     */
+    definitions(): Definition[];
+
+    /**
+     * Formats errors using colors.
+     *
+     * @param error The error to format. If `error.name` is `'Error'`, it is replaced with `'Internal Error'`.
+     * @param opts.command The command whose usage will be included in the formatted error.
+     */
     error(error: Error, opts?: {command?: Command<Context> | null}): string;
+
+    /**
+     * Compiles a command and its arguments using the `CommandBuilder`.
+     *
+     * @param input An array containing the name of the command and its arguments
+     *
+     * @returns The compiled `Command`, with its properties populated with the arguments.
+     */
     process(input: string[]): Command<Context>;
+
+    /**
+     * Runs a command.
+     *
+     * @param input An array containing the name of the command and its arguments
+     * @param context Overrides the Context of the main `Cli` instance
+     *
+     * @returns The exit code of the command
+     */
     run(input: string[], context?: Partial<Context>): Promise<number>;
+
+    /**
+     * Returns the usage of a command.
+     *
+     * @param command The `Command` whose usage will be returned or `null` to return the usage of all commands.
+     * @param opts.detailed If `true`, the usage of a command will also include its description, details, and examples. Doesn't have any effect if `command` is `null` or doesn't have a `usage` property.
+     * @param opts.prefix The prefix displayed before each command. Defaults to `$`.
+     */
     usage(command?: CommandClass<Context> | Command<Context> | null, opts?: {detailed?: boolean, prefix?: string}): string;
 };
 
+/**
+ * @template Context The context shared by all commands. Contexts are a set of values, defined when calling the `run`/`runExit` functions from the CLI instance, that will be made available to the commands via `this.context`.
+ */
 export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<Context> {
+    /**
+     * The default context of the CLI.
+     *
+     * Contains the stdio of the current `process`.
+     */
     static defaultContext = {
         stdin: process.stdin,
         stdout: process.stdout,
@@ -44,6 +130,12 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
     public readonly binaryName: string;
     public readonly binaryVersion?: string;
 
+    /**
+     * Creates a new Cli and registers all commands passed as parameters.
+     *
+     * @param commandClasses The Commands to register
+     * @returns The created `Cli` instance
+     */
     static from<Context extends BaseContext = BaseContext>(commandClasses: CommandClass<Context>[]) {
         const cli = new Cli<Context>();
 
@@ -61,6 +153,9 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
         this.binaryVersion = binaryVersion;
     }
 
+    /**
+     * Registers a command inside the CLI.
+     */
     register(commandClass: CommandClass<Context>) {
         const commandBuilder = this.builder.command();
         this.registrations.set(commandClass, commandBuilder.cliIndex);
@@ -140,6 +235,11 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
         return exitCode;
     }
 
+    /**
+     * Runs a command and exits the current `process` with the exit code returned by the command.
+     *
+     * @param input An array containing the name of the command and its arguments. You probably want to use `process.argv.slice(2)`.
+     */
     async runExit(input: Command<Context> | string[], context: Context) {
         process.exitCode = await this.run(input, context);
     }
@@ -149,8 +249,8 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
         return suggest(input, partial);
     }
 
-    definitions() {
-        const data = [];
+    definitions(): Definition[] {
+        const data: Definition[] = [];
 
         for (const [commandClass, number] of this.registrations) {
             if (typeof commandClass.usage === `undefined`)
@@ -171,7 +271,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
                 ? formatMarkdownish(commandClass.usage.details, true)
                 : undefined;
 
-            const examples = typeof commandClass.usage.examples !== `undefined`
+            const examples: Definition['examples'] = typeof commandClass.usage.examples !== `undefined`
                 ? commandClass.usage.examples.map(([label, cli]) => [formatMarkdownish(label, false), cli.replace(/\$0/g, this.binaryName)])
                 : undefined;
 
