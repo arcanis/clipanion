@@ -147,6 +147,27 @@ describe(`Advanced`, () => {
         expect(output).not.to.equal(`$0`);
     });
 
+    it(`should expose binary information on the MiniCli`, async () => {
+        const binaryInfo = {
+            binaryLabel: `My CLI`,
+            binaryName: `my-cli`,
+            binaryVersion: `1.0.0`,
+        };
+        const cli = new Cli(binaryInfo);
+
+        cli.register(
+            class CommandA extends Command {
+                async execute() {
+                    this.context.stdout.write(JSON.stringify(this.cli));
+                }
+            }
+        );
+
+        const output = await runCli(cli, []);
+
+        expect(JSON.parse(output)).to.contain(binaryInfo);
+    });
+
     it(`should allow calling a command from another`, async () => {
         const output = await runCli(() => {
             class CommandA extends Command {

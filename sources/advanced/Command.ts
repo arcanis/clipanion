@@ -7,11 +7,55 @@ export type Meta<Context extends BaseContext> = {
     transformers: ((state: RunState, command: Command<Context>) => void)[];
 };
 
+/**
+ * The usage of a Command.
+ */
 export type Usage = {
+    /**
+     * The category of the command.
+     *
+     * Included in the detailed usage.
+     */
     category?: string;
+
+    /**
+     * The short description of the command, formatted as Markdown.
+     *
+     * Included in the detailed usage.
+     */
     description?: string;
+
+    /**
+     * The extended details of the command, formatted as Markdown.
+     *
+     * Included in the detailed usage.
+     */
     details?: string;
+
+    /**
+     * Examples of the command represented as an Array of tuples.
+     *
+     * The first element of the tuple represents the description of the example.
+     *
+     * The second element of the tuple represents the command of the example.
+     * If present, the leading `$0` is replaced with `cli.binaryName`.
+     */
     examples?: [string, string][];
+};
+
+/**
+ * The definition of a Command.
+ */
+export type Definition = Usage & {
+    /**
+     * The path of the command, starting with `cli.binaryName`.
+     */
+    path: string;
+
+    /**
+     * The detailed usage of the command.
+     */
+    usage: string;
 };
 
 export type CommandClass<Context extends BaseContext = BaseContext> = {

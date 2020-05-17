@@ -6,6 +6,11 @@ export type ErrorMeta = {
     type: `usage`;
 };
 
+/**
+ * A generic usage error with the name `UsageError`.
+ *
+ * It should be used over `Error` only when it's the user's fault.
+ */
 export class UsageError extends Error {
     public clipanion: ErrorMeta = {type: `usage`};
 
