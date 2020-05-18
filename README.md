@@ -19,6 +19,7 @@ yarn add clipanion
   - Clipanion offers a [Yup](https://github.com/jquense/yup) integration for increased validation capabilities
   - Clipanion generates an optimized state machine out of your commands
   - Clipanion generates good-looking help pages out of the box
+  - Clipanion offers common optional command entries out-of-the-box (e.g. version command, help command)
 
 Clipanion is used in [Yarn](https://github.com/yarnpkg/berry) with great success.
 
@@ -164,23 +165,29 @@ Will generate something like this:
 
 Note that the inline code blocks will be automatically highlighted.
 
-## General Help Page
+## Optional Built-in Command Entries
 
-In order to support using the `-h` option to list the commands available to the application, just register a new command as such:
+Clipanion offers common optional command entries out-of-the-box, under the `Command.Entries` namespace.
 
+They have to be manually registered:
 ```ts
-class HelpCommand extends Command {
-  @Command.Path(`--help`)
-  @Command.Path(`-h`)
-  async execute() {
-    this.context.stdout.write(this.cli.usage(null));
-  }
-}
+cli.register(Command.Entries.Help);
+cli.register(Command.Entries.Version);
 ```
 
-This will print a block similar to the following:
+### Help Command - General Help Page
+
+> Paths: `-h`, `--help`
+
+The `Command.Entries.Help` command displays the list of commands available to the application, printing a block similar to the following.
 
 ![](assets/example-general-help.png)
+
+### Version Command
+
+> Paths: `-v`, `--version`
+
+The `Command.Entries.Version` command displays the version of the binary provided under `binaryVersion` when creating the CLI.
 
 ## Composition
 
