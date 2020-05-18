@@ -69,7 +69,7 @@ export type Definition = Usage & {
  *   b: yup.number().integer(),
  * })
  */
-export type Schema<C extends Command<any> = Command<any>> = {
+export type Schema<C extends Command<any>> = {
     /**
      * A function that takes the `Command` instance as a parameter and validates it, throwing an Error if the validation fails.
      */
@@ -307,7 +307,7 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
      * Defines the schema for the given command.
      * @param schema
      */
-    static Schema<C extends Command<any> = Command<any>>(schema: Schema<C>) {
+    static Schema<C extends Command<any> = Command<BaseContext>>(schema: Schema<C>) {
         return schema;
     }
 
