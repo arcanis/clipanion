@@ -1,3 +1,4 @@
 {
-  "typescript.tsdk": "tssdk/lib"
+  "typescript.tsdk": ".vscode/pnpify/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true
 }

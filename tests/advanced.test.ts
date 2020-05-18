@@ -50,6 +50,38 @@ const runCli = async (cli: Cli | (() => CommandClass[]), args: string[]) => {
 const prefix = `\u001b[1m$ \u001b[22m`;
 
 describe(`Advanced`, () => {
+    describe(`Builtin Entries`, () => {
+        describe(`help`, () => {
+            it(`should display the usage`, async () => {
+                const cli = new Cli()
+                cli.register(Command.Entries.Help);
+
+                expect(await runCli(cli, [`-h`])).to.equal(cli.usage(null));
+                expect(await runCli(cli, [`--help`])).to.equal(cli.usage(null));
+            })
+        });
+
+        describe(`version`, () => {
+            it(`should display the version of the binary`, async () => {
+                const cli = new Cli({binaryVersion: `2.3.4`})
+                cli.register(Command.Entries.Version);
+
+                expect(await runCli(cli, [`-v`])).to.equal(`2.3.4\n`);
+                expect(await runCli(cli, [`--version`])).to.equal(`2.3.4\n`);
+
+            });
+
+            it(`should display "<unknown>" when no version is specified`, async () => {
+                const cli = new Cli()
+                cli.register(Command.Entries.Version);
+
+                expect(await runCli(cli, [`-v`])).to.equal(`<unknown>\n`);
+                expect(await runCli(cli, [`--version`])).to.equal(`<unknown>\n`);
+
+            });
+        });
+    });
+
     it(`should print the general help listing when using --help on the raw command`, async () => {
         const output = await runCli(() => {
             class CommandHelp extends Command {
