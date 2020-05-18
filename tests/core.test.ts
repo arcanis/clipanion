@@ -373,7 +373,7 @@ describe(`Core`, () => {
     it(`should extract strings from complex options (=)`, () => {
         const cli = makeCli([
             b => {
-                b.addOption({names: [`--foo`], arity: 0});
+                b.addOption({names: [`--foo`], arity: 1});
             },
         ]);
 
