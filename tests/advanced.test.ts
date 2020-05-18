@@ -253,7 +253,7 @@ describe(`Advanced`, () => {
 
     it(`supports strings that act like booleans if not bound to a value`, async () => {
         class CommandA extends Command {
-            @Command.String(`--break`, { booleanIfNotBound: true })
+            @Command.String(`--break`, { tolerateBoolean: true })
             enableDebugger: boolean | string = false;
 
             async execute() {
@@ -262,7 +262,7 @@ describe(`Advanced`, () => {
         }
 
         class InvertedCommandA extends Command {
-            @Command.String(`--break`, { booleanIfNotBound: true })
+            @Command.String(`--break`, { tolerateBoolean: true })
             enableDebugger: boolean | string = true;
 
             async execute() {

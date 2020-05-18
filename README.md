@@ -120,15 +120,15 @@ async execute() {
 }
 ```
 
-#### `@Command.String({required?: boolean, booleanIfNotBound?: boolean})`
+#### `@Command.String({required?: boolean, tolerateBoolean?: boolean})`
 
 Specifies that the command accepts a positional argument. By default it will be required, but this can be toggled off.
 
-`booleanIfNotBound` specifies that the command will act like a boolean flag if it doesn't have a value. With this option on, an argument value can only be specified using `=`. It is off by default.
+`tolerateBoolean` specifies that the command will act like a boolean flag if it doesn't have a value. With this option on, an argument value can only be specified using `=`. It is off by default.
 
 ```ts
 class RunCommand extends Command {
-    @Command.String(`--inspect`, { booleanIfNotBound = true })
+    @Command.String(`--inspect`, { tolerateBoolean = true })
     public debug: boolean | string = false;
     // ...
 }
