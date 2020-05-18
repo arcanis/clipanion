@@ -128,7 +128,7 @@ Specifies that the command accepts a positional argument. By default it will be 
 
 ```ts
 class RunCommand extends Command {
-    @Command.String(`--inspect`, { tolerateBoolean = true })
+    @Command.String(`--inspect`, { tolerateBoolean: true })
     public debug: boolean | string = false;
     // ...
 }
