@@ -1,4 +1,6 @@
 /lib
+
 /.yarn/*
 !/.yarn/releases
-/.pnp.js
+!/.yarn/plugins
+/.pnp.*
