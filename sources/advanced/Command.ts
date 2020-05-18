@@ -58,10 +58,28 @@ export type Definition = Usage & {
     usage: string;
 };
 
+/**
+ * The schema used to validate the Command instance.
+ *
+ * The easiest way to validate it is by using the [Yup](https://github.com/jquense/yup) library.
+ *
+ * @example
+ * yup.object().shape({
+ *   a: yup.number().integer(),
+ *   b: yup.number().integer(),
+ * })
+ */
+export type Schema<C extends Command<any>> = {
+    /**
+     * A function that takes the `Command` instance as a parameter and validates it, throwing an Error if the validation fails.
+     */
+    validate: (object: C) => void;
+};
+
 export type CommandClass<Context extends BaseContext = BaseContext> = {
     new(): Command<Context>;
     resolveMeta(prototype: Command<Context>): Meta<Context>;
-    schema?: {validate: (object: any) => void};
+    schema?: Schema<any>;
     usage?: Usage;
 };
 
@@ -284,6 +302,19 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
      * Contains the usage information for the command. If undefined, the command will be hidden from the general listing.
      */
     static usage?: Usage;
+
+    /**
+     * Defines the schema for the given command.
+     * @param schema
+     */
+    static Schema<C extends Command<any> = Command<BaseContext>>(schema: Schema<C>) {
+        return schema;
+    }
+
+    /**
+     * The schema used to validate the Command instance.
+     */
+    static schema?: Schema<any>;
 
     /**
      * Standard command that'll get executed by `Cli#run` and `Cli#runExit`. Expected to return an exit code or nothing (which Clipanion will treat as if 0 had been returned).
