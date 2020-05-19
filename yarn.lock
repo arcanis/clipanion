@@ -1693,9 +1693,7 @@ fsevents@~2.1.1:
   version: 3.0.4
   resolution: "minimatch@npm:3.0.4"
   dependencies:
-    map-age-cleaner: ^0.1.1
-    mimic-fn: ^2.0.0
-    p-is-promise: ^2.0.0
+    brace-expansion: ^1.1.7
   checksum: 3/47eab9263962cacd5733e274ecad2d8e54b0f8e124ba35ae69189e296058f634a4967b87a98954f86fa5c830ff177caf827ce0136d28717ed3232951fb4fae62
   languageName: node
   linkType: hard
