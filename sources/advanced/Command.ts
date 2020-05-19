@@ -2,6 +2,9 @@ import {CommandBuilder, RunState}         from '../core';
 
 import {BaseContext, CliContext, MiniCli} from './Cli';
 
+import type {HelpCommand} from './entries/help';
+import type {VersionCommand} from './entries/version';
+
 export type Meta<Context extends BaseContext> = {
     definitions: ((command: CommandBuilder<CliContext<Context>>) => void)[];
     transformers: ((state: RunState, command: Command<Context>) => void)[];
@@ -364,4 +367,31 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
      * The path that got used to access the command being executed.
      */
     path!: string[];
+}
+
+export namespace Command {
+    /**
+     * A list of useful semi-opinionated command entries that have to be registered manually.
+     *
+     * They cover the basic needs of most CLIs (e.g. help command, version command).
+     *
+     * @example
+     * cli.register(Command.Entries.Help);
+     * cli.register(Command.Entries.Version);
+     */
+    export const Entries = {
+        /**
+         * A command that prints the usage of all commands.
+         *
+         * Paths: `-h`, `--help`
+         */
+        Help: require(`./entries/help`).HelpCommand as typeof HelpCommand,
+
+        /**
+         * A command that prints the version of the binary (`cli.binaryVersion`).
+         *
+         * Paths: `-v`, `--version`
+         */
+        Version: require(`./entries/version`).VersionCommand as typeof VersionCommand,
+    };
 }
