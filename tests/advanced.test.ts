@@ -334,6 +334,6 @@ describe(`Advanced`, () => {
             return [
                 CommandA,
             ];
-        }, [])).to.be.rejectedWith(`non-error rejectionx`);
+        }, [])).to.be.rejectedWith(`non-error rejection`);
     });
 });
