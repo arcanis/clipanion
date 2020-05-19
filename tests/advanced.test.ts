@@ -91,9 +91,11 @@ describe(`Advanced`, () => {
                     this.context.stdout.write(this.cli.usage(null));
                 }
             }
+
             class CommandA extends Command {
                 async execute() {log(this)}
             }
+
             return [
                 CommandHelp,
                 CommandA,
@@ -113,6 +115,7 @@ describe(`Advanced`, () => {
 
                 async execute() {log(this)}
             }
+
             return [
                 CommandA,
             ];
@@ -164,7 +167,6 @@ describe(`Advanced`, () => {
         const output = await runCli(() => {
             class CommandA extends Command {
                 @Command.Path(`add`)
-
                 async execute() {log(this)}
             }
             return [
@@ -185,6 +187,7 @@ describe(`Advanced`, () => {
             binaryName: `my-cli`,
             binaryVersion: `1.0.0`,
         };
+
         const cli = new Cli(binaryInfo);
 
         cli.register(
@@ -209,12 +212,14 @@ describe(`Advanced`, () => {
                     this.cli.run([`bar`]);
                 }
             }
+
             class CommandB extends Command {
                 @Command.Path(`bar`)
                 async execute() {
                     log(this);
                 }
             }
+
             return [
                 CommandA,
                 CommandB,
@@ -232,11 +237,13 @@ describe(`Advanced`, () => {
 
                 abstract execute(): Promise<number | void>;
             }
+
             class CommandB extends CommandA {
                 async execute() {
                     log(this, [`foo`]);
                 }
             }
+
             return [
                 CommandB,
             ];
@@ -316,5 +323,17 @@ describe(`Advanced`, () => {
         expect(cli.process([])).to.contain({enableDebugger: true});
         expect(cli.process([`--break`])).to.contain({enableDebugger: true});
         expect(cli.process([`--no-break`])).to.contain({enableDebugger: false});
+    });
+
+    it(`shouldn't crash when throwing non-error exceptions`, async () => {
+        await expect(runCli(() => {
+            class CommandA extends Command {
+                async execute() {throw 42}
+            }
+
+            return [
+                CommandA,
+            ];
+        }, [])).to.be.rejectedWith(`non-error rejectionx`);
     });
 });

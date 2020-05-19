@@ -408,7 +408,10 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
         return result;
     }
 
-    error(error: Error, {command = null}: {command?: Command<Context> | null} = {}) {
+    error(error: Error | any, {command = null}: {command?: Command<Context> | null} = {}) {
+        if (!(error instanceof Error))
+            error = new Error(`Execution failed with a non-error rejection (rejected value: ${JSON.stringify(error)})`);
+
         let result = ``;
 
         let name = error.name.replace(/([a-z])([A-Z])/g, `$1 $2`);
