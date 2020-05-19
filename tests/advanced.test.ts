@@ -250,4 +250,39 @@ describe(`Advanced`, () => {
 
         expect(cli.usage(CommandA)).to.equal(`\u001b[1m$ \u001b[22m... clean <workspaceNames> <workspaceNames> ...\n`);
     });
+
+    it(`supports strings that act like booleans if not bound to a value`, async () => {
+        class CommandA extends Command {
+            @Command.String(`--break`, { tolerateBoolean: true })
+            enableDebugger: boolean | string = false;
+
+            async execute() {
+                log(this, [`enableDebugger`]);
+            }
+        }
+
+        class InvertedCommandA extends Command {
+            @Command.String(`--break`, { tolerateBoolean: true })
+            enableDebugger: boolean | string = true;
+
+            async execute() {
+                log(this, [`enableDebugger`]);
+            }
+        }
+
+        let cli = Cli.from([CommandA])
+
+        expect(cli.process([])).to.contain({enableDebugger: false});
+        expect(cli.process([`--break`])).to.contain({enableDebugger: true});
+        expect(cli.process([`--no-break`])).to.contain({enableDebugger: false});
+        expect(cli.process([`--break=1234`])).to.contain({enableDebugger: "1234"});
+        expect(() => { cli.process([`--break`, `1234`])}).to.throw(Error);
+        expect(() => { cli.process([`--no-break=1234`])}).to.throw(Error);
+
+        cli = Cli.from([InvertedCommandA])
+
+        expect(cli.process([])).to.contain({enableDebugger: true});
+        expect(cli.process([`--break`])).to.contain({enableDebugger: true});
+        expect(cli.process([`--no-break`])).to.contain({enableDebugger: false});
+    });
 });

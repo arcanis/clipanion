@@ -747,7 +747,7 @@ describe(`Core`, () => {
     it(`should throw acceptable errors when writing bound boolean arguments`, () => {
         const cli = makeCli([
             b => {
-                b.addOption({names: [`--foo`]});
+                b.addOption({names: [`--foo`], allowBinding: false});
             },
         ]);
 
