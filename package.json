@@ -3,13 +3,9 @@
   "version": "2.3.1",
   "main": "sources/advanced/index.ts",
   "license": "MIT",
-  "dependencies": {
-    "chalk": "^4.0.0"
-  },
   "devDependencies": {
     "@types/chai": "^4.2.11",
     "@types/chai-as-promised": "^7.1.2",
-    "@types/chalk": "^2.2.0",
     "@types/mocha": "^7.0.2",
     "@types/node": "^14.0.1",
     "@types/yup": "^0.28.3",

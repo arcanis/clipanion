@@ -1,6 +1,22 @@
-import chalk from 'chalk';
+export interface ColorFormat {
+    bold(str: string): string;
+    error(str: string): string;
+    code(str: string): string;
+};
 
-export function formatMarkdownish(text: string, paragraphs: boolean) {
+export const richFormat: ColorFormat = {
+    bold: str => `\x1b[1m${str}\x1b[22m`,
+    error: str => `\x1b[31m\x1b[1m${str}\x1b[22m\x1b[39m`,
+    code: str => `\x1b[36m${str}\x1b[39m`,
+};
+
+export const textFormat: ColorFormat = {
+    bold: str => str,
+    error: str => str,
+    code: str => str,
+};
+
+export function formatMarkdownish(text: string, {format, paragraphs}: {format: ColorFormat, paragraphs: boolean}) {
     // Enforce \n as newline character
     text = text.replace(/\r\n?/g, `\n`);
 
@@ -34,7 +50,7 @@ export function formatMarkdownish(text: string, paragraphs: boolean) {
 
     // Highlight the code segments
     text = text.replace(/(`+)((?:.|[\n])*?)\1/g, function ($0, $1, $2) {
-        return chalk.cyan($1 + $2 + $1);
+        return format.code($1 + $2 + $1);
     });
 
     return text ? text + `\n` : ``;
