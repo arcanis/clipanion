@@ -9,7 +9,6 @@
     "@types/mocha": "^7.0.2",
     "@types/node": "^14.0.1",
     "@types/yup": "^0.28.3",
-    "@yarnpkg/pnpify": "^2.0.0-rc.22",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
     "get-stream": "^5.1.0",
@@ -19,7 +18,7 @@
     "yup": "^0.28.5"
   },
   "scripts": {
-    "prepack": "rm -rf lib && yarn pnpify tsc",
+    "prepack": "rm -rf lib && yarn tsc",
     "postpack": "rm -rf lib",
     "test": "FORCE_COLOR=1 mocha --require ts-node/register --extension ts tests"
   },
