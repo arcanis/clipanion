@@ -1,9 +1,8 @@
-import chalk                               from 'chalk';
 import {Readable, Writable}                from 'stream';
 
 import {HELP_COMMAND_INDEX}                from '../core';
 import {CliBuilder}                        from '../core';
-import {formatMarkdownish}                 from '../format';
+import {formatMarkdownish, ColorFormat, richFormat, textFormat}                 from '../format';
 
 import {CommandClass, Command, Definition} from './Command';
 import {HelpCommand}                       from './HelpCommand';
@@ -107,6 +106,18 @@ export type MiniCli<Context extends BaseContext> = {
     usage(command?: CommandClass<Context> | Command<Context> | null, opts?: {detailed?: boolean, prefix?: string}): string;
 };
 
+function getDefaultColorSettings() {
+    if (process.env.FORCE_COLOR === `0`)
+        return false;
+    if (process.env.FORCE_COLOR === `1`)
+        return true;
+
+    if (typeof process.stdout !== `undefined` && process.stdout.isTTY)
+        return true;
+
+    return false;
+}
+
 /**
  * @template Context The context shared by all commands. Contexts are a set of values, defined when calling the `run`/`runExit` functions from the CLI instance, that will be made available to the commands via `this.context`.
  */
@@ -130,6 +141,8 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
     public readonly binaryName: string;
     public readonly binaryVersion?: string;
 
+    public readonly enableColors: boolean;
+
     /**
      * Creates a new Cli and registers all commands passed as parameters.
      *
@@ -145,12 +158,14 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
         return cli;
     }
 
-    constructor({binaryLabel, binaryName = `...`, binaryVersion}: {binaryLabel?: string, binaryName?: string, binaryVersion?: string} = {}) {
+    constructor({binaryLabel, binaryName = `...`, binaryVersion, enableColors = getDefaultColorSettings()}: {binaryLabel?: string, binaryName?: string, binaryVersion?: string, enableColors?: boolean} = {}) {
         this.builder = new CliBuilder({binaryName});
 
         this.binaryLabel = binaryLabel;
         this.binaryName = binaryName;
         this.binaryVersion = binaryVersion;
+
+        this.enableColors = enableColors;
     }
 
     /**
@@ -252,7 +267,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
         return suggest(input, partial);
     }
 
-    definitions(): Definition[] {
+    definitions({colored = false}: {colored?: boolean} = {}): Definition[] {
         const data: Definition[] = [];
 
         for (const [commandClass, number] of this.registrations) {
@@ -263,19 +278,19 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
             const usage = this.getUsageByIndex(number, {detailed: true});
 
             const category = typeof commandClass.usage.category !== `undefined`
-                ? formatMarkdownish(commandClass.usage.category, false)
+                ? formatMarkdownish(commandClass.usage.category, {format: this.format(colored), paragraphs: false})
                 : undefined;
 
             const description = typeof commandClass.usage.description !== `undefined`
-                ? formatMarkdownish(commandClass.usage.description, false)
+                ? formatMarkdownish(commandClass.usage.description, {format: this.format(colored), paragraphs: false})
                 : undefined;
 
             const details = typeof commandClass.usage.details !== `undefined`
-                ? formatMarkdownish(commandClass.usage.details, true)
+                ? formatMarkdownish(commandClass.usage.details, {format: this.format(colored), paragraphs: true})
                 : undefined;
 
             const examples: Definition['examples'] = typeof commandClass.usage.examples !== `undefined`
-                ? commandClass.usage.examples.map(([label, cli]) => [formatMarkdownish(label, false), cli.replace(/\$0/g, this.binaryName)])
+                ? commandClass.usage.examples.map(([label, cli]) => [formatMarkdownish(label, {format: this.format(colored), paragraphs: false}), cli.replace(/\$0/g, this.binaryName)])
                 : undefined;
 
             data.push({path, usage, category, description, details, examples});
@@ -284,7 +299,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
         return data;
     }
 
-    usage(command: CommandClass<Context> | Command<Context> | null = null, {detailed = false, prefix = `$ `}: {detailed?: boolean, prefix?: string} = {}) {
+    usage(command: CommandClass<Context> | Command<Context> | null = null, {colored, detailed = false, prefix = `$ `}: {colored?: boolean, detailed?: boolean, prefix?: string} = {}) {
         // @ts-ignore
         const commandClass = command !== null && typeof command.getMeta === `undefined`
             ? command.constructor as CommandClass<Context>
@@ -303,7 +318,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
                     continue;
 
                 const category = typeof commandClass.usage.category !== `undefined`
-                    ? formatMarkdownish(commandClass.usage.category, false)
+                    ? formatMarkdownish(commandClass.usage.category, {format: this.format(colored), paragraphs: false})
                     : null;
 
                 let categoryCommands = commandsByCategories.get(category);
@@ -325,15 +340,15 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
 
             if (hasLabel || hasVersion) {
                 if (hasLabel && hasVersion)
-                    result += `${chalk.bold(`${this.binaryLabel} - ${this.binaryVersion}`)}\n\n`;
+                    result += `${this.format(colored).bold(`${this.binaryLabel} - ${this.binaryVersion}`)}\n\n`;
                 else if (hasLabel)
-                    result += `${chalk.bold(`${this.binaryLabel}`)}\n`;
+                    result += `${this.format(colored).bold(`${this.binaryLabel}`)}\n`;
                 else
-                    result += `${chalk.bold(`${this.binaryVersion}`)}\n`;
+                    result += `${this.format(colored).bold(`${this.binaryVersion}`)}\n`;
 
-                result += `  ${chalk.bold(prefix)}${this.binaryName} <command>\n`;
+                result += `  ${this.format(colored).bold(prefix)}${this.binaryName} <command>\n`;
             } else {
-                result += `${chalk.bold(prefix)}${this.binaryName} <command>\n`;
+                result += `${this.format(colored).bold(prefix)}${this.binaryName} <command>\n`;
             }
 
             for (let categoryName of categoryNames) {
@@ -346,22 +361,22 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
                     : `Where <command> is one of`;
 
                 result += `\n`;
-                result += `${chalk.bold(`${header}:`)}\n`;
+                result += `${this.format(colored).bold(`${header}:`)}\n`;
 
                 for (let {commandClass, usage} of commands) {
                     const doc = commandClass.usage!.description || `undocumented`;
 
                     result += `\n`;
-                    result += `  ${chalk.bold(usage)}\n`;
-                    result += `    ${formatMarkdownish(doc, false)}`;
+                    result += `  ${this.format(colored).bold(usage)}\n`;
+                    result += `    ${formatMarkdownish(doc, {format: this.format(colored), paragraphs: false})}`;
                 }
             }
 
             result += `\n`;
-            result += formatMarkdownish(`You can also print more details about any of these commands by calling them after adding the \`-h,--help\` flag right after the command name.`, true);
+            result += formatMarkdownish(`You can also print more details about any of these commands by calling them after adding the \`-h,--help\` flag right after the command name.`, {format: this.format(colored), paragraphs: true});
         } else {
             if (!detailed) {
-                result += `${chalk.bold(prefix)}${this.getUsageByRegistration(commandClass)}\n`;
+                result += `${this.format(colored).bold(prefix)}${this.getUsageByRegistration(commandClass)}\n`;
             } else {
                 const {
                     description = ``,
@@ -370,34 +385,34 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
                 } = commandClass.usage || {};
 
                 if (description !== ``) {
-                    result += formatMarkdownish(description, false).replace(/^./, $0 => $0.toUpperCase());
+                    result += formatMarkdownish(description, {format: this.format(colored), paragraphs: false}).replace(/^./, $0 => $0.toUpperCase());
                     result += `\n`;
                 }
 
                 if (details !== `` || examples.length > 0) {
-                    result += `${chalk.bold(`Usage:`)}\n`
+                    result += `${this.format(colored).bold(`Usage:`)}\n`
                     result += `\n`;
                 }
 
-                result += `${chalk.bold(prefix)}${this.getUsageByRegistration(commandClass)}\n`;
+                result += `${this.format(colored).bold(prefix)}${this.getUsageByRegistration(commandClass)}\n`;
 
                 if (details !== ``) {
                     result += `\n`;
-                    result += `${chalk.bold(`Details:`)}\n`;
+                    result += `${this.format(colored).bold(`Details:`)}\n`;
                     result += `\n`;
 
-                    result += formatMarkdownish(details, true);
+                    result += formatMarkdownish(details, {format: this.format(colored), paragraphs: true});
                 }
 
                 if (examples.length > 0) {
                     result += `\n`;
-                    result += `${chalk.bold(`Examples:`)}\n`;
+                    result += `${this.format(colored).bold(`Examples:`)}\n`;
 
                     for (let [description, example] of examples) {
                         result += `\n`;
-                        result += formatMarkdownish(description, false);
+                        result += formatMarkdownish(description, {format: this.format(colored), paragraphs: false});
                         result += example
-                            .replace(/^/m, `  ${chalk.bold(prefix)}`)
+                            .replace(/^/m, `  ${this.format(colored).bold(prefix)}`)
                             .replace(/\$0/g, this.binaryName)
                          + `\n`;
                     }
@@ -408,7 +423,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
         return result;
     }
 
-    error(error: Error | any, {command = null}: {command?: Command<Context> | null} = {}) {
+    error(error: Error | any, {colored, command = null}: {colored?: boolean, command?: Command<Context> | null} = {}) {
         if (!(error instanceof Error))
             error = new Error(`Execution failed with a non-error rejection (rejected value: ${JSON.stringify(error)})`);
 
@@ -418,7 +433,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
         if (name === `Error`)
             name = `Internal Error`;
 
-        result += `${chalk.red.bold(name)}: ${error.message}\n`;
+        result += `${this.format(colored).error(name)}: ${error.message}\n`;
 
         // @ts-ignore
         const meta = error.clipanion as core.ErrorMeta | undefined;
@@ -447,5 +462,9 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
 
     private getUsageByIndex(n: number, opts?: {detailed: boolean}) {
         return this.builder.getBuilderByIndex(n).usage(opts);
+    }
+
+    private format(colored: boolean = this.enableColors): ColorFormat {
+        return colored ? richFormat : textFormat;
     }
 }
