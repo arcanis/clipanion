@@ -10,7 +10,7 @@ type Context = {
     stderr: Writable;
 }
 
-yup.addMethod(yup.object, `atMostOneOf`, function (list: Array<string>) {
+yup.addMethod(yup.object, `atMostOneOf`, function (this: yup.ObjectSchema<object>, list: Array<string>) {
     return this.test({
         name: `atMostOneOf`,
         message: `\${path} must only have at most one of these keys: \${keys}`,
