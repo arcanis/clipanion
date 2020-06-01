@@ -367,9 +367,7 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
      * The path that got used to access the command being executed.
      */
     path!: string[];
-}
 
-export namespace Command {
     /**
      * A list of useful semi-opinionated command entries that have to be registered manually.
      *
@@ -379,19 +377,19 @@ export namespace Command {
      * cli.register(Command.Entries.Help);
      * cli.register(Command.Entries.Version);
      */
-    export const Entries = {
+    static Entries: {
         /**
          * A command that prints the usage of all commands.
          *
          * Paths: `-h`, `--help`
          */
-        Help: require(`./entries/help`).HelpCommand as typeof HelpCommand,
+        Help: typeof HelpCommand;
 
         /**
          * A command that prints the version of the binary (`cli.binaryVersion`).
          *
          * Paths: `-v`, `--version`
          */
-        Version: require(`./entries/version`).VersionCommand as typeof VersionCommand,
-    };
+        Version: typeof VersionCommand;
+    } = {} as any;
 }
