@@ -1,6 +1,6 @@
 import {Readable, Writable}                from 'stream';
 
-import {HELP_COMMAND_INDEX}                from '../core';
+import {HELP_COMMAND_INDEX}                from '../constants';
 import {CliBuilder}                        from '../core';
 import {formatMarkdownish, ColorFormat, richFormat, textFormat}                 from '../format';
 

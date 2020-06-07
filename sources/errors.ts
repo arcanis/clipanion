@@ -1,4 +1,4 @@
-import {END_OF_INPUT} from './core';
+import {END_OF_INPUT} from './constants';
 
 export type ErrorMeta = {
     type: `none`;
