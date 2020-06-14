@@ -158,11 +158,11 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
         return cli;
     }
 
-    constructor({binaryLabel, binaryName = `...`, binaryVersion, enableColors = getDefaultColorSettings()}: {binaryLabel?: string, binaryName?: string, binaryVersion?: string, enableColors?: boolean} = {}) {
-        this.builder = new CliBuilder({binaryName});
+    constructor({binaryLabel, binaryName: binaryNameOpt = `...`, binaryVersion, enableColors = getDefaultColorSettings()}: {binaryLabel?: string, binaryName?: string, binaryVersion?: string, enableColors?: boolean} = {}) {
+        this.builder = new CliBuilder({binaryName: binaryNameOpt});
 
         this.binaryLabel = binaryLabel;
-        this.binaryName = binaryName;
+        this.binaryName = binaryNameOpt;
         this.binaryVersion = binaryVersion;
 
         this.enableColors = enableColors;

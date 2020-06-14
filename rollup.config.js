@@ -13,6 +13,8 @@ export default {
     },
   ],
   plugins: [
-    ts(),
+    ts({
+      tsconfig: 'tsconfig.dist.json'
+    }),
   ]
 }
