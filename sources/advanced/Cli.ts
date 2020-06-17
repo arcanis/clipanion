@@ -42,28 +42,38 @@ export type CliContext<Context extends BaseContext> = {
     commandClass: CommandClass<Context>;
 };
 
-export type MiniCli<Context extends BaseContext> = {
+export type CliOptions = Readonly<{
     /**
      * The label of the binary.
      *
      * Shown at the top of the usage information.
      */
-    readonly binaryLabel?: string;
+    binaryLabel?: string,
 
     /**
      * The name of the binary.
      *
      * Included in the path and the examples of the definitions.
      */
-    readonly binaryName: string;
+    binaryName: string,
 
     /**
      * The version of the binary.
      *
      * Shown at the top of the usage information.
      */
-    readonly binaryVersion?: string;
+    binaryVersion?: string,
 
+    /**
+     * If `true`, the Cli will use colors in the output.
+     *
+     * @default
+     * process.env.FORCE_COLOR ?? process.stdout.isTTY
+     */
+    enableColors: boolean,
+}>;
+
+export type MiniCli<Context extends BaseContext> = CliOptions & {
     /**
      * Returns an Array representing the definitions of all registered commands.
      */
@@ -149,8 +159,8 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
      * @param commandClasses The Commands to register
      * @returns The created `Cli` instance
      */
-    static from<Context extends BaseContext = BaseContext>(commandClasses: CommandClass<Context>[]) {
-        const cli = new Cli<Context>();
+    static from<Context extends BaseContext = BaseContext>(commandClasses: CommandClass<Context>[], options: Partial<CliOptions> = {}) {
+        const cli = new Cli<Context>(options);
 
         for (const commandClass of commandClasses)
             cli.register(commandClass);
@@ -158,7 +168,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
         return cli;
     }
 
-    constructor({binaryLabel, binaryName: binaryNameOpt = `...`, binaryVersion, enableColors = getDefaultColorSettings()}: {binaryLabel?: string, binaryName?: string, binaryVersion?: string, enableColors?: boolean} = {}) {
+    constructor({binaryLabel, binaryName: binaryNameOpt = `...`, binaryVersion, enableColors = getDefaultColorSettings()}: Partial<CliOptions> = {}) {
         this.builder = new CliBuilder({binaryName: binaryNameOpt});
 
         this.binaryLabel = binaryLabel;
@@ -232,6 +242,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
             binaryLabel: this.binaryLabel,
             binaryName: this.binaryName,
             binaryVersion: this.binaryVersion,
+            enableColors: this.enableColors,
             definitions: () => this.definitions(),
             error: (error, opts) => this.error(error, opts),
             process: input => this.process(input),
