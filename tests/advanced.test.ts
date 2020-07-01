@@ -3,7 +3,7 @@ import chai, {expect}               from 'chai';
 import getStream                    from 'get-stream';
 import {PassThrough}                from 'stream';
 
-import {Cli, CommandClass, Command} from '../sources/advanced';
+import {Cli, CommandClass, Command, CliOptions} from '../sources/advanced';
 
 chai.use(chaiAsPromised);
 
@@ -181,11 +181,12 @@ describe(`Advanced`, () => {
         expect(output).not.to.equal(`$0`);
     });
 
-    it(`should expose binary information on the MiniCli`, async () => {
-        const binaryInfo = {
+    it(`should expose Cli options on the MiniCli`, async () => {
+        const binaryInfo: CliOptions = {
             binaryLabel: `My CLI`,
             binaryName: `my-cli`,
             binaryVersion: `1.0.0`,
+            enableColors: false,
         };
 
         const cli = new Cli(binaryInfo);
