@@ -124,6 +124,8 @@ class RunCommand extends Command {
 }
 ```
 
+Generates:
+
 ```bash
 run segment1 segment2 segment3
 ```
@@ -139,6 +141,8 @@ class YarnCommand extends Command {
     }
 }
 ```
+
+Generates:
 
 ```bash
 yarn install
@@ -157,6 +161,8 @@ class RunCommand extends Command {
 }
 ```
 
+Generates:
+
 ```bash
 run <ARG>
 # => foo = ARG
@@ -173,6 +179,8 @@ class RunCommand extends Command {
     public bar!: string;
 }
 ```
+
+Generates:
 
 ```bash
 run value1 value2
@@ -198,6 +206,8 @@ class RunCommand extends Command {
 }
 ```
 
+Generates:
+
 ```bash
 run --foo <ARG>
 run --foo=<ARG>
@@ -217,6 +227,8 @@ class RunCommand extends Command {
     // ...
 }
 ```
+
+Generates:
 
 ```bash
 run --inspect
@@ -242,6 +254,8 @@ class RunCommand extends Command {
 }
 ```
 
+Generates:
+
 ```bash
 run --foo
 # => bar = true
@@ -258,6 +272,8 @@ class RunCommand extends Command {
     // ...
 }
 ```
+
+Generates:
 
 ```bash
 run --arg value1 --arg value2
