@@ -14,7 +14,7 @@ yarn add clipanion
 
   - Clipanion supports advanced typing mechanisms
   - Clipanion supports nested commands (`yarn workspaces list`)
-  - Clipanion supports transparent option proxying without `--` (for example `yarn dlx eslint --fix`)
+  - Clipanion supports transparent option proxying without `--` (for example `yarn dlx eslint --fix` instead of `yarn dlx -- eslint --fix`)
   - Clipanion supports all option types you could think of (including negations, batches, ...)
   - Clipanion offers a [Yup](https://github.com/jquense/yup) integration for increased validation capabilities
   - Clipanion generates an optimized state machine out of your commands
@@ -109,27 +109,104 @@ Note that in this case the option variables never get assigned default values, s
 
 The `optionNames` parameters all indicate that you should put there a comma-separated list of option names (along with their leading `-`). For example, `-v,--verbose` is a valid parameter.
 
-#### `@Command.Path(segment1: string, segment2: string, ...)`
+#### `@Command.Path(segment1?: string, segment2?: string, ...)`
 
-Specifies through which CLI path should trigger the command. This decorator can only be set on the `execute` function itself, as it isn't linked to specific options.
+Specifies through which CLI path should trigger the command. 
+
+**This decorator can only be set on the `execute` function itself**, as it isn't linked to specific options.
+
+```ts
+class RunCommand extends Command {
+    @Command.Path(segment1, segment2, segment3)
+    async execute() {
+    // ...
+    }
+}
+```
+
+```bash
+run segment1 segment2 segment3
+```
 
 Note that you can add as many paths as you want to a single command. By default it will be connected on the main entry point (empty path), but if you add even one explicit path this behavior will be disabled. If you still want the command to be available on both a named path and as a default entry point (for example `yarn` which is an alias for `yarn install`), simply call the decorator without segments:
 
 ```ts
-@Command.Path(`install`)
-@Command.Path()
-async execute() {
-  // ...
+class YarnCommand extends Command {
+    @Command.Path(`install`)
+    @Command.Path()
+    async execute() {
+    // ...
+    }
 }
+```
+
+```bash
+yarn install
+# or
+yarn
 ```
 
 #### `@Command.String({required?: boolean})`
 
-Specifies that the command accepts a positional argument. By default it will be required, but this can be toggled off. Note that Clipanion supports required positional arguments both at the beginning and the end of the positional argument list (which allows you to build CLI for things like `cp`).
+Specifies that the command accepts a positional argument. By default it will be required, but this can be toggled off.
+
+```ts
+class RunCommand extends Command {
+    @Command.String()
+    public foo?: string;
+}
+```
+
+```bash
+run <ARG>
+# => foo = ARG
+```
+
+Note that Clipanion supports required positional arguments both at the beginning and the end of the positional argument list (which allows you to build CLI for things like `cp`).
+
+```ts
+class RunCommand extends Command {
+    @Command.String()
+    public foo?: string;
+
+    @Command.String({required: true})
+    public bar!: string;
+}
+```
+
+```bash
+run value1 value2
+# => foo = value1
+# => bar = value2
+
+run value
+# => foo = undefined
+# => bar = value
+
+run
+# invalid
+```
 
 #### `@Command.String(optionNames: string, {tolerateBoolean?: boolean})`
 
-Specifies that the command accepts an option that takes an argument. Arguments can be specified on the command line using either `--foo=ARG` or `--foo ARG`. Because of this, options that accept an argument must, by default, receive one on the CLI (ie `--foo --bar` wouldn't be valid if `--foo` accepts an argument).
+Specifies that the command accepts an option that takes an argument. Arguments can be specified on the command line using either `--foo=ARG` or `--foo ARG`.
+
+```ts
+class RunCommand extends Command {
+    @Command.String('--foo,-f')
+    public bar?: string;
+}
+```
+
+```bash
+run --foo <ARG>
+run --foo=<ARG>
+run -f <ARG>
+run -f=<ARG>
+# => bar = ARG
+```
+
+Be careful, by default, options that accept an argument must receive one on the CLI (ie `--foo --bar` wouldn't be valid if `--foo` accepts an argument).
 
 This behaviour can be toggled off if the `tolerateBoolean` option is set. In this case, the option will act like a boolean flag if it doesn't have a value. Note that with this option on, arguments values can only be specified using the `--foo=ARG` syntax.
 
@@ -139,15 +216,17 @@ class RunCommand extends Command {
     public debug: boolean | string = false;
     // ...
 }
+```
 
+```bash
 run --inspect
-=> debug = true
+# => debug = true
 
 run --inspect=1234
-=> debug = "1234"
+# debug = "1234"
 
 run --inspect 1234
-=> invalid
+# invalid
 ```
 
 
@@ -155,9 +234,35 @@ run --inspect 1234
 
 Specifies that the command accepts a boolean flag as an option.
 
+```ts
+class RunCommand extends Command {
+    @Command.Boolean('--foo')
+    public bar: boolean;
+    // ...
+}
+```
+
+```bash
+run --foo
+# => bar = true
+```
+
 #### `@Command.Array(optionNames: string)`
 
-Specifies that the command accepts a set of string arguments (`--arg value1 --arg value2`).
+Specifies that the command accepts a set of string arguments.
+
+```ts
+class RunCommand extends Command {
+    @Command.Boolean('--arg')
+    public values: string[];
+    // ...
+}
+```
+
+```bash
+run --arg value1 --arg value2
+# => values = [value1, value2]
+```
 
 ## Command Help Pages
 
