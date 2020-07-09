@@ -125,13 +125,13 @@ async execute() {
 
 #### `@Command.String({required?: boolean})`
 
-Specifies that the command accepts a positional argument. By default it will be required, but this can be toggled off.
+Specifies that the command accepts a positional argument. By default it will be required, but this can be toggled off. Note that Clipanion supports required positional arguments both at the beginning and the end of the positional argument list (which allows you to build CLI for things like `cp`).
 
 #### `@Command.String(optionNames: string, {tolerateBoolean?: boolean})`
 
-Specifies that the command accepts an option that takes an argument.
+Specifies that the command accepts an option that takes an argument. Arguments can be specified on the command line using either `--foo=ARG` or `--foo ARG`. Because of this, options that accept an argument must, by default, receive one on the CLI (ie `--foo --bar` wouldn't be valid if `--foo` accepts an argument).
 
-If the `tolerateBoolean` option is set, it means that the option will act like a boolean flag if it doesn't have a value. Note that with this option on, arguments values can only be specified using `=`. It is off by default.
+This behaviour can be toggled off if the `tolerateBoolean` option is set. In this case, the option will act like a boolean flag if it doesn't have a value. Note that with this option on, arguments values can only be specified using the `--foo=ARG` syntax.
 
 ```ts
 class RunCommand extends Command {
