@@ -35,6 +35,7 @@ Options and command paths are set using the `@Command` decorators, unless you're
 import {Cli, Command} from 'clipanion';
 import * as yup from 'yup';
 
+// greet [-v,--verbose] [--name ARG]
 class GreetCommand extends Command {
     @Command.Boolean(`-v,--verbose`)
     public verbose: boolean = false;
@@ -52,6 +53,7 @@ class GreetCommand extends Command {
     }
 }
 
+// fibo <a> <b>
 class FibonacciCommand extends Command {
     @Command.String({required: true})
     public a!: number;
@@ -121,15 +123,19 @@ async execute() {
 }
 ```
 
-#### `@Command.String({required?: boolean, tolerateBoolean?: boolean})`
+#### `@Command.String({required?: boolean})`
 
 Specifies that the command accepts a positional argument. By default it will be required, but this can be toggled off.
 
-`tolerateBoolean` specifies that the command will act like a boolean flag if it doesn't have a value. With this option on, an argument value can only be specified using `=`. It is off by default.
+#### `@Command.String(optionNames: string, {tolerateBoolean?: boolean})`
+
+Specifies that the command accepts an option that takes an argument.
+
+If the `tolerateBoolean` option is set, it means that the option will act like a boolean flag if it doesn't have a value. Note that with this option on, arguments values can only be specified using `=`. It is off by default.
 
 ```ts
 class RunCommand extends Command {
-    @Command.String(`--inspect`, { tolerateBoolean: true })
+    @Command.String(`--inspect`, {tolerateBoolean: true})
     public debug: boolean | string = false;
     // ...
 }
@@ -144,9 +150,6 @@ run --inspect 1234
 => invalid
 ```
 
-#### `@Command.String(optionNames: string)`
-
-Specifies that the command accepts an option that takes an argument.
 
 #### `@Command.Boolean(optionNames: string)`
 
