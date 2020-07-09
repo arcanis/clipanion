@@ -14,7 +14,7 @@ yarn add clipanion
 
   - Clipanion supports advanced typing mechanisms
   - Clipanion supports nested commands (`yarn workspaces list`)
-  - Clipanion supports transparent option proxying without `--` (for example `yarn dlx eslint --fix` instead of `yarn dlx -- eslint --fix`)
+  - Clipanion supports transparent option proxying without `--` (for example `yarn dlx eslint --fix`)
   - Clipanion supports all option types you could think of (including negations, batches, ...)
   - Clipanion offers a [Yup](https://github.com/jquense/yup) integration for increased validation capabilities
   - Clipanion generates an optimized state machine out of your commands
