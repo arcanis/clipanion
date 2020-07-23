@@ -52,6 +52,41 @@ const prefix = `\u001b[1m$ \u001b[22m`;
 describe(`Advanced`, () => {
     describe(`Builtin Entries`, () => {
         describe(`help`, () => {
+            it(`should have a path`, async () => {
+                const cli = new Cli();
+
+                class CommandA extends Command {
+                    async execute() {}
+                }
+                cli.register(CommandA);
+
+                class CommandB extends Command {
+                    @Command.Path(`b`)
+                    async execute() {}
+                }
+                cli.register(CommandB);
+
+                class CommandB1 extends Command {
+                    @Command.Path(`b`, `one`)
+                    async execute() {}
+                }
+                cli.register(CommandB1);
+
+                class CommandB2 extends Command {
+                    @Command.Path(`b`, `two`)
+                    async execute() {}
+                }
+                cli.register(CommandB2);
+
+                expect(cli.process([`-h`]).path).to.deep.equal([]);
+
+                cli.register(Command.Entries.Help);
+                expect(cli.process([`-h`]).path).to.deep.equal([`-h`]);
+
+                expect(cli.process([`b`, `--help`]).path).to.deep.equal([`b`]);
+                expect(cli.process([`b`, `one`, `--help`]).path).to.deep.equal([`b`, `one`]);
+            });
+
             it(`should display the usage`, async () => {
                 const cli = new Cli()
                 cli.register(Command.Entries.Help);
