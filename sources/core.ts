@@ -395,11 +395,11 @@ export function selectBestState(input: string[], states: RunState[]) {
 
 export function aggregateHelpStates(states: RunState[]) {
     const notHelps: RunState[] = [];
-    const helps = [];
+    const helps: RunState[] = [];
 
     for (const state of states) {
         if (state.selectedIndex === HELP_COMMAND_INDEX) {
-            helps.push(...state.options);
+            helps.push(state);
         } else {
             notHelps.push(state);
         }
@@ -410,15 +410,26 @@ export function aggregateHelpStates(states: RunState[]) {
             candidateUsage: null,
             errorMessage: null,
             ignoreOptions: false,
-            path: [],
+            path: findCommonPrefix(...helps.map(state => state.path)),
             positionals: [],
-            options: helps,
+            options: helps.reduce((options, state) => options.concat(state.options), [] as RunState['options']),
             remainder: null,
             selectedIndex: HELP_COMMAND_INDEX,
         });
     }
 
     return notHelps;
+}
+
+function findCommonPrefix(...paths: string[][]): string[];
+function findCommonPrefix(firstPath: string[], secondPath: string[]|undefined, ...rest: string[][]): string[] {
+    if (secondPath === undefined)
+        return Array.from(firstPath);
+
+    return findCommonPrefix(
+        firstPath.filter((segment, i) => segment === secondPath[i]),
+        ...rest
+    );
 }
 
 // ------------------------------------------------------------------------
