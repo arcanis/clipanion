@@ -372,4 +372,23 @@ describe(`Advanced`, () => {
             ];
         }, [])).to.be.rejectedWith(`non-error rejection`);
     });
+
+    it(`shouldn't crash when throwing non-error exceptions`, async () => {
+        class CommandA extends Command {
+            @Command.String({name: 'prettyName'})
+            thisNameIsntUsed!: string;
+
+            async execute() {throw 42}
+        }
+
+        const cli = Cli.from([CommandA])
+        const usage = cli.usage(CommandA);
+
+        expect(usage).not.to.contain('thisNameIsntUsed');
+        expect(usage).to.contain('prettyName');
+
+        const command = cli.process(['foo']);
+
+        expect((command as CommandA).thisNameIsntUsed).to.eq('foo');
+    });
 });
