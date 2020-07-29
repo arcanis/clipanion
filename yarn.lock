@@ -1652,7 +1652,7 @@ __metadata:
     rollup: ^2.16.1
     ts-node: ^8.10.2
     tslib: ^2.0.0
-    typescript: ^3.9.5
+    typescript: 4.0.0-dev.20200729
     yup: ^0.29.1
   languageName: unknown
   linkType: soft
@@ -3606,23 +3606,23 @@ fsevents@~2.1.2:
   languageName: node
   linkType: hard
 
-typescript@^3.9.5:
-  version: 3.9.5
-  resolution: "typescript@npm:3.9.5"
+typescript@4.0.0-dev.20200729:
+  version: 4.0.0-dev.20200729
+  resolution: "typescript@npm:4.0.0-dev.20200729"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 3/15618435493667083eb43dc7b36c4d3dd47fd9e9c8a14f0ac4019bbf6124b6cc518b6ed506400913db1bf50831207ee8201b5d827680076930b562923f4f18a0
+  checksum: 3/d2802899d2c7be6d16caa473fb0578102740cecc09160445eb448a3d36f9b96cc5e87ec9ce98565e36c312c2979f4c82b47031a692d1cffe982dff2faac95701
   languageName: node
   linkType: hard
 
-"typescript@patch:typescript@^3.9.5#builtin<compat/typescript>":
-  version: 3.9.5
-  resolution: "typescript@patch:typescript@npm%3A3.9.5#builtin<compat/typescript>::version=3.9.5&hash=8cac75"
+"typescript@patch:typescript@4.0.0-dev.20200729#builtin<compat/typescript>":
+  version: 4.0.0-dev.20200729
+  resolution: "typescript@patch:typescript@npm%3A4.0.0-dev.20200729#builtin<compat/typescript>::version=4.0.0-dev.20200729&hash=8cac75"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 3/347b57e017c6f6c956eb7fc3c392e764bb924b1758103207cfb9c465210d4134212a164a064c259d524f055b86b023ebecc3e3ab5b5d666c1c0d96e1397149f6
+  checksum: 3/5677e5101028f26d1d8141c89c2c2d08af6184babd9d2ce6ba819cc5e1cd043ae655788ee59758474541870c8d92d9931a8202746bc563f0fb174fafd2ccadbd
   languageName: node
   linkType: hard
 
