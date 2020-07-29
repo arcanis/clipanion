@@ -186,13 +186,9 @@ cli.register(YarnRunListing);
 cli.register(YarnRunExec);
 cli.register(YarnAdd);
 
-/*
 cli.runExit(process.argv.slice(2), {
     cwd: process.cwd(),
     stdin: process.stdin,
     stdout: process.stdout,
     stderr: process.stderr,
 });
-*/
-
-console.log(cli.suggest(process.argv.slice(2), false));

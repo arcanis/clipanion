@@ -9,6 +9,7 @@ export class HelpCommand<Context extends BaseContext> extends Command<Context> {
 
     static from<Context extends BaseContext>(state: RunState, realCli: Cli<Context>, contexts: CliContext<Context>[]) {
         const command = new HelpCommand<Context>(realCli, contexts);
+        command.path = state.path;
 
         for (const opt of state.options) {
             switch (opt.name) {
