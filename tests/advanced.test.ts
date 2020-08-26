@@ -417,4 +417,44 @@ describe(`Advanced`, () => {
             ];
         }, [])).to.eventually.equal(``);
     });
+
+    it(`should allow to rethrow error to parent class(es)`, async () => {
+        const calls = {
+            base: false,
+            commandA: false,
+            commandB: false
+        };
+
+        await expect(runCli(() => {
+            class Base extends Command {
+                async execute() {}
+                async catch(error: Error) {
+                    calls.base = true;
+                    return super.catch(error);
+                }
+            }
+
+            class CommandA extends Base {
+                async execute() {}
+                async catch(error: Error) {
+                    calls.commandA = true;
+                    return super.catch(error);
+                }
+            }
+
+            class CommandB extends CommandA {
+                async execute() {throw new Error(`command failed`)}
+                async catch(error: Error) {
+                    calls.commandB = true;
+                    return super.catch(error);
+                }
+            }
+
+            return [
+                CommandB,
+            ];
+        }, [])).to.be.rejectedWith(`command failed`);
+
+        expect(Object.values(calls).every(Boolean)).to.be.true;
+    });
 });
