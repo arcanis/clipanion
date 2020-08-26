@@ -349,7 +349,7 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
             }
         }
 
-        const exitCode = await this.execute().catch(error => this.catch(error));
+        const exitCode = await this.execute();
         if (typeof exitCode !== `undefined`) {
             return exitCode;
         } else {
