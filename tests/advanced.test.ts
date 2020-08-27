@@ -372,4 +372,89 @@ describe(`Advanced`, () => {
             ];
         }, [])).to.be.rejectedWith(`non-error rejection`);
     });
+
+    it(`should use default error handler when no custom logic is registered`, async () => {
+        await expect(runCli(() => {
+            class CommandA extends Command {
+                async execute() {throw new Error(`default error`)}
+            }
+
+            return [
+                CommandA,
+            ];
+        }, [])).to.be.rejectedWith(`default error`);
+    });
+
+    it(`should allow to override error handler`, async () => {
+        let catchCalled = false;
+
+        await expect(runCli(() => {
+            class CommandA extends Command {
+                async execute() {throw new Error(`command failed`)}
+                async catch(error: Error) {
+                    catchCalled = true;
+                    throw error;
+                }
+            }
+
+            return [
+                CommandA,
+            ];
+        }, [])).to.be.rejectedWith(`command failed`);
+
+        expect(catchCalled).to.be.true;
+    });
+
+    it(`should not throw if custom error handler swallows error`, async () => {
+        await expect(runCli(() => {
+            class CommandA extends Command {
+                async execute() {throw new Error(`command failed`)}
+                async catch() {}
+            }
+
+            return [
+                CommandA,
+            ];
+        }, [])).to.eventually.equal(``);
+    });
+
+    it(`should allow to rethrow error to parent class(es)`, async () => {
+        const calls = {
+            base: false,
+            commandA: false,
+            commandB: false
+        };
+
+        await expect(runCli(() => {
+            class Base extends Command {
+                async execute() {}
+                async catch(error: Error) {
+                    calls.base = true;
+                    return super.catch(error);
+                }
+            }
+
+            class CommandA extends Base {
+                async execute() {}
+                async catch(error: Error) {
+                    calls.commandA = true;
+                    return super.catch(error);
+                }
+            }
+
+            class CommandB extends CommandA {
+                async execute() {throw new Error(`command failed`)}
+                async catch(error: Error) {
+                    calls.commandB = true;
+                    return super.catch(error);
+                }
+            }
+
+            return [
+                CommandB,
+            ];
+        }, [])).to.be.rejectedWith(`command failed`);
+
+        expect(Object.values(calls).every(Boolean)).to.be.true;
+    });
 });
