@@ -191,9 +191,9 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
      * Note that all methods affecting positional arguments are evaluated in the definition order; don't mess with it (for example sorting your properties in ascendent order might have adverse results).
      * @param descriptor Whether or not filling the positional argument is required for the command to be a valid selection.
      */
-    static String(descriptor?: {required: boolean}): PropertyDecorator;
+    static String(descriptor?: {required?: boolean; name?: string}): PropertyDecorator;
 
-    static String(descriptor: string | {required: boolean} = {required: true}, {tolerateBoolean = false, hidden = false}: {tolerateBoolean?: boolean, hidden?: boolean} = {}) {
+    static String(descriptor: string | {required?: boolean, name?: string} = {}, {tolerateBoolean = false, hidden = false}: {tolerateBoolean?: boolean, hidden?: boolean} = {}) {
         return <Context extends BaseContext>(prototype: Command<Context>, propertyName: string) => {
             if (typeof descriptor === `string`) {
                 const optNames = descriptor.split(`,`);
@@ -214,7 +214,7 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
                 });
             } else {
                 this.registerDefinition(prototype, command => {
-                    command.addPositional({name: propertyName, required: descriptor.required});
+                    command.addPositional({name: descriptor.name ?? propertyName, required: descriptor.required !== false});
                 });
 
                 this.registerTransformer(prototype, (state, command) => {
