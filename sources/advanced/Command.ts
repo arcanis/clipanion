@@ -326,6 +326,15 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
      */
     abstract async execute(): Promise<number | void>;
 
+    /**
+     * Standard error handler which will simply rethrow the error. Can be used to add custom logic to handle errors
+     * from the command or simply return the parent class error handling.
+     * @param error
+     */
+    async catch(error: any): Promise<void> {
+        throw error;
+    }
+
     async validateAndExecute(): Promise<number> {
         const commandClass = this.constructor as CommandClass<Context>;
         const schema = commandClass.schema;

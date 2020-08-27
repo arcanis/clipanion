@@ -219,7 +219,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
     }
 
     async run(input: Command<Context> | string[], context: Context) {
-        let command;
+        let command: Command<Context>;
 
         if (!Array.isArray(input)) {
             command = input;
@@ -252,7 +252,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
 
         let exitCode;
         try {
-            exitCode = await command.validateAndExecute();
+            exitCode = await command.validateAndExecute().catch(error => command.catch(error).then(() => 0));
         } catch (error) {
             context.stdout.write(this.error(error, {command}));
             return 1;

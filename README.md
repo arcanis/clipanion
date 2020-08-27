@@ -267,7 +267,7 @@ Specifies that the command accepts a set of string arguments.
 
 ```ts
 class RunCommand extends Command {
-    @Command.Boolean('--arg')
+    @Command.Array('--arg')
     public values: string[];
     // ...
 }
