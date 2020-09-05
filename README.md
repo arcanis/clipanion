@@ -111,7 +111,7 @@ The `optionNames` parameters all indicate that you should put there a comma-sepa
 
 #### `@Command.Path(segment1?: string, segment2?: string, ...)`
 
-Specifies through which CLI path should trigger the command. 
+Specifies through which CLI path should trigger the command.
 
 **This decorator can only be set on the `execute` function itself**, as it isn't linked to specific options.
 
@@ -278,6 +278,31 @@ Generates:
 ```bash
 run --arg value1 --arg value2
 # => values = [value1, value2]
+```
+
+#### `@Command.Tuple(optionNames: string, {length: number})`
+
+Specifies that the command accepts an option that takes a fixed number of arguments. Arguments can only be specified on the command line using `--foo ARG`, not `--foo=ARG`.
+
+```ts
+class RunCommand extends Command {
+    @Command.Tuple('--arg', {length: 3})
+    public values: [string, string, string];
+    // ...
+}
+```
+
+Generates:
+
+```bash
+run --arg value1 value2 value3
+# => values = [value1, value2, value3]
+
+run --arg value1 value2
+# => Error - too few arguments
+
+run --arg value1 value2 value3 value4
+# => Error - too many arguments
 ```
 
 ## Command Help Pages

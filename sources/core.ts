@@ -597,7 +597,15 @@ export const reducers = {
         return {...state, options: state.options.concat({name: segment, value: undefined})}
     },
     setStringValue: (state: RunState, segment: string) => {
-        return {... state, options: state.options.slice(0, -1).concat({...state.options[state.options.length - 1], value: segment})}
+        const lastOption = state.options[state.options.length - 1];
+
+        // We check if the last value is already a string.
+        // If that's the case, we don't overwrite it.
+        const options = typeof lastOption.value === `string`
+            ? state.options
+            : state.options.slice(0, -1)
+
+        return {...state, options: options.concat({...lastOption, value: segment})}
     },
     inhibateOptions: (state: RunState) => {
         return {...state, ignoreOptions: true};
@@ -631,7 +639,7 @@ export type ArityDefinition = {
 
 export type OptDefinition = {
     names: string[];
-    arity: 1 | 0;
+    arity: number;
     hidden: boolean;
     allowBinding: boolean;
 };
@@ -693,6 +701,11 @@ export class CommandBuilder<Context> {
     }
 
     addOption({names, arity = 0, hidden = false, allowBinding = true}: Partial<OptDefinition> & {names: string[]}) {
+        if (!Number.isInteger(arity))
+            throw new Error(`The arity must be an integer, got ${arity}`);
+        if (arity < 0)
+            throw new Error(`The arity must be positive, got ${arity}`);
+
         this.allOptionNames.push(...names);
         this.options.push({names, arity, hidden, allowBinding});
     }
@@ -872,15 +885,28 @@ export class CommandBuilder<Context> {
                         registerDynamic(machine, node, [`isNegatedOption`, name, option.hidden || name !== longestName], node, [`pushFalse`, name]);
                     }
                 }
-            } else if (option.arity === 1) {
-                const argNode = injectNode(machine, makeNode());
-                registerDynamic(machine, argNode, `isNotOptionLike`, node, `setStringValue`);
-
-                for (const name of option.names) {
-                    registerDynamic(machine, node, [`isOption`, name, option.hidden || name !== longestName], argNode, `pushUndefined`);
-                }
             } else {
-                throw new Error(`Unsupported option arity (${option.arity})`);
+                // We inject a new node at the end of the state machine
+                let lastNode = injectNode(machine, makeNode());
+
+                // We register transitions from the starting node to this new node
+                for (const name of option.names) {
+                    registerDynamic(machine, node, [`isOption`, name, option.hidden || name !== longestName], lastNode, `pushUndefined`);
+                }
+
+                // For each argument except the last one, we inject a new node at the end
+                // and we register a transition from the current node to this new node
+                for (let i = 1; i <= option.arity - 1; ++i) {
+                    const nextNode = injectNode(machine, makeNode());
+
+                    registerDynamic(machine, lastNode, `isNotOptionLike`, nextNode, `setStringValue`);
+
+                    lastNode = nextNode;
+                }
+
+                // In the end, we register a transition
+                // from the last node to the starting node
+                registerDynamic(machine, lastNode, `isNotOptionLike`, node, `setStringValue`);
             }
         }
     }

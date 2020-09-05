@@ -253,6 +253,30 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
     }
 
     /**
+     * Register a listener that looks for an option and its followup arguments. When Clipanion detects that these arguments are present, the values will be pushed into the tuple represented in the property.
+     */
+    static Tuple(descriptor: string, {length, hidden = false}: {length: number, hidden?: boolean}) {
+        return <Context extends BaseContext>(prototype: Command<Context>, propertyName: string) => {
+            const optNames = descriptor.split(`,`);
+
+            this.registerDefinition(prototype, command => {
+                command.addOption({names: optNames, arity: length, hidden, allowBinding: false});
+            });
+
+            this.registerTransformer(prototype, (state, command) => {
+                for (const {name, value} of state.options) {
+                    if (optNames.includes(name)) {
+                        // @ts-ignore: The property is meant to have been defined by the child class
+                        command[propertyName] = command[propertyName] || [];
+                        // @ts-ignore: The property is meant to have been defined by the child class
+                        command[propertyName].push(value);
+                    }
+                }
+            });
+        };
+    }
+
+    /**
      * Register a listener that takes all the positional arguments remaining and store them into the selected property.
      * Note that all methods affecting positional arguments are evaluated in the definition order; don't mess with it (for example sorting your properties in ascendent order might have adverse results).
      */

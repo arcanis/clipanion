@@ -476,4 +476,104 @@ describe(`Advanced`, () => {
 
         expect(Object.values(calls).every(Boolean)).to.be.true;
     });
+
+    it(`should extract tuples from complex options`, async () => {
+        class PointCommand extends Command {
+            @Command.Tuple(`--point`, {length: 3})
+            point!: [x: string, y: string, z: string];
+
+            async execute() {}
+        }
+
+        const cli = Cli.from([PointCommand]);
+
+        expect(cli.process([`--point`, `1`, `2`, `3`])).to.deep.contain({point: [`1`, `2`, `3`]});
+    });
+
+    it(`shouldn't allow binding tuple elements`, async () => {
+        class Arity0Command extends Command {
+            @Command.Tuple(`--thing`, {length: 0})
+            thing!: [boolean];
+
+            @Command.Path('arity0')
+            async execute() {}
+        }
+
+        class Arity1Command extends Command {
+            @Command.Tuple(`--thing`, {length: 1})
+            thing!: [string];
+
+            @Command.Path('arity1')
+            async execute() {}
+        }
+
+        const cli = Cli.from([Arity0Command, Arity1Command]);
+
+        expect(() => {
+            cli.process([`arity0`, `--thing=something`])
+        }).to.throw(`Invalid option name ("--thing=something")`);
+        expect(() => {
+            cli.process([`arity1`, `--thing=something`])
+        }).to.throw(`Invalid option name ("--thing=something")`);
+    });
+
+    it(`should extract tuples from complex options surrounded by rest arguments`, async () => {
+        class PointCommand extends Command {
+            @Command.Tuple(`--point`, {length: 3})
+            point!: [x: string, y: string, z: string];
+
+            @Command.Rest()
+            rest: string[] = [];
+
+            async execute() {}
+        }
+
+        const cli = Cli.from([PointCommand]);
+
+        const point = {point: [`1`, `2`, `3`]};
+
+        expect(cli.process([`--point`, `1`, `2`, `3`])).to.deep.contain(point);
+        expect(cli.process([`--point`, `1`, `2`, `3`, `thing1`, `thing2`])).to.deep.contain(point);
+        expect(cli.process([`thing1`, `--point`, `1`, `2`, `3`, `thing2`])).to.deep.contain(point);
+        expect(cli.process([`thing1`, `thing2`, `--point`, `1`, `2`, `3`])).to.deep.contain(point);
+    });
+
+    it(`should throw acceptable errors when tuple length is not finite`, async () => {
+        class PointCommand extends Command {
+            @Command.Tuple(`--point`, {length: Infinity})
+            point!: [x: string, y: string, z: string];
+
+            async execute() {}
+        }
+
+        expect(() => {
+            Cli.from([PointCommand])
+        }).to.throw(`The arity must be an integer, got Infinity`);
+    });
+
+    it(`should throw acceptable errors when tuple length is not an integer`, async () => {
+        class PointCommand extends Command {
+            @Command.Tuple(`--point`, {length: 1.5})
+            point!: [x: string, y: string, z: string];
+
+            async execute() {}
+        }
+
+        expect(() => {
+            Cli.from([PointCommand])
+        }).to.throw(`The arity must be an integer, got 1.5`);
+    });
+
+    it(`should throw acceptable errors when tuple length is not positive`, async () => {
+        class PointCommand extends Command {
+            @Command.Tuple(`--point`, {length: -1})
+            point!: [x: string, y: string, z: string];
+
+            async execute() {}
+        }
+
+        expect(() => {
+            Cli.from([PointCommand])
+        }).to.throw(`The arity must be positive, got -1`);
+    });
 });
