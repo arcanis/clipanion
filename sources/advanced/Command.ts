@@ -1,4 +1,4 @@
-import {CommandBuilder, RunState}         from '../core';
+import {CommandBuilder, NoLimits, RunState}         from '../core';
 
 import {BaseContext, CliContext, MiniCli} from './Cli';
 
@@ -218,9 +218,22 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
                 });
 
                 this.registerTransformer(prototype, (state, command) => {
-                    if (state.positionals.length > 0) {
+                    // We use a for loop because we lose the reference to
+                    // the `state.positionals` array if we filter and shift
+                    for (let i = 0; i < state.positionals.length; ++i) {
+                        // We ignore NoLimits extras
+                        if (state.positionals[i].extra === NoLimits)
+                            continue;
+
+                        // We need to remove the used element from the original
+                        // array and assign it to command[propertyName]
+
+                        const [positional] = state.positionals.splice(i, 1);
+
                         // @ts-ignore: The property is meant to have been defined by the child class
-                        command[propertyName] = state.positionals.shift()!.value;
+                        command[propertyName] = positional.value;
+
+                        break;
                     }
                 });
             }
@@ -273,7 +286,9 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
 
             this.registerTransformer(prototype, (state, command) => {
                 // @ts-ignore: The property is meant to have been defined by the child class
-                command[propertyName] = state.positionals.map(({value}) => value);
+                command[propertyName] = state.positionals
+                    .filter(({extra}) => extra === NoLimits)
+                    .map(({value}) => value);
             });
         };
     }
@@ -290,7 +305,9 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
 
             this.registerTransformer(prototype, (state, command) => {
                 // @ts-ignore: The property is meant to have been defined by the child class
-                command[propertyName] = state.positionals.map(({value}) => value);
+                command[propertyName] = state.positionals
+                    .filter(({extra}) => extra === NoLimits)
+                    .map(({value}) => value);
             });
         };
     }

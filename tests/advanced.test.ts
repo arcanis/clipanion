@@ -476,4 +476,64 @@ describe(`Advanced`, () => {
 
         expect(Object.values(calls).every(Boolean)).to.be.true;
     });
+
+    it(`should support optional string positionals`, async () => {
+        class ThingCommand extends Command {
+            @Command.String({required: false})
+            thing: string | null = null;
+
+            async execute() {}
+        }
+
+        const cli = Cli.from([ThingCommand]);
+
+        expect(cli.process([])).to.contain({thing: null});
+        expect(cli.process([`hello`])).to.contain({thing: `hello`});
+    });
+
+    it(`should support optional string positionals after required string positionals`, async () => {
+        class CopyCommand extends Command {
+            @Command.String()
+            requiredThing!: string;
+
+            @Command.String({required: false})
+            optionalThing: string | null = null;
+
+            async execute() {}
+        }
+
+        const cli = Cli.from([CopyCommand]);
+
+        expect(cli.process([`hello`])).to.contain({optionalThing: null});
+        expect(cli.process([`hello`, `world`])).to.contain({optionalThing: `world`});
+    });
+
+    it(`should support required positionals after rest arguments`, async () => {
+        class CopyCommand extends Command {
+            @Command.Rest()
+            sources: string[] = [];
+
+            @Command.String()
+            destination!: string;
+
+            async execute() {}
+        }
+
+        const cli = Cli.from([CopyCommand]);
+
+        expect(cli.process([`dest`])).to.deep.contain({
+            sources: [],
+            destination: 'dest',
+        });
+
+        expect(cli.process([`src`, `dest`])).to.deep.contain({
+            sources: [`src`],
+            destination: 'dest',
+        });
+
+        expect(cli.process([`src1`, `src2`, `dest`])).to.deep.contain({
+            sources: [`src1`, `src2`],
+            destination: 'dest',
+        });
+    });
 });
