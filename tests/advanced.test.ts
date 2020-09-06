@@ -645,4 +645,36 @@ describe(`Advanced`, () => {
 
         expect(() => cli.process([`dest`])).to.throw();
     });
+
+    it(`should support proxies`, async () => {
+        class CopyCommand extends Command {
+            @Command.Proxy()
+            args: string[] = [];
+
+            async execute() {}
+        }
+
+        const cli = Cli.from([CopyCommand]);
+
+        expect(cli.process([])).to.deep.contain({args: []});
+        expect(cli.process([`foo`])).to.deep.contain({args: [`foo`]});
+        expect(cli.process([`foo`, `--bar`])).to.deep.contain({args: [`foo`, `--bar`]});
+        expect(cli.process([`foo`, `--bar`, `--baz=1`])).to.deep.contain({args: [`foo`, `--bar`, `--baz=1`]});
+    });
+
+    it(`should support proxies with a minimum required length`, async () => {
+        class CopyCommand extends Command {
+            @Command.Proxy({required: 1})
+            args: string[] = [];
+
+            async execute() {}
+        }
+
+        const cli = Cli.from([CopyCommand]);
+
+        expect(() => cli.process([])).to.throw();
+        expect(cli.process([`foo`])).to.deep.contain({args: [`foo`]});
+        expect(cli.process([`foo`, `--bar`])).to.deep.contain({args: [`foo`, `--bar`]});
+        expect(cli.process([`foo`, `--bar`, `--baz=1`])).to.deep.contain({args: [`foo`, `--bar`, `--baz=1`]});
+    });
 });

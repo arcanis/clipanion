@@ -351,6 +351,39 @@ run dest
 # => Error - Not enough positional arguments.
 ```
 
+#### `@Command.Proxy({required?: number})`
+
+Specifies that the command accepts an infinite set of positional arguments that will not be consumed by the options of the `Command` instance. Used to proxy arguments to another command. By default, no arguments are required, but this can be changed by setting the `required` option.
+
+```ts
+class RunCommand extends Command {
+    @Command.Proxy()
+    public args: string[];
+    // ...
+}
+```
+
+Generates:
+
+```bash
+run value1 value2
+# => values = [value1, value2]
+
+run value1 --foo
+# => values = [value1, --foo]
+
+run --bar=baz
+# => values = [--bar=baz]
+```
+
+**Note:** Proxying can only happen once per command. Once triggered, a command can't get out of "proxy mode", all remaining arguments being proxied into a list. "Proxy mode" can be triggered in the following ways:
+
+- By passing a positional or an option that doesn't have any listeners attached to it. This happens when the listeners don't exist in the first place.
+
+- By passing a positional that doesn't have any *remaining* listeners attached to it. This happens when the listeners have already consumed a positional.
+
+- By passing the `--` separator before an option that has a listener attached to it. This will cause Clipanion to activate "proxy mode" for all arguments after the separator, *without* proxying the separator itself. In all other cases, the separator *will* be proxied and *not* consumed by Clipanion.
+
 ## Command Help Pages
 
 Clipanion automatically adds support for the `-h` option to all the commands that you define. The information printed will come from the `usage` property attached to the class. For example, the following command:
