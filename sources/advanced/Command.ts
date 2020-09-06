@@ -202,8 +202,7 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
                         if (!value) {
                             // @ts-ignore: The property is meant to have been defined by the child class
                             command[propertyName] = 0;
-                        }
-                        else {
+                        } else {
                             // @ts-ignore: The property is meant to have been defined by the child class
                             command[propertyName]++;
                         }
