@@ -530,6 +530,9 @@ export const tests = {
     always: () => {
         return true;
     },
+    isOptionLike: (state: RunState, segment: string) => {
+        return !state.ignoreOptions && segment.startsWith(`-`);
+    },
     isNotOptionLike: (state: RunState, segment: string) => {
         return state.ignoreOptions || !segment.startsWith(`-`);
     },
@@ -625,6 +628,11 @@ export const reducers = {
         } else {
             return {...state, errorMessage: `${errorMessage} ("${segment}").`};
         }
+    },
+    setOptionArityError: (state: RunState, segment: string) => {
+        const lastOption = state.options[state.options.length - 1];
+
+        return {...state, errorMessage: `Not enough arguments to option ${lastOption.name}.`};
     },
 };
 
@@ -894,19 +902,23 @@ export class CommandBuilder<Context> {
                     registerDynamic(machine, node, [`isOption`, name, option.hidden || name !== longestName], lastNode, `pushUndefined`);
                 }
 
-                // For each argument except the last one, we inject a new node at the end
-                // and we register a transition from the current node to this new node
-                for (let i = 1; i <= option.arity - 1; ++i) {
+                // For each argument, we inject a new node at the end and we
+                // register a transition from the current node to this new node
+                for (let i = 1; i <= option.arity; ++i) {
                     const nextNode = injectNode(machine, makeNode());
+
+                    // We can provide better errors when another option or END_OF_INPUT is encountered
+                    registerStatic(machine, lastNode, END_OF_INPUT, NODE_ERRORED, `setOptionArityError`);
+                    registerDynamic(machine, lastNode, `isOptionLike`, NODE_ERRORED, `setOptionArityError`);
 
                     registerDynamic(machine, lastNode, `isNotOptionLike`, nextNode, `setStringValue`);
 
                     lastNode = nextNode;
                 }
 
-                // In the end, we register a transition
-                // from the last node to the starting node
-                registerDynamic(machine, lastNode, `isNotOptionLike`, node, `setStringValue`);
+                // In the end, we register a shortcut from
+                // the last node back to the starting node
+                registerShortcut(machine, lastNode, node);
             }
         }
     }

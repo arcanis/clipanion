@@ -576,4 +576,28 @@ describe(`Advanced`, () => {
             Cli.from([PointCommand])
         }).to.throw(`The arity must be positive, got -1`);
     });
+
+    it(`should throw acceptable errors when not enough arguments are passed to a tuple`, async () => {
+        class PointCommand extends Command {
+            @Command.Tuple(`--point`, {length: 3})
+            point!: [x: string, y: string, z: string];
+
+            async execute() {}
+        }
+
+        const cli = Cli.from([PointCommand]);
+
+        const error = `Not enough arguments to option --point.`;
+
+        for (const args of [
+            [`--point`],
+            [`--point`, `1`],
+            [`--point`, `1`, `2`],
+            [`--point`, `1`, `--foo`],
+            [`--point`, `1`, `-abcd`],
+            [`--point`, `1`, `2`, `--bar=baz`],
+        ]) {
+            expect(() => cli.process(args)).to.throw(error);
+        }
+    });
 });
