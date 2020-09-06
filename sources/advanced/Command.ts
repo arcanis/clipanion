@@ -213,8 +213,10 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
                     }
                 });
             } else {
+                const {name = propertyName, required = true} = descriptor;
+
                 this.registerDefinition(prototype, command => {
-                    command.addPositional({name: descriptor.name ?? propertyName, required: descriptor.required !== false});
+                    command.addPositional({name, required});
                 });
 
                 this.registerTransformer(prototype, (state, command) => {
@@ -222,6 +224,16 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
                         // We skip NoLimits extras. We only care about
                         // required and optional finite positionals.
                         if (state.positionals[i].extra === NoLimits)
+                            continue;
+
+                        // We skip optional positionals when we only
+                        // care about required positionals.
+                        if (required && state.positionals[i].extra === true)
+                            continue;
+
+                        // We skip required positionals when we only
+                        // care about optional positionals.
+                        if (!required && state.positionals[i].extra === false)
                             continue;
 
                         // We remove the positional from the list

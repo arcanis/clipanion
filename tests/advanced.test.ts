@@ -508,6 +508,23 @@ describe(`Advanced`, () => {
         expect(cli.process([`hello`, `world`])).to.contain({optionalThing: `world`});
     });
 
+    it(`should support optional string positionals before required string positionals`, async () => {
+        class CopyCommand extends Command {
+            @Command.String({required: false})
+            optionalThing: string | null = null;
+
+            @Command.String()
+            requiredThing!: string;
+
+            async execute() {}
+        }
+
+        const cli = Cli.from([CopyCommand]);
+
+        expect(cli.process([`hello`])).to.contain({optionalThing: null, requiredThing: `hello`});
+        expect(cli.process([`hello`, `world`])).to.contain({optionalThing: `hello`, requiredThing: `world`});
+    });
+
     it(`should support required positionals after rest arguments`, async () => {
         class CopyCommand extends Command {
             @Command.Rest()
