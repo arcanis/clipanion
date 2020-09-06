@@ -580,4 +580,69 @@ describe(`Advanced`, () => {
             destination: 'dest',
         });
     });
+
+    // We have this in the README, that's why we're testing it
+    it(`should support implementing a cp-like command`, async () => {
+        class CopyCommand extends Command {
+            @Command.Rest({required: 1})
+            sources: string[] = [];
+
+            @Command.String()
+            destination!: string;
+
+            @Command.Boolean(`-f,--force`)
+            force: boolean = false;
+
+            @Command.String(`--reflink`, {tolerateBoolean: true})
+            reflink: string | boolean = false;
+
+            async execute() {}
+        }
+
+        const cli = Cli.from([CopyCommand]);
+
+        expect(cli.process([`src`, `dest`])).to.deep.contain({
+            sources: [`src`],
+            destination: 'dest',
+            force: false,
+            reflink: false,
+        });
+
+        expect(cli.process([`src1`, `src2`, `dest`])).to.deep.contain({
+            sources: [`src1`, `src2`],
+            destination: 'dest',
+            force: false,
+            reflink: false,
+        });
+
+        expect(cli.process([`src1`, `--force`, `src2`, `dest`])).to.deep.contain({
+            sources: [`src1`, `src2`],
+            destination: 'dest',
+            force: true,
+            reflink: false,
+        });
+
+        expect(cli.process([`src1`, `src2`, `--force`, `dest`])).to.deep.contain({
+            sources: [`src1`, `src2`],
+            destination: 'dest',
+            force: true,
+            reflink: false,
+        });
+
+        expect(cli.process([`src1`, `src2`, `--reflink`, `dest`])).to.deep.contain({
+            sources: [`src1`, `src2`],
+            destination: 'dest',
+            force: false,
+            reflink: true,
+        });
+
+        expect(cli.process([`src1`, `--reflink=always`, `src2`, `dest`])).to.deep.contain({
+            sources: [`src1`, `src2`],
+            destination: 'dest',
+            force: false,
+            reflink: `always`,
+        });
+
+        expect(() => cli.process([`dest`])).to.throw();
+    });
 });

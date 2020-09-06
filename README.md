@@ -111,7 +111,7 @@ The `optionNames` parameters all indicate that you should put there a comma-sepa
 
 #### `@Command.Path(segment1?: string, segment2?: string, ...)`
 
-Specifies through which CLI path should trigger the command. 
+Specifies through which CLI path should trigger the command.
 
 **This decorator can only be set on the `execute` function itself**, as it isn't linked to specific options.
 
@@ -278,6 +278,77 @@ Generates:
 ```bash
 run --arg value1 --arg value2
 # => values = [value1, value2]
+```
+
+#### `@Command.Rest({required?: number})`
+
+Specifies that the command accepts a set of positional arguments. By default, no arguments are required, but this can be changed by setting the `required` option.
+
+```ts
+class RunCommand extends Command {
+    @Command.Rest()
+    public values: string[];
+    // ...
+}
+```
+
+Generates:
+
+```bash
+run value1 value2
+# => values = [value1, value2]
+
+run value1
+# => values = [value1]
+
+run
+# => values = []
+```
+
+**Note:** Rest arguments are strictly positional. All options found between rest arguments will be consumed as options of the `Command` instance. For proxying, `Command.Proxy` has to be used instead.
+
+**Note:** Rest arguments can be surrounded by other *finite* *non-optional* positionals such as `Command.String({required: true})`.
+
+**Advanced Example:**
+
+```ts
+class CopyCommand extends Command {
+    @Command.Rest({required: 1})
+    sources: string[] = [];
+
+    @Command.String()
+    destination!: string;
+
+    @Command.Boolean(`-f,--force`)
+    force: boolean = false;
+
+    @Command.String(`--reflink`, {tolerateBoolean: true})
+    reflink: string | boolean = false;
+
+    // ...
+}
+```
+
+Generates:
+
+```bash
+run src dest
+# => sources = [src]; destination = dest
+
+run src1 src2 dest
+# => sources = [src1, src2]; destination = dest
+
+run src1 --force src2 dest
+# => sources = [src1, src2]; destination = dest; force = true
+
+run src1 src2 --reflink=always dest
+# => sources = [src1, src2]; destination = dest; reflink = always
+
+run src
+# => Error - Not enough positional arguments.
+
+run dest
+# => Error - Not enough positional arguments.
 ```
 
 ## Command Help Pages
