@@ -476,4 +476,29 @@ describe(`Advanced`, () => {
 
         expect(Object.values(calls).every(Boolean)).to.be.true;
     });
+
+    it(`should extract counter options from complex options`, async () => {
+        class CommandA extends Command {
+            @Command.Counter(`-v,--verbose`)
+            verbose: number = 0;
+
+            async execute() {}
+        }
+
+        const cli = Cli.from([CommandA]);
+
+        expect(cli.process([])).to.contain({verbose: 0});
+        expect(cli.process([`-v`])).to.contain({verbose: 1});
+        expect(cli.process([`-vv`])).to.contain({verbose: 2});
+        expect(cli.process([`-vvv`])).to.contain({verbose: 3});
+        expect(cli.process([`-vvvv`])).to.contain({verbose: 4});
+
+        expect(cli.process([`-v`, `-v`])).to.contain({verbose: 2});
+        expect(cli.process([`--verbose`, `--verbose`])).to.contain({verbose: 2});
+        expect(cli.process([`-v`, `--verbose`])).to.contain({verbose: 2});
+        expect(cli.process([`--verbose`, `-v`])).to.contain({verbose: 2});
+
+        expect(cli.process([`-vvvv`, `--no-verbose`])).to.contain({verbose: 0});
+        expect(cli.process([`--no-verbose`, `-vvvv`])).to.contain({verbose: 4});
+    });
 });

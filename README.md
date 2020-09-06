@@ -111,7 +111,7 @@ The `optionNames` parameters all indicate that you should put there a comma-sepa
 
 #### `@Command.Path(segment1?: string, segment2?: string, ...)`
 
-Specifies through which CLI path should trigger the command. 
+Specifies through which CLI path should trigger the command.
 
 **This decorator can only be set on the `execute` function itself**, as it isn't linked to specific options.
 
@@ -259,6 +259,37 @@ Generates:
 ```bash
 run --foo
 # => bar = true
+```
+
+#### `@Command.Counter(optionNames: string)`
+
+Specifies that the command accepts a boolean flag as an option, which will increment a counter for each detected occurrence. Each time the argument is negated, the counter will be reset to `0`. The counter won't be set unless the option is found, so you must remember to set it to an appropriate default value.
+
+```ts
+class RunCommand extends Command {
+    @Command.Counter('-v,--verbose')
+    public verbose: number = 0;
+    // ...
+}
+```
+
+Generates:
+
+```bash
+run
+# => verbose = 0
+
+run -v
+# => verbose = 1
+
+run -vv
+# => verbose = 2
+
+run --verbose -v --verbose -v
+# => verbose = 4
+
+run --verbose -v --verbose -v --no-verbose
+# => verbose = 0
 ```
 
 #### `@Command.Array(optionNames: string)`

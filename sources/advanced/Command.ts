@@ -180,6 +180,40 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
     }
 
     /**
+     * Register a boolean listener for the given option names. Each time Clipanion detects that this argument is present, the counter will be incremented. Each time the argument is negated, the counter will be reset to `0`. The counter won't be set unless the option is found, so you must remember to set it to an appropriate default value.
+
+     * @param descriptor A comma-separated list of option names.
+     */
+    static Counter(descriptor: string, {hidden = false}: {hidden?: boolean} = {}) {
+        return <Context extends BaseContext>(prototype: Command<Context>, propertyName: string) => {
+            const optNames = descriptor.split(`,`);
+
+            this.registerDefinition(prototype, command => {
+                command.addOption({names: optNames, arity: 0, hidden, allowBinding: false});
+            });
+
+            this.registerTransformer(prototype, (state, command) => {
+                for (const {name, value} of state.options) {
+                    if (optNames.includes(name)) {
+                        // @ts-ignore: The property is meant to have been defined by the child class
+                        command[propertyName] ??= 0;
+
+                        // Negated options reset the counter
+                        if (!value) {
+                            // @ts-ignore: The property is meant to have been defined by the child class
+                            command[propertyName] = 0;
+                        }
+                        else {
+                            // @ts-ignore: The property is meant to have been defined by the child class
+                            command[propertyName]++;
+                        }
+                    }
+                }
+            });
+        };
+    }
+
+    /**
      * Register a listener that looks for an option and its followup argument. When Clipanion detects that this argument is present, the value will be set to whatever follows the option in the input. The value won't be set unless the option is found, so you must remember to set it to an appropriate default value.
      * Note that all methods affecting positional arguments are evaluated in the definition order; don't mess with it (for example sorting your properties in ascendent order might have adverse results).
      * @param descriptor The option names.
