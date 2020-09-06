@@ -317,7 +317,7 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
                     if (!isNoLimits && !isLeading)
                         continue;
 
-                        // We mark this positional for removal
+                    // We mark this positional for removal
                     positionalsToRemove.push(i);
 
                     // We insert its value at the end of the array property.
