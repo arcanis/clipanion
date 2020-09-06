@@ -643,10 +643,10 @@ export class CommandBuilder<Context> {
     public readonly cliIndex: number;
     public readonly cliOpts: Readonly<CliOptions>;
 
-    private readonly allOptionNames: string[] = [];
-    private readonly arity: ArityDefinition = {leading: [], trailing: [], extra: [], proxy: false};
-    private readonly options: OptDefinition[] = [];
-    private readonly paths: string[][] = [];
+    public readonly allOptionNames: string[] = [];
+    public readonly arity: ArityDefinition = {leading: [], trailing: [], extra: [], proxy: false};
+    public readonly options: OptDefinition[] = [];
+    public readonly paths: string[][] = [];
 
     private context?: Context;
 

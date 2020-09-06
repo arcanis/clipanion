@@ -536,4 +536,48 @@ describe(`Advanced`, () => {
             destination: 'dest',
         });
     });
+
+    it(`should support rest arguments with a minimum required length`, async () => {
+        class CopyCommand extends Command {
+            @Command.Rest({required: 1})
+            sources: string[] = [];
+
+            async execute() {}
+        }
+
+        const cli = Cli.from([CopyCommand]);
+
+        expect(() => cli.process([])).to.throw();
+        expect(cli.process([`src1`])).to.deep.contain({sources: [`src1`]});
+        expect(cli.process([`src1`, `src2`])).to.deep.contain({sources: [`src1`, `src2`]});
+        expect(cli.process([`src1`, `src2`, `src3`])).to.deep.contain({sources: [`src1`, `src2`, `src3`]});
+    });
+
+    it(`should support required positionals after rest arguments with a minimum required length`, async () => {
+        class CopyCommand extends Command {
+            @Command.Rest({required: 1})
+            sources: string[] = [];
+
+            @Command.String()
+            destination!: string;
+
+            async execute() {}
+        }
+
+        const cli = Cli.from([CopyCommand]);
+
+        expect(() => cli.process([])).to.throw();
+        expect(() => cli.process([`src`])).to.throw();
+        expect(() => cli.process([`dest`])).to.throw();
+
+        expect(cli.process([`src`, `dest`])).to.deep.contain({
+            sources: [`src`],
+            destination: 'dest',
+        });
+
+        expect(cli.process([`src1`, `src2`, `dest`])).to.deep.contain({
+            sources: [`src1`, `src2`],
+            destination: 'dest',
+        });
+    });
 });

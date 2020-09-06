@@ -7,7 +7,7 @@ import type {VersionCommand} from './entries/version';
 
 export type Meta<Context extends BaseContext> = {
     definitions: ((command: CommandBuilder<CliContext<Context>>) => void)[];
-    transformers: ((state: RunState, command: Command<Context>) => void)[];
+    transformers: ((state: RunState, command: Command<Context>, builder: CommandBuilder<CliContext<Context>>) => void)[];
 };
 
 /**
@@ -131,7 +131,7 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
         this.getMeta(prototype).definitions.push(definition);
     }
 
-    private static registerTransformer<Context extends BaseContext>(prototype: Command<Context>, transformer: (state: RunState, command: Command<Context>) => void) {
+    private static registerTransformer<Context extends BaseContext>(prototype: Command<Context>, transformer: (state: RunState, command: Command<Context>, builder: CommandBuilder<CliContext<Context>>) => void) {
         this.getMeta(prototype).transformers.push(transformer);
     }
 
@@ -218,21 +218,21 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
                 });
 
                 this.registerTransformer(prototype, (state, command) => {
-                    // We use a for loop because we lose the reference to
-                    // the `state.positionals` array if we filter and shift
                     for (let i = 0; i < state.positionals.length; ++i) {
-                        // We ignore NoLimits extras
+                        // We skip NoLimits extras. We only care about
+                        // required and optional finite positionals.
                         if (state.positionals[i].extra === NoLimits)
                             continue;
 
-                        // We need to remove the used element from the original
-                        // array and assign it to command[propertyName]
-
+                        // We remove the positional from the list
                         const [positional] = state.positionals.splice(i, 1);
+
+                        // We assign its value to the property.
 
                         // @ts-ignore: The property is meant to have been defined by the child class
                         command[propertyName] = positional.value;
 
+                        // We stop after the first successful iteration.
                         break;
                     }
                 });
@@ -284,11 +284,38 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
                 command.addRest({name: propertyName, required});
             });
 
-            this.registerTransformer(prototype, (state, command) => {
-                // @ts-ignore: The property is meant to have been defined by the child class
-                command[propertyName] = state.positionals
-                    .filter(({extra}) => extra === NoLimits)
-                    .map(({value}) => value);
+            this.registerTransformer(prototype, (state, command, builder) => {
+                // The builder's arity.extra will always be NoLimits,
+                // because it is set when we call registerDefinition
+
+                // We can't splice while looping, so we push all indexes
+                // of positionals that should be removed into this array
+                const positionalsToRemove: number[] = [];
+
+                // We go over each positional
+                for (let i = 0; i < state.positionals.length; ++i) {
+                    const positional = state.positionals[i];
+
+                    const isNoLimits = positional.extra === NoLimits;
+                    const isLeading = positional.extra === false && i < builder.arity.leading.length;
+
+                    // We skip the positional if it isn't either:
+                    // 1) a NoLimits extra (i.e. an optional rest argument)
+                    // 2) a leading positional (i.e. a required rest argument)
+                    if (!isNoLimits && !isLeading)
+                        continue;
+
+                        // We mark this positional for removal
+                    positionalsToRemove.push(i);
+
+                    // We insert its value at the end of the array property.
+
+                    // @ts-ignore: The property is meant to have been defined by the child class
+                    (command[propertyName] ??= []).push(positional.value);
+                }
+
+                state.positionals = state.positionals
+                    .filter((positional, index) => !positionalsToRemove.includes(index))
             });
         };
     }
@@ -304,10 +331,11 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
             });
 
             this.registerTransformer(prototype, (state, command) => {
+                // No need to filter / splice any positionals for Command.Proxy.
+                // Once inside a proxy, we've already reached the point of no return.
+
                 // @ts-ignore: The property is meant to have been defined by the child class
-                command[propertyName] = state.positionals
-                    .filter(({extra}) => extra === NoLimits)
-                    .map(({value}) => value);
+                command[propertyName] = state.positionals.map(({value}) => value);
             });
         };
     }
