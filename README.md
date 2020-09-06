@@ -111,7 +111,7 @@ The `optionNames` parameters all indicate that you should put there a comma-sepa
 
 #### `@Command.Path(segment1?: string, segment2?: string, ...)`
 
-Specifies through which CLI path should trigger the command. 
+Specifies through which CLI path should trigger the command.
 
 **This decorator can only be set on the `execute` function itself**, as it isn't linked to specific options.
 
@@ -172,10 +172,10 @@ Note that Clipanion supports required positional arguments both at the beginning
 
 ```ts
 class RunCommand extends Command {
-    @Command.String()
+    @Command.String({required: false})
     public foo?: string;
 
-    @Command.String({required: true})
+    @Command.String()
     public bar!: string;
 }
 ```
