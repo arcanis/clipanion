@@ -1,4 +1,4 @@
-import {CommandBuilder, RunState}         from '../core';
+import {CommandBuilder, RunState, OptDefinition} from '../core';
 
 import {BaseContext, CliContext, MiniCli} from './Cli';
 
@@ -59,6 +59,11 @@ export type Definition = Usage & {
      * The detailed usage of the command.
      */
     usage: string;
+
+    /**
+     * The various options registered on the command.
+     */
+    options: OptDefinition[];
 };
 
 /**

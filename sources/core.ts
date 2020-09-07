@@ -699,6 +699,10 @@ export class CommandBuilder<Context> {
         this.options.push({names, description, arity, hidden, allowBinding});
     }
 
+    getOptions() {
+        return this.options;
+    }
+
     setContext(context: Context) {
         this.context = context;
     }

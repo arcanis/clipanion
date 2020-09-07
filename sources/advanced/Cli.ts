@@ -285,6 +285,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
             if (typeof commandClass.usage === `undefined`)
                 continue;
 
+            const builder = this.builder.getBuilderByIndex(number);
             const path = this.getUsageByIndex(number, {detailed: false});
             const usage = this.getUsageByIndex(number, {detailed: true});
 
@@ -304,7 +305,11 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
                 ? commandClass.usage.examples.map(([label, cli]) => [formatMarkdownish(label, {format: this.format(colored), paragraphs: false}), cli.replace(/\$0/g, this.binaryName)])
                 : undefined;
 
-            data.push({path, usage, category, description, details, examples});
+            const options = builder.getOptions();
+
+            console.log(options);
+
+            data.push({path, usage, category, description, details, examples, options});
         }
 
         return data;

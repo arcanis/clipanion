@@ -195,7 +195,7 @@ run
 # invalid
 ```
 
-#### `@Command.String(optionNames: string, {tolerateBoolean?: boolean})`
+#### `@Command.String(optionNames: string, {tolerateBoolean?: boolean, description?: string})`
 
 Specifies that the command accepts an option that takes an argument. Arguments can be specified on the command line using either `--foo=ARG` or `--foo ARG`.
 
@@ -242,7 +242,7 @@ run --inspect 1234
 ```
 
 
-#### `@Command.Boolean(optionNames: string)`
+#### `@Command.Boolean(optionNames: string, {description?: string})`
 
 Specifies that the command accepts a boolean flag as an option.
 
@@ -292,7 +292,7 @@ run --verbose -v --verbose -v --no-verbose
 # => verbose = 0
 ```
 
-#### `@Command.Array(optionNames: string)`
+#### `@Command.Array(optionNames: string, {description?: string})`
 
 Specifies that the command accepts a set of string arguments.
 
