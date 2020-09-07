@@ -107,7 +107,11 @@ Note that in this case the option variables never get assigned default values, s
 
 ## Decorators
 
-The `optionNames` parameters all indicate that you should put there a comma-separated list of option names (along with their leading `-`). For example, `-v,--verbose` is a valid parameter.
+### Positional Decorators
+
+Positional decorators have 2 unique common traits:
+1) The arguments can't start with `-`, unless proxied or part of the command path.
+2) The order of the arguments matters, positionals being consumed from left to right, in the order they have been registered.
 
 #### `@Command.Path(segment1?: string, segment2?: string, ...)`
 
@@ -195,6 +199,16 @@ run
 # invalid
 ```
 
+### Option Decorators
+
+Option decorators have 2 unique common traits:
+1) The option names always start with `-`.
+2) The order of options doesn't matter.
+
+**Note:** Options can be passed before, between, and after positionals, including even before the path itself (`yarn --interactive add lodash`).
+
+The `optionNames` parameters all indicate that you should put there a comma-separated list of option names (along with their leading `-`). For example, `-v,--verbose` is a valid parameter.
+
 #### `@Command.String(optionNames: string, {tolerateBoolean?: boolean})`
 
 Specifies that the command accepts an option that takes an argument. Arguments can be specified on the command line using either `--foo=ARG` or `--foo ARG`.
@@ -240,7 +254,6 @@ run --inspect=1234
 run --inspect 1234
 # invalid
 ```
-
 
 #### `@Command.Boolean(optionNames: string)`
 
@@ -292,25 +305,6 @@ run --verbose -v --verbose -v --no-verbose
 # => verbose = 0
 ```
 
-#### `@Command.Array(optionNames: string)`
-
-Specifies that the command accepts a set of string arguments.
-
-```ts
-class RunCommand extends Command {
-    @Command.Array('--arg')
-    public values: string[];
-    // ...
-}
-```
-
-Generates:
-
-```bash
-run --arg value1 --arg value2
-# => values = [value1, value2]
-```
-
 #### `@Command.Tuple(optionNames: string, {length: number})`
 
 Specifies that the command accepts an option that takes a fixed number of arguments. Arguments can only be specified on the command line using `--foo ARG`, not `--foo=ARG`.
@@ -334,6 +328,32 @@ run --arg value1 value2
 
 run --arg value1 value2 value3 value4
 # => Error - too many arguments
+```
+
+### Modifier Decorators
+
+Modifier decorators augment the behavior of other decorators. Because of this, they should always be called *before* the decorators they modify. In terms of the decorator evaluation order, this means that they should be *below* the decorators they modify.
+
+#### `@Command.Array()`
+
+An *option* modifier that causes the attached option decorator to push its arguments into an array instead of overriding its previous arguments.
+
+Supported option decorators: `Command.String`, `Command.Boolean`, and `Command.Tuple`.
+
+```ts
+class RunCommand extends Command {
+    @Command.String('--arg')
+    @Command.Array()
+    public values: string[];
+    // ...
+}
+```
+
+Generates:
+
+```bash
+run --arg value1 --arg value2
+# => values = [value1, value2]
 ```
 
 ## Command Help Pages

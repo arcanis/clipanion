@@ -625,4 +625,75 @@ describe(`Advanced`, () => {
             expect(() => cli.process(args)).to.throw(error);
         }
     });
+
+    it(`should extract string arrays from complex options (legacy style)`, async () => {
+        class IncludeCommand extends Command {
+            @Command.Array(`--include`)
+            include: string[] = [];
+
+            async execute() {}
+        }
+
+        const cli = Cli.from([IncludeCommand]);
+
+        expect(cli.process([`--include`, `foo`, `--include`, `bar`])).to.deep.contain({include: [`foo`, `bar`]});
+    });
+
+    it(`should extract string arrays from complex options`, async () => {
+        class IncludeCommand extends Command {
+            @Command.String(`--include`)
+            @Command.Array()
+            include: string[] = [];
+
+            async execute() {}
+        }
+
+        const cli = Cli.from([IncludeCommand]);
+
+        expect(cli.process([])).to.deep.contain({include: []});
+        expect(cli.process([`--include`, `foo`])).to.deep.contain({include: [`foo`]});
+        expect(cli.process([`--include`, `foo`, `--include`, `bar`])).to.deep.contain({include: [`foo`, `bar`]});
+    });
+
+    it(`should extract boolean arrays from complex options`, async () => {
+        class IncludeCommand extends Command {
+            @Command.Boolean(`--include`)
+            @Command.Array()
+            include: string[] = [];
+
+            async execute() {}
+        }
+
+        const cli = Cli.from([IncludeCommand]);
+
+        expect(cli.process([])).to.deep.contain({include: []});
+        expect(cli.process([`--include`])).to.deep.contain({include: [true]});
+        expect(cli.process([`--include`,`--include`])).to.deep.contain({include: [true, true]});
+    });
+
+    it(`should extract tuple arrays from complex options`, async () => {
+        class IncludeCommand extends Command {
+            @Command.Tuple(`--position`, {length: 3})
+            @Command.Array()
+            position: Array<[string, string, string]> = [];
+
+            async execute() {}
+        }
+
+        const cli = Cli.from([IncludeCommand]);
+
+        expect(cli.process([])).to.deep.contain({position: []});
+        expect(cli.process(
+            [`--position`, `1`, `2`, `3`]
+        )).to.deep.contain({position: [[`1`, `2`, `3`]]});
+        expect(cli.process([
+            `--position`, `1`, `2`, `3`,
+            `--position`, `4`, `5`, `6`,
+        ])).to.deep.contain({position: [[`1`, `2`, `3`], [`4`, `5`, `6`]]});
+        expect(cli.process([
+            `--position`, `1`, `2`, `3`,
+            `--position`, `4`, `5`, `6`,
+            `--position`, `7`, `8`, `9`,
+        ])).to.deep.contain({position: [[`1`, `2`, `3`], [`4`, `5`, `6`], [`7`, `8`, `9`]]});
+    });
 });

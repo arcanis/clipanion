@@ -8,6 +8,7 @@ import type {VersionCommand} from './entries/version';
 export type Meta<Context extends BaseContext> = {
     definitions: ((command: CommandBuilder<CliContext<Context>>) => void)[];
     transformers: ((state: RunState, command: Command<Context>) => void)[];
+    cleanups: ((command: Command<Context>) => void)[];
 };
 
 /**
@@ -104,26 +105,31 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
                     }
                 },
             ],
+            cleanups: [],
         };
     }
 
     public static resolveMeta<Context extends BaseContext>(prototype: Command<Context>): Meta<Context> {
         const definitions = [];
         const transformers = [];
+        const cleanups = [];
 
         for (let proto = prototype; proto instanceof Command; proto = (proto as any).__proto__ as any) {
             const meta = this.getMeta<Context>(proto);
 
             for (const definition of meta.definitions)
                 definitions.push(definition);
-            for (const transformer of meta.transformers) {
+            for (const transformer of meta.transformers)
                 transformers.push(transformer);
+            for (const cleanup of meta.cleanups) {
+                cleanups.push(cleanup);
             }
         }
 
         return {
             definitions,
             transformers,
+            cleanups,
         };
     }
 
@@ -133,6 +139,10 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
 
     private static registerTransformer<Context extends BaseContext>(prototype: Command<Context>, transformer: (state: RunState, command: Command<Context>) => void) {
         this.getMeta(prototype).transformers.push(transformer);
+    }
+
+    private static registerCleanup<Context extends BaseContext>(prototype: Command<Context>, cleanup: (command: Command<Context>) => void) {
+        this.getMeta(prototype).cleanups.push(cleanup);
     }
 
     static addPath(...path: string[]) {
@@ -260,31 +270,6 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
         }
     }
 
-
-    /**
-     * Register a listener that looks for an option and its followup argument. When Clipanion detects that this argument is present, the value will be pushed into the array represented in the property.
-     */
-    static Array(descriptor: string, {hidden = false}: {hidden?: boolean} = {}) {
-        return <Context extends BaseContext>(prototype: Command<Context>, propertyName: string) => {
-            const optNames = descriptor.split(`,`);
-
-            this.registerDefinition(prototype, command => {
-                command.addOption({names: optNames, arity: 1, hidden});
-            });
-
-            this.registerTransformer(prototype, (state, command) => {
-                for (const {name, value} of state.options) {
-                    if (optNames.includes(name)) {
-                        // @ts-ignore: The property is meant to have been defined by the child class
-                        command[propertyName] = command[propertyName] || [];
-                        // @ts-ignore: The property is meant to have been defined by the child class
-                        command[propertyName].push(value);
-                    }
-                }
-            });
-        };
-    }
-
     /**
      * Register a listener that looks for an option and its followup arguments. When Clipanion detects that these arguments are present, the values will be pushed into the tuple represented in the property.
      */
@@ -303,15 +288,99 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
             });
 
             this.registerTransformer(prototype, (state, command) => {
-                for (const {name, value} of state.options) {
-                    if (optNames.includes(name)) {
-                        // @ts-ignore: The property is meant to have been defined by the child class
-                        command[propertyName] = command[propertyName] || [];
-                        // @ts-ignore: The property is meant to have been defined by the child class
-                        command[propertyName].push(value);
-                    }
-                }
+                const values = state.options
+                    .filter(({name}) => optNames.includes(name))
+                    .map(({value}) => value);
+
+                while (values.length > 0)
+                    // @ts-ignore: The property is meant to have been defined by the child class
+                    command[propertyName] = values.splice(0, length);
             });
+        };
+    }
+
+    /**
+     * Register an option modifier that causes the attached listener to push its arguments into the array represented in the property.
+     */
+    static Array(): PropertyDecorator;
+
+    /**
+     * Register a listener that looks for an option and its followup argument. When Clipanion detects that this argument is present, the value will be pushed into the array represented in the property.
+     *
+     * @deprecated `Command.Array` should be composed together as a modifier with other option decorators.
+     */
+    static Array(descriptor: string, opts?: {hidden?: boolean}): PropertyDecorator;
+
+    static Array(descriptor?: string, {hidden = false}: {hidden?: boolean} = {}) {
+        return <Context extends BaseContext>(prototype: Command<Context>, propertyName: string) => {
+            // The legacy style decorator.
+            // TODO: Remove in next major.
+            if (typeof descriptor === 'string') {
+                const optNames = descriptor.split(`,`);
+
+                this.registerDefinition(prototype, command => {
+                    command.addOption({names: optNames, arity: 1, hidden});
+                });
+
+                this.registerTransformer(prototype, (state, command) => {
+                    for (const {name, value} of state.options) {
+                        if (optNames.includes(name)) {
+                            // @ts-ignore: The property is meant to have been defined by the child class
+                            command[propertyName] = command[propertyName] || [];
+                            // @ts-ignore: The property is meant to have been defined by the child class
+                            command[propertyName].push(value);
+                        }
+                    }
+                });
+            } else {
+                const SPECIAL_KEY = `__command_array`;
+
+                this.registerTransformer(prototype, (state, command) => {
+                    // We create a temporary value store
+                    const values: unknown[] = [];
+
+                    // It's fine if we don't cleanup the special key,
+                    // but at least we shouldn't expose it to users.
+                    if (!Object.prototype.hasOwnProperty.call(command, SPECIAL_KEY)) {
+                        Object.defineProperty(command, SPECIAL_KEY, {
+                            configurable: true,
+                            enumerable: false,
+                            value: {},
+                        });
+                    }
+
+                    // We store the values inside the special
+                    // key, so that we can clean them up later.
+
+                    // @ts-expect-error: We've just defined this property
+                    command[SPECIAL_KEY][propertyName] = values;
+
+                    // We define a getter and setter combination to
+                    // silently push all assigned values into our store.
+                    Object.defineProperty(command, propertyName, {
+                        configurable: true,
+                        enumerable: true,
+
+                        // Because of the accessors, option transformers
+                        // should only set properties on the command via
+                        // regular assignment, only once per transformer.
+                        get: () => values[values.length - 1],
+                        set: (value) => values.push(value),
+                    });
+                });
+
+                this.registerCleanup(prototype, (command) => {
+                    // We cleanup the getter and setter
+                    // after all transformers have run.
+                    Object.defineProperty(command, propertyName, {
+                        configurable: true,
+                        enumerable: true,
+                        writable: true,
+                        // @ts-ignore: The property is registered by the transformer.
+                        value: command[SPECIAL_KEY][propertyName],
+                    });
+                });
+            }
         };
     }
 
