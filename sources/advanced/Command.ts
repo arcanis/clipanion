@@ -189,12 +189,12 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
 
      * @param descriptor A comma-separated list of option names.
      */
-    static Counter(descriptor: string, {hidden = false}: {hidden?: boolean} = {}) {
+    static Counter(descriptor: string, {hidden = false, description}: {hidden?: boolean; description?: string} = {}) {
         return <Context extends BaseContext>(prototype: Command<Context>, propertyName: string) => {
             const optNames = descriptor.split(`,`);
 
             this.registerDefinition(prototype, command => {
-                command.addOption({names: optNames, arity: 0, hidden, allowBinding: false});
+                command.addOption({names: optNames, arity: 0, hidden, allowBinding: false, description});
             });
 
             this.registerTransformer(prototype, (state, command) => {

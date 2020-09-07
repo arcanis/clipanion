@@ -261,7 +261,7 @@ run --foo
 # => bar = true
 ```
 
-#### `@Command.Counter(optionNames: string)`
+#### `@Command.Counter(optionNames: string, {description?: string})`
 
 Specifies that the command accepts a boolean flag as an option, which will increment a counter for each detected occurrence. Each time the argument is negated, the counter will be reset to `0`. The counter won't be set unless the option is found, so you must remember to set it to an appropriate default value.
 
