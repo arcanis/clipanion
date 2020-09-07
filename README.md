@@ -336,7 +336,7 @@ run
 # => values = []
 ```
 
-**Note:** Rest arguments are strictly positional. All options found between rest arguments will be consumed as options of the `Command` instance. For proxying, `Command.Proxy` has to be used instead.
+**Note:** Rest arguments are strictly positionals. All options found between rest arguments will be consumed as options of the `Command` instance. For proxying, `Command.Proxy` has to be used instead.
 
 **Note:** Rest arguments can be surrounded by other *finite* *non-optional* positionals such as `Command.String({required: true})`.
 
