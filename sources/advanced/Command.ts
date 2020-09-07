@@ -371,7 +371,8 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
 
                 this.registerCleanup(prototype, (command) => {
                     // We cleanup the getter and setter
-                    // after all transformers have run.
+                    // after all transformers have run and
+                    // replace it with the array of values.
                     Object.defineProperty(command, propertyName, {
                         configurable: true,
                         enumerable: true,
