@@ -172,10 +172,10 @@ Note that Clipanion supports required positional arguments both at the beginning
 
 ```ts
 class RunCommand extends Command {
-    @Command.String()
+    @Command.String({required: false})
     public foo?: string;
 
-    @Command.String({required: true})
+    @Command.String()
     public bar!: string;
 }
 ```
