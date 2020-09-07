@@ -307,8 +307,6 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
 
             const options = builder.getOptions();
 
-            console.log(options);
-
             data.push({path, usage, category, description, details, examples, options});
         }
 
