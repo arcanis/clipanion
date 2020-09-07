@@ -111,7 +111,7 @@ The `optionNames` parameters all indicate that you should put there a comma-sepa
 
 #### `@Command.Path(segment1?: string, segment2?: string, ...)`
 
-Specifies through which CLI path should trigger the command. 
+Specifies through which CLI path should trigger the command.
 
 **This decorator can only be set on the `execute` function itself**, as it isn't linked to specific options.
 
@@ -351,6 +351,31 @@ class BarCommand extends Command {
     }
 }
 ```
+
+## Inheritance
+
+Commands can extend each other and inherit options from each other:
+
+```ts
+abstract class BaseCommand extends Command {
+    @Command.String(`--cwd`, {hidden: true})
+    cwd?: string;
+
+    abstract execute(): Promise<number | void>;
+}
+
+class FooCommand extends BaseCommand {
+    @Command.String('--foo,-f')
+    public foo?: string;
+
+    async execute() {
+        this.context.stdout.write(`Hello from ${this.cwd ?? process.cwd()}!\n`);
+        this.context.stdout.write(`This is foo: ${this.foo}.\n`);
+    }
+}
+```
+
+**Note:** Because of the decorator evaluation order, positional arguments of a subclass will be consumed before positional arguments of a superclass. Because of this, it is not recommended to inherit anything other than options and handlers.
 
 ## Contexts
 
