@@ -707,7 +707,7 @@ export class CommandBuilder<Context> {
         this.context = context;
     }
 
-    usage({detailed = true}: {detailed?: boolean} = {}) {
+    usage({detailed = true, showOptionList = false}: {detailed?: boolean; showOptionList?: boolean} = {}) {
         const segments = [this.cliOpts.binaryName];
 
         const optionList: {definition: string; description: string}[] = [];
@@ -727,7 +727,7 @@ export class CommandBuilder<Context> {
 
                 const definition = `${names.join(`,`)}${args.join(``)}`;
 
-                if (description) {
+                if (showOptionList && description) {
                     optionList.push({definition, description});
 
                     continue;

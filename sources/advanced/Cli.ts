@@ -408,7 +408,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
                     result += `\n`;
                 }
 
-                result += `${this.format(colored).bold(prefix)}${this.getUsageByRegistration(commandClass)}\n`;
+                result += `${this.format(colored).bold(prefix)}${this.getUsageByRegistration(commandClass, {showOptionList: true})}\n`;
 
                 if (details !== ``) {
                     result += `\n`;
@@ -466,7 +466,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
         return result;
     }
 
-    private getUsageByRegistration(klass: CommandClass<Context>, opts?: {detailed: boolean}) {
+    private getUsageByRegistration(klass: CommandClass<Context>, opts?: {detailed?: boolean; showOptionList?: boolean}) {
         const index = this.registrations.get(klass);
         if (typeof index === `undefined`)
             throw new Error(`Assertion failed: Unregistered command`);
@@ -474,7 +474,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
         return this.getUsageByIndex(index, opts);
     }
 
-    private getUsageByIndex(n: number, opts?: {detailed: boolean}) {
+    private getUsageByIndex(n: number, opts?: {detailed?: boolean; showOptionList?: boolean}) {
         return this.builder.getBuilderByIndex(n).usage(opts);
     }
 
