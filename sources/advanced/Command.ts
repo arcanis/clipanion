@@ -1,4 +1,4 @@
-import {CommandBuilder, RunState, OptDefinition} from '../core';
+import {CommandBuilder, RunState}         from '../core';
 
 import {BaseContext, CliContext, MiniCli} from './Cli';
 
