@@ -63,7 +63,10 @@ export type Definition = Usage & {
     /**
      * The various options registered on the command.
      */
-    options: OptDefinition[];
+    options: {
+        definition: string;
+        description?: string;
+    }[];
 };
 
 /**

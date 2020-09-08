@@ -305,7 +305,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
                 ? commandClass.usage.examples.map(([label, cli]) => [formatMarkdownish(label, {format: this.format(colored), paragraphs: false}), cli.replace(/\$0/g, this.binaryName)])
                 : undefined;
 
-            const options = builder.getOptions();
+            const options = builder.getOptions().map(({names, description}) => ({definition: names.join(','), description}));
 
             data.push({path, usage, category, description, details, examples, options});
         }
