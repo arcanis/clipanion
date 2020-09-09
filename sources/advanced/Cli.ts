@@ -285,6 +285,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
             if (typeof commandClass.usage === `undefined`)
                 continue;
 
+            const builder = this.builder.getBuilderByIndex(number);
             const path = this.getUsageByIndex(number, {detailed: false});
             const usage = this.getUsageByIndex(number, {detailed: true});
 
@@ -304,7 +305,9 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
                 ? commandClass.usage.examples.map(([label, cli]) => [formatMarkdownish(label, {format: this.format(colored), paragraphs: false}), cli.replace(/\$0/g, this.binaryName)])
                 : undefined;
 
-            data.push({path, usage, category, description, details, examples});
+            const options = builder.getOptions().map(({names, description}) => ({definition: names.join(','), description}));
+
+            data.push({path, usage, category, description, details, examples, options});
         }
 
         return data;
@@ -405,7 +408,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
                     result += `\n`;
                 }
 
-                result += `${this.format(colored).bold(prefix)}${this.getUsageByRegistration(commandClass)}\n`;
+                result += `${this.format(colored).bold(prefix)}${this.getUsageByRegistration(commandClass, {showOptionList: true})}\n`;
 
                 if (details !== ``) {
                     result += `\n`;
@@ -463,7 +466,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
         return result;
     }
 
-    private getUsageByRegistration(klass: CommandClass<Context>, opts?: {detailed: boolean}) {
+    private getUsageByRegistration(klass: CommandClass<Context>, opts?: {detailed?: boolean; showOptionList?: boolean}) {
         const index = this.registrations.get(klass);
         if (typeof index === `undefined`)
             throw new Error(`Assertion failed: Unregistered command`);
@@ -471,7 +474,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
         return this.getUsageByIndex(index, opts);
     }
 
-    private getUsageByIndex(n: number, opts?: {detailed: boolean}) {
+    private getUsageByIndex(n: number, opts?: {detailed?: boolean; showOptionList?: boolean}) {
         return this.builder.getBuilderByIndex(n).usage(opts);
     }
 
