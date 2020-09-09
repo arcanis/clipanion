@@ -710,7 +710,10 @@ export class CommandBuilder<Context> {
     usage({detailed = true, showOptionList = false}: {detailed?: boolean; showOptionList?: boolean} = {}) {
         const segments = [this.cliOpts.binaryName];
 
-        const optionList: {definition: string; description: string}[] = [];
+        const detailedOptionList: {
+            definition: string; 
+            description: string;
+        }[] = [];
 
         if (this.paths.length > 0)
             segments.push(...this.paths[0]);
@@ -721,19 +724,16 @@ export class CommandBuilder<Context> {
                     continue;
 
                 const args = [];
-
                 for (let t = 0; t < arity; ++t)
                     args.push(` #${t}`);
 
                 const definition = `${names.join(`,`)}${args.join(``)}`;
 
                 if (showOptionList && description) {
-                    optionList.push({definition, description});
-
-                    continue;
+                    detailedOptionList.push({definition, description});
+                } else {
+                    segments.push(`[${definition}]`);
                 }
-
-                segments.push(`[${definition}]`);
             }
 
             segments.push(...this.arity.leading.map(name => `<${name}>`))
@@ -749,13 +749,15 @@ export class CommandBuilder<Context> {
         let usage = segments.join(` `);
 
         if (detailed) {
-            if (optionList.length > 0) {
+            if (detailedOptionList.length > 0) {
                 usage += `\n\n`;
                 usage += `${richFormat.bold('Options:')}\n`;
 
-                const maxDefinitionLength = optionList.reduce((length, option) => Math.max(length, option.definition.length), 0);
-                
-                for (const {definition, description} of optionList) {
+                const maxDefinitionLength = detailedOptionList.reduce((length, option) => {
+                    return Math.max(length, option.definition.length);
+                }, 0);
+
+                for (const {definition, description} of detailedOptionList) {
                     usage += `\n`;
                     usage += `  ${definition.padEnd(maxDefinitionLength)}    ${description}`;
                 }

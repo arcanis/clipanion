@@ -91,10 +91,10 @@ class YarnRunExec extends Command<Context> {
 }
 
 export default class YarnAdd extends Command<Context> {
-    @Command.Boolean(`-D,--dev`)
+    @Command.Boolean(`-D,--dev`, {description: `Use dev mode`})
     public dev: boolean = false;
 
-    @Command.Boolean(`-P,--peer`)
+    @Command.Boolean(`-P,--peer`, {description: `Use peer mode`})
     public peer: boolean = false;
 
     @Command.Boolean(`-E,--exact`)
