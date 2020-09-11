@@ -502,6 +502,28 @@ describe(`Advanced`, () => {
         expect(cli.process([`--no-verbose`, `-vvvv`])).to.contain({verbose: 4});
     });
 
+    it(`should print flags with a description separately`, async () => {
+        class CommandA extends Command {
+            @Command.Boolean('--verbose', {description: 'Log output'})
+            verbose: boolean = false
+
+            @Command.String('--output', {description: 'The output directory'})
+            output?: string;
+        
+            @Command.String('--message')
+            message?: string;
+
+            @Command.Path(`greet`)
+            async execute() {
+                throw new Error('not implemented, just testing usage()')
+            }
+        }
+
+        const cli = Cli.from([CommandA])
+
+        expect(cli.usage(CommandA, {detailed: true})).to.equal(`\u001b[1m$ \u001b[22m... greet [--message #0]\n\n\u001b[1mOptions:\u001b[22m\n\n  --verbose      Log output\n  --output #0    The output directory\n`);
+    });
+
     it(`should support optional string positionals`, async () => {
         class ThingCommand extends Command {
             @Command.String({required: false})

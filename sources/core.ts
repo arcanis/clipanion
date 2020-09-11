@@ -1,4 +1,5 @@
 import * as errors from './errors';
+import { richFormat } from './format';
 import {
     BATCH_REGEX, BINDING_REGEX, END_OF_INPUT,
     HELP_COMMAND_INDEX, HELP_REGEX, NODE_ERRORED,
@@ -634,6 +635,7 @@ export type ArityDefinition = {
 
 export type OptDefinition = {
     names: string[];
+    description?: string;
     arity: 1 | 0;
     hidden: boolean;
     allowBinding: boolean;
@@ -695,32 +697,46 @@ export class CommandBuilder<Context> {
         this.arity.proxy = true;
     }
 
-    addOption({names, arity = 0, hidden = false, allowBinding = true}: Partial<OptDefinition> & {names: string[]}) {
+    addOption({names, description, arity = 0, hidden = false, allowBinding = true}: Partial<OptDefinition> & {names: string[]}) {
         this.allOptionNames.push(...names);
-        this.options.push({names, arity, hidden, allowBinding});
+        this.options.push({names, description, arity, hidden, allowBinding});
+    }
+
+    getOptions() {
+        return this.options;
     }
 
     setContext(context: Context) {
         this.context = context;
     }
 
-    usage({detailed = true}: {detailed?: boolean} = {}) {
+    usage({detailed = true, showOptionList = false}: {detailed?: boolean; showOptionList?: boolean} = {}) {
         const segments = [this.cliOpts.binaryName];
+
+        const detailedOptionList: {
+            definition: string; 
+            description: string;
+        }[] = [];
 
         if (this.paths.length > 0)
             segments.push(...this.paths[0]);
 
         if (detailed) {
-            for (const {names, arity, hidden} of this.options) {
+            for (const {names, arity, hidden, description} of this.options) {
                 if (hidden)
                     continue;
 
                 const args = [];
-
                 for (let t = 0; t < arity; ++t)
                     args.push(` #${t}`);
 
-                segments.push(`[${names.join(`,`)}${args.join(``)}]`);
+                const definition = `${names.join(`,`)}${args.join(``)}`;
+
+                if (showOptionList && description) {
+                    detailedOptionList.push({definition, description});
+                } else {
+                    segments.push(`[${definition}]`);
+                }
             }
 
             segments.push(...this.arity.leading.map(name => `<${name}>`))
@@ -733,7 +749,25 @@ export class CommandBuilder<Context> {
             segments.push(...this.arity.trailing.map(name => `<${name}>`))
         }
 
-        return segments.join(` `);
+        let usage = segments.join(` `);
+
+        if (detailed) {
+            if (detailedOptionList.length > 0) {
+                usage += `\n\n`;
+                usage += `${richFormat.bold('Options:')}\n`;
+
+                const maxDefinitionLength = detailedOptionList.reduce((length, option) => {
+                    return Math.max(length, option.definition.length);
+                }, 0);
+
+                for (const {definition, description} of detailedOptionList) {
+                    usage += `\n`;
+                    usage += `  ${definition.padEnd(maxDefinitionLength)}    ${description}`;
+                }
+            }
+        }
+
+        return usage;
     }
 
     compile() {
