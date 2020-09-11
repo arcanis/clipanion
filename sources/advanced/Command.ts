@@ -341,34 +341,28 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
                 // The builder's arity.extra will always be NoLimits,
                 // because it is set when we call registerDefinition
 
-                // We can't splice while looping, so we push all indexes
-                // of positionals that should be removed into this array
-                const positionalsToRemove: number[] = [];
+                const isRestPositional = (index: number) => {
+                    const positional = state.positionals[index];
 
-                // We go over each positional
-                for (let i = 0; i < state.positionals.length; ++i) {
-                    const positional = state.positionals[i];
+                    // A NoLimits extra (i.e. an optional rest argument)
+                    if (positional.extra === NoLimits)
+                        return true;
 
-                    const isNoLimits = positional.extra === NoLimits;
-                    const isLeading = positional.extra === false && i < builder.arity.leading.length;
+                    // A leading positional (i.e. a required rest argument)
+                    if (positional.extra === false && index < builder.arity.leading.length)
+                        return true;
 
-                    // We skip the positional if it isn't either:
-                    // 1) a NoLimits extra (i.e. an optional rest argument)
-                    // 2) a leading positional (i.e. a required rest argument)
-                    if (!isNoLimits && !isLeading)
-                        continue;
+                    return false;
+                };
 
-                    // We mark this positional for removal
-                    positionalsToRemove.push(i);
+                let count = 0;
+                while(count < state.positionals.length && isRestPositional(count))
+                    count += 1;
 
-                    // We insert its value at the end of the array property.
-
-                    // @ts-ignore: The property is meant to have been defined by the child class
-                    (command[propertyName] ??= []).push(positional.value);
-                }
-
-                state.positionals = state.positionals
-                    .filter((positional, index) => !positionalsToRemove.includes(index))
+                // @ts-ignore: The property is meant to have been defined by the child class
+                command[propertyName] = state.positionals
+                    .splice(0, count)
+                    .map(({value}) => value);
             });
         };
     }

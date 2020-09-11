@@ -509,7 +509,7 @@ describe(`Advanced`, () => {
 
             @Command.String('--output', {description: 'The output directory'})
             output?: string;
-        
+
             @Command.String('--message')
             message?: string;
 
