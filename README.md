@@ -305,7 +305,7 @@ run --verbose -v --verbose -v --no-verbose
 # => verbose = 0
 ```
 
-#### `@Command.Tuple(optionNames: string, {length: number})`
+#### `@Command.Tuple(optionNames: string, {length: number, description?: string})`
 
 Specifies that the command accepts an option that takes a fixed number of arguments. Arguments can only be specified on the command line using `--foo ARG`, not `--foo=ARG`.
 

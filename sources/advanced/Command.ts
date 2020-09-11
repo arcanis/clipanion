@@ -281,18 +281,19 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
     /**
      * Register a listener that looks for an option and its followup arguments. When Clipanion detects that these arguments are present, the values will be pushed into the tuple represented in the property.
      */
-    static Tuple(descriptor: string, {length, hidden = false}: {
+    static Tuple(descriptor: string, {length, hidden = false, description}: {
         /**
          * The constant length of the tuple - the number of arguments the option accepts.
          */
-        length: number,
-        hidden?: boolean
+        length: number;
+        hidden?: boolean;
+        description?: string;
     }) {
         return <Context extends BaseContext>(prototype: Command<Context>, propertyName: string) => {
             const optNames = descriptor.split(`,`);
 
             this.registerDefinition(prototype, command => {
-                command.addOption({names: optNames, arity: length, hidden, allowBinding: false});
+                command.addOption({names: optNames, arity: length, hidden, allowBinding: false, description});
             });
 
             this.registerTransformer(prototype, (state, command) => {
