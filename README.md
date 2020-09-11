@@ -176,10 +176,10 @@ Note that Clipanion supports required positional arguments both at the beginning
 
 ```ts
 class RunCommand extends Command {
-    @Command.String()
+    @Command.String({required: false})
     public foo?: string;
 
-    @Command.String({required: true})
+    @Command.String()
     public bar!: string;
 }
 ```
@@ -209,7 +209,7 @@ Option decorators have 2 unique common traits:
 
 The `optionNames` parameters all indicate that you should put there a comma-separated list of option names (along with their leading `-`). For example, `-v,--verbose` is a valid parameter.
 
-#### `@Command.String(optionNames: string, {tolerateBoolean?: boolean})`
+#### `@Command.String(optionNames: string, {tolerateBoolean?: boolean, description?: string})`
 
 Specifies that the command accepts an option that takes an argument. Arguments can be specified on the command line using either `--foo=ARG` or `--foo ARG`.
 
@@ -255,7 +255,7 @@ run --inspect 1234
 # invalid
 ```
 
-#### `@Command.Boolean(optionNames: string)`
+#### `@Command.Boolean(optionNames: string, {description?: string})`
 
 Specifies that the command accepts a boolean flag as an option.
 
@@ -274,7 +274,7 @@ run --foo
 # => bar = true
 ```
 
-#### `@Command.Counter(optionNames: string)`
+#### `@Command.Counter(optionNames: string, {description?: string})`
 
 Specifies that the command accepts a boolean flag as an option, which will increment a counter for each detected occurrence. Each time the argument is negated, the counter will be reset to `0`. The counter won't be set unless the option is found, so you must remember to set it to an appropriate default value.
 
