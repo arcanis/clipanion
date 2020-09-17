@@ -543,6 +543,9 @@ export const tests = {
     always: () => {
         return true;
     },
+    isOptionLike: (state: RunState, segment: string) => {
+        return !state.ignoreOptions && segment.startsWith(`-`);
+    },
     isNotOptionLike: (state: RunState, segment: string) => {
         return state.ignoreOptions || !segment.startsWith(`-`);
     },
@@ -609,8 +612,17 @@ export const reducers = {
     pushUndefined: (state: RunState, segment: string) => {
         return {...state, options: state.options.concat({name: segment, value: undefined})}
     },
+    pushStringValue: (state: RunState, segment: string) => {
+        const copy = {...state, options: [...state.options]};
+        const lastOption = state.options[state.options.length - 1];
+        lastOption.value = (lastOption.value ?? []).concat([segment]);
+        return copy;
+    },
     setStringValue: (state: RunState, segment: string) => {
-        return {... state, options: state.options.slice(0, -1).concat({...state.options[state.options.length - 1], value: segment})}
+        const copy = {...state, options: [...state.options]};
+        const lastOption = state.options[state.options.length - 1];
+        lastOption.value = segment;
+        return copy;
     },
     inhibateOptions: (state: RunState) => {
         return {...state, ignoreOptions: true};
@@ -631,6 +643,11 @@ export const reducers = {
             return {...state, errorMessage: `${errorMessage} ("${segment}").`};
         }
     },
+    setOptionArityError: (state: RunState, segment: string) => {
+        const lastOption = state.options[state.options.length - 1];
+
+        return {...state, errorMessage: `Not enough arguments to option ${lastOption.name}.`};
+    },
 };
 
 // ------------------------------------------------------------------------
@@ -645,7 +662,7 @@ export type ArityDefinition = {
 export type OptDefinition = {
     names: string[];
     description?: string;
-    arity: 1 | 0;
+    arity: number;
     hidden: boolean;
     allowBinding: boolean;
 };
@@ -707,6 +724,13 @@ export class CommandBuilder<Context> {
     }
 
     addOption({names, description, arity = 0, hidden = false, allowBinding = true}: Partial<OptDefinition> & {names: string[]}) {
+        if (!allowBinding && arity > 1)
+            throw new Error(`The arity cannot be higher than 1 when the option only supports the --arg=value syntax`);
+        if (!Number.isInteger(arity))
+            throw new Error(`The arity must be an integer, got ${arity}`);
+        if (arity < 0)
+            throw new Error(`The arity must be positive, got ${arity}`);
+
         this.allOptionNames.push(...names);
         this.options.push({names, description, arity, hidden, allowBinding});
     }
@@ -723,7 +747,7 @@ export class CommandBuilder<Context> {
         const segments = [this.cliOpts.binaryName];
 
         const detailedOptionList: {
-            definition: string; 
+            definition: string;
             description: string;
         }[] = [];
 
@@ -918,15 +942,37 @@ export class CommandBuilder<Context> {
                         registerDynamic(machine, node, [`isNegatedOption`, name, option.hidden || name !== longestName], node, [`pushFalse`, name]);
                     }
                 }
-            } else if (option.arity === 1) {
-                const argNode = injectNode(machine, makeNode());
-                registerDynamic(machine, argNode, `isNotOptionLike`, node, `setStringValue`);
-
-                for (const name of option.names) {
-                    registerDynamic(machine, node, [`isOption`, name, option.hidden || name !== longestName], argNode, `pushUndefined`);
-                }
             } else {
-                throw new Error(`Unsupported option arity (${option.arity})`);
+                // We inject a new node at the end of the state machine
+                let lastNode = injectNode(machine, makeNode());
+
+                // We register transitions from the starting node to this new node
+                for (const name of option.names) {
+                    registerDynamic(machine, node, [`isOption`, name, option.hidden || name !== longestName], lastNode, `pushUndefined`);
+                }
+
+                // For each argument, we inject a new node at the end and we
+                // register a transition from the current node to this new node
+                for (let t = 0; t < option.arity; ++t) {
+                    const nextNode = injectNode(machine, makeNode());
+
+                    // We can provide better errors when another option or END_OF_INPUT is encountered
+                    registerStatic(machine, lastNode, END_OF_INPUT, NODE_ERRORED, `setOptionArityError`);
+                    registerDynamic(machine, lastNode, `isOptionLike`, NODE_ERRORED, `setOptionArityError`);
+
+                    // If the option has a single argument, no need to store it in an array
+                    const action: keyof typeof reducers = option.arity === 1
+                        ? `setStringValue`
+                        : `pushStringValue`;
+
+                    registerDynamic(machine, lastNode, `isNotOptionLike`, nextNode, action);
+
+                    lastNode = nextNode;
+                }
+
+                // In the end, we register a shortcut from
+                // the last node back to the starting node
+                registerShortcut(machine, lastNode, node);
             }
         }
     }
