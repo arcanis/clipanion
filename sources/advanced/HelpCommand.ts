@@ -7,8 +7,8 @@ export class HelpCommand<Context extends BaseContext> extends Command<Context> {
     private commands: number[] = [];
     private index?: number;
 
-    static from<Context extends BaseContext>(state: RunState, realCli: Cli<Context>, contexts: CliContext<Context>[]) {
-        const command = new HelpCommand<Context>(realCli, contexts);
+    static from<Context extends BaseContext>(state: RunState, contexts: CliContext<Context>[]) {
+        const command = new HelpCommand<Context>(contexts);
         command.path = state.path;
 
         for (const opt of state.options) {
@@ -25,7 +25,7 @@ export class HelpCommand<Context extends BaseContext> extends Command<Context> {
         return command;
     }
 
-    constructor(private readonly realCli: Cli<Context>, private readonly contexts: CliContext<Context>[]) {
+    constructor(private readonly contexts: CliContext<Context>[]) {
         super();
     }
 
@@ -34,15 +34,17 @@ export class HelpCommand<Context extends BaseContext> extends Command<Context> {
         if (typeof this.index !== `undefined` && this.index >= 0 && this.index < commands.length)
             commands = [commands[this.index]];
 
-        if (commands.length === 1) {
-            this.context.stdout.write(this.realCli.usage(this.contexts[commands[0]].commandClass, {detailed: true}));
+        if (commands.length === 0) {
+            this.context.stdout.write(this.cli.usage());
+        } else if (commands.length === 1) {
+            this.context.stdout.write(this.cli.usage(this.contexts[commands[0]].commandClass, {detailed: true}));
         } else if (commands.length > 1) {
             this.context.stdout.write(`Multiple commands match your selection:\n`);
             this.context.stdout.write(`\n`);
 
             let index = 0;
             for (const command of this.commands)
-                this.context.stdout.write(this.realCli.usage(this.contexts[command].commandClass, {prefix: `${index++}. `.padStart(5)}));
+                this.context.stdout.write(this.cli.usage(this.contexts[command].commandClass, {prefix: `${index++}. `.padStart(5)}));
 
             this.context.stdout.write(`\n`);
             this.context.stdout.write(`Run again with -h=<index> to see the longer details of any of those commands.\n`);
