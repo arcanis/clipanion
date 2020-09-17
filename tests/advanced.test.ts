@@ -524,9 +524,9 @@ describe(`Advanced`, () => {
         expect(cli.usage(CommandA, {detailed: true})).to.equal(`\u001b[1m$ \u001b[22m... greet [--message #0]\n\n\u001b[1mOptions:\u001b[22m\n\n  --verbose      Log output\n  --output #0    The output directory\n`);
     });
 
-    it(`should extract tuples from complex options`, async () => {
+    it(`should support tuples`, async () => {
         class PointCommand extends Command {
-            @Command.Tuple(`--point`, {length: 3})
+            @Command.String(`--point`, {arity: 3})
             point!: [x: string, y: string, z: string];
 
             async execute() {}
@@ -537,36 +537,9 @@ describe(`Advanced`, () => {
         expect(cli.process([`--point`, `1`, `2`, `3`])).to.deep.contain({point: [`1`, `2`, `3`]});
     });
 
-    it(`shouldn't allow binding tuple elements`, async () => {
-        class Arity0Command extends Command {
-            @Command.Tuple(`--thing`, {length: 0})
-            thing!: [boolean];
-
-            @Command.Path('arity0')
-            async execute() {}
-        }
-
-        class Arity1Command extends Command {
-            @Command.Tuple(`--thing`, {length: 1})
-            thing!: [string];
-
-            @Command.Path('arity1')
-            async execute() {}
-        }
-
-        const cli = Cli.from([Arity0Command, Arity1Command]);
-
-        expect(() => {
-            cli.process([`arity0`, `--thing=something`])
-        }).to.throw(`Invalid option name ("--thing=something")`);
-        expect(() => {
-            cli.process([`arity1`, `--thing=something`])
-        }).to.throw(`Invalid option name ("--thing=something")`);
-    });
-
     it(`should extract tuples from complex options surrounded by rest arguments`, async () => {
         class PointCommand extends Command {
-            @Command.Tuple(`--point`, {length: 3})
+            @Command.String(`--point`, {arity: 3})
             point!: [x: string, y: string, z: string];
 
             @Command.Rest()
@@ -587,7 +560,7 @@ describe(`Advanced`, () => {
 
     it(`should throw acceptable errors when tuple length is not finite`, async () => {
         class PointCommand extends Command {
-            @Command.Tuple(`--point`, {length: Infinity})
+            @Command.String(`--point`, {arity: Infinity})
             point!: [x: string, y: string, z: string];
 
             async execute() {}
@@ -600,7 +573,7 @@ describe(`Advanced`, () => {
 
     it(`should throw acceptable errors when tuple length is not an integer`, async () => {
         class PointCommand extends Command {
-            @Command.Tuple(`--point`, {length: 1.5})
+            @Command.String(`--point`, {arity: 1.5})
             point!: [x: string, y: string, z: string];
 
             async execute() {}
@@ -613,7 +586,7 @@ describe(`Advanced`, () => {
 
     it(`should throw acceptable errors when tuple length is not positive`, async () => {
         class PointCommand extends Command {
-            @Command.Tuple(`--point`, {length: -1})
+            @Command.String(`--point`, {arity: -1})
             point!: [x: string, y: string, z: string];
 
             async execute() {}
@@ -626,7 +599,7 @@ describe(`Advanced`, () => {
 
     it(`should throw acceptable errors when not enough arguments are passed to a tuple`, async () => {
         class PointCommand extends Command {
-            @Command.Tuple(`--point`, {length: 3})
+            @Command.String(`--point`, {arity: 3})
             point!: [x: string, y: string, z: string];
 
             async execute() {}
@@ -663,8 +636,7 @@ describe(`Advanced`, () => {
 
     it(`should extract string arrays from complex options`, async () => {
         class IncludeCommand extends Command {
-            @Command.String(`--include`)
-            @Command.Array()
+            @Command.Array(`--include`)
             include: string[] = [];
 
             async execute() {}
@@ -677,26 +649,9 @@ describe(`Advanced`, () => {
         expect(cli.process([`--include`, `foo`, `--include`, `bar`])).to.deep.contain({include: [`foo`, `bar`]});
     });
 
-    it(`should extract boolean arrays from complex options`, async () => {
-        class IncludeCommand extends Command {
-            @Command.Boolean(`--include`)
-            @Command.Array()
-            include: string[] = [];
-
-            async execute() {}
-        }
-
-        const cli = Cli.from([IncludeCommand]);
-
-        expect(cli.process([])).to.deep.contain({include: []});
-        expect(cli.process([`--include`])).to.deep.contain({include: [true]});
-        expect(cli.process([`--include`,`--include`])).to.deep.contain({include: [true, true]});
-    });
-
     it(`should extract tuple arrays from complex options`, async () => {
         class IncludeCommand extends Command {
-            @Command.Tuple(`--position`, {length: 3})
-            @Command.Array()
+            @Command.Array(`--position`, {arity: 3})
             position: Array<[string, string, string]> = [];
 
             async execute() {}

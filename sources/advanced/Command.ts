@@ -8,7 +8,6 @@ import type {VersionCommand} from './entries/version';
 export type Meta<Context extends BaseContext> = {
     definitions: ((command: CommandBuilder<CliContext<Context>>) => void)[];
     transformers: ((state: RunState, command: Command<Context>) => void)[];
-    cleanups: ((command: Command<Context>) => void)[];
 };
 
 /**
@@ -113,31 +112,26 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
                     }
                 },
             ],
-            cleanups: [],
         };
     }
 
     public static resolveMeta<Context extends BaseContext>(prototype: Command<Context>): Meta<Context> {
         const definitions = [];
         const transformers = [];
-        const cleanups = [];
 
         for (let proto = prototype; proto instanceof Command; proto = (proto as any).__proto__ as any) {
             const meta = this.getMeta<Context>(proto);
 
             for (const definition of meta.definitions)
                 definitions.push(definition);
-            for (const transformer of meta.transformers)
+            for (const transformer of meta.transformers) {
                 transformers.push(transformer);
-            for (const cleanup of meta.cleanups) {
-                cleanups.push(cleanup);
             }
         }
 
         return {
             definitions,
             transformers,
-            cleanups,
         };
     }
 
@@ -147,10 +141,6 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
 
     private static registerTransformer<Context extends BaseContext>(prototype: Command<Context>, transformer: (state: RunState, command: Command<Context>) => void) {
         this.getMeta(prototype).transformers.push(transformer);
-    }
-
-    private static registerCleanup<Context extends BaseContext>(prototype: Command<Context>, cleanup: (command: Command<Context>) => void) {
-        this.getMeta(prototype).cleanups.push(cleanup);
     }
 
     static addPath(...path: string[]) {
@@ -235,7 +225,7 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
      * Note that all methods affecting positional arguments are evaluated in the definition order; don't mess with it (for example sorting your properties in ascendent order might have adverse results).
      * @param descriptor The option names.
      */
-    static String(descriptor: string, opts?: {tolerateBoolean?: boolean; hidden?: boolean; description?: string}): PropertyDecorator;
+    static String(descriptor: string, opts?: {arity?: number; tolerateBoolean?: boolean; hidden?: boolean; description?: string}): PropertyDecorator;
 
     /**
      * Register a listener that looks for positional arguments. When Clipanion detects that an argument isn't an option, it will put it in this property and continue processing the rest of the command line.
@@ -244,7 +234,7 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
      */
     static String(descriptor?: {required?: boolean; name?: string}): PropertyDecorator;
 
-    static String(descriptor: string | {required?: boolean; name?: string} = {}, {tolerateBoolean = false, hidden = false, description}: {tolerateBoolean?: boolean, hidden?: boolean; description?: string} = {}) {
+    static String(descriptor: string | {required?: boolean; name?: string} = {}, {arity = 1, tolerateBoolean = false, hidden = false, description}: {arity?: number, tolerateBoolean?: boolean, hidden?: boolean; description?: string} = {}) {
         return <Context extends BaseContext>(prototype: Command<Context>, propertyName: string) => {
             if (typeof descriptor === `string`) {
                 const optNames = descriptor.split(`,`);
@@ -252,7 +242,7 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
                 this.registerDefinition(prototype, command => {
                     // If tolerateBoolean is specified, the command will only accept a string value
                     // using the bind syntax and will otherwise act like a boolean option
-                    command.addOption({names: optNames, arity: tolerateBoolean ? 0 : 1, hidden, description});
+                    command.addOption({names: optNames, arity: tolerateBoolean ? 0 : arity, hidden, description});
                 });
 
                 this.registerTransformer(prototype, (state, command) => {
@@ -279,118 +269,29 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
     }
 
     /**
-     * Register a listener that looks for an option and its followup arguments. When Clipanion detects that these arguments are present, the values will be pushed into the tuple represented in the property.
+     * Register a listener that looks for an option and its followup argument. When Clipanion detects that this argument is present, the value will be pushed into the array represented in the property.
      */
-    static Tuple(descriptor: string, {length, hidden = false, description}: {
-        /**
-         * The constant length of the tuple - the number of arguments the option accepts.
-         */
-        length: number;
-        hidden?: boolean;
-        description?: string;
-    }) {
+    static Array(descriptor: string, {arity = 1, hidden = false, description}: {arity?: number, hidden?: boolean; description?: string} = {}) {
         return <Context extends BaseContext>(prototype: Command<Context>, propertyName: string) => {
+            if (arity === 0)
+                throw new Error(`Array options are expected to have at least an arity of 1`);
+
             const optNames = descriptor.split(`,`);
 
             this.registerDefinition(prototype, command => {
-                command.addOption({names: optNames, arity: length, hidden, allowBinding: false, description});
+                command.addOption({names: optNames, arity, hidden, description});
             });
 
             this.registerTransformer(prototype, (state, command) => {
-                const values = state.options
-                    .filter(({name}) => optNames.includes(name))
-                    .map(({value}) => value);
-
-                while (values.length > 0)
-                    // @ts-ignore: The property is meant to have been defined by the child class
-                    command[propertyName] = values.splice(0, length);
+                for (const {name, value} of state.options) {
+                    if (optNames.includes(name)) {
+                        // @ts-ignore: The property is meant to have been defined by the child class
+                        command[propertyName] = command[propertyName] || [];
+                        // @ts-ignore: The property is meant to have been defined by the child class
+                        command[propertyName].push(value);
+                    }
+                }
             });
-        };
-    }
-
-    /**
-     * Register an option modifier that causes the attached listener to push its arguments into the array represented in the property.
-     */
-    static Array(): PropertyDecorator;
-
-    /**
-     * Register a listener that looks for an option and its followup argument. When Clipanion detects that this argument is present, the value will be pushed into the array represented in the property.
-     *
-     * @deprecated `Command.Array` should be composed together as a modifier with other option decorators.
-     */
-    static Array(descriptor: string, opts?: {hidden?: boolean; description?: string}): PropertyDecorator;
-
-    static Array(descriptor?: string, {hidden = false, description}: {hidden?: boolean; description?: string} = {}) {
-        return <Context extends BaseContext>(prototype: Command<Context>, propertyName: string) => {
-            // The legacy style decorator.
-            // TODO: Remove in next major.
-            if (typeof descriptor === 'string') {
-                const optNames = descriptor.split(`,`);
-
-                this.registerDefinition(prototype, command => {
-                    command.addOption({names: optNames, arity: 1, hidden, description});
-                });
-
-                this.registerTransformer(prototype, (state, command) => {
-                    for (const {name, value} of state.options) {
-                        if (optNames.includes(name)) {
-                            // @ts-ignore: The property is meant to have been defined by the child class
-                            command[propertyName] = command[propertyName] || [];
-                            // @ts-ignore: The property is meant to have been defined by the child class
-                            command[propertyName].push(value);
-                        }
-                    }
-                });
-            } else {
-                const SPECIAL_KEY = `__command_array`;
-
-                this.registerTransformer(prototype, (state, command) => {
-                    // We create a temporary value store
-                    const values: unknown[] = [];
-
-                    // It's fine if we don't cleanup the special key,
-                    // but at least we shouldn't expose it to users.
-                    if (!Object.prototype.hasOwnProperty.call(command, SPECIAL_KEY)) {
-                        Object.defineProperty(command, SPECIAL_KEY, {
-                            configurable: true,
-                            enumerable: false,
-                            value: {},
-                        });
-                    }
-
-                    // We store the values inside the special
-                    // key, so that we can clean them up later.
-
-                    // @ts-expect-error: We've just defined this property
-                    command[SPECIAL_KEY][propertyName] = values;
-
-                    // We define a getter and setter combination to
-                    // silently push all assigned values into our store.
-                    Object.defineProperty(command, propertyName, {
-                        configurable: true,
-                        enumerable: true,
-
-                        // Because of the accessors, option transformers
-                        // should only set properties on the command via
-                        // regular assignment, only once per transformer.
-                        get: () => values[values.length - 1],
-                        set: (value) => values.push(value),
-                    });
-                });
-
-                this.registerCleanup(prototype, (command) => {
-                    // We cleanup the getter and setter
-                    // after all transformers have run and
-                    // replace it with the array of values.
-                    Object.defineProperty(command, propertyName, {
-                        configurable: true,
-                        enumerable: true,
-                        writable: true,
-                        // @ts-ignore: The property is registered by the transformer.
-                        value: command[SPECIAL_KEY][propertyName],
-                    });
-                });
-            }
         };
     }
 

@@ -209,11 +209,9 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
                 const command = new commandClass();
                 command.path = state.path;
 
-                const {transformers, cleanups} = commandClass.resolveMeta(commandClass.prototype);
+                const {transformers} = commandClass.resolveMeta(commandClass.prototype);
                 for (const transformer of transformers)
                     transformer(state, command);
-                for (const cleanup of cleanups)
-                    cleanup(command);
 
                 return command;
             } break;
