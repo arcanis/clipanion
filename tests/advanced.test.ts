@@ -621,19 +621,6 @@ describe(`Advanced`, () => {
         }
     });
 
-    it(`should extract string arrays from complex options (legacy style)`, async () => {
-        class IncludeCommand extends Command {
-            @Command.Array(`--include`)
-            include: string[] = [];
-
-            async execute() {}
-        }
-
-        const cli = Cli.from([IncludeCommand]);
-
-        expect(cli.process([`--include`, `foo`, `--include`, `bar`])).to.deep.contain({include: [`foo`, `bar`]});
-    });
-
     it(`should extract string arrays from complex options`, async () => {
         class IncludeCommand extends Command {
             @Command.Array(`--include`)
