@@ -34,6 +34,17 @@ export type RunState = {
     selectedIndex: number | null;
 };
 
+const basicHelpState: RunState = {
+    candidateUsage: null,
+    errorMessage: null,
+    ignoreOptions: false,
+    path: [],
+    positionals: [],
+    options: [],
+    remainder: null,
+    selectedIndex: HELP_COMMAND_INDEX
+};
+
 export function makeStateMachine(): StateMachine {
     return {
         nodes: [makeNode(), makeNode(), makeNode()],
@@ -211,6 +222,13 @@ export function runMachineInternal(machine: StateMachine, input: string[], parti
             }
         }
 
+        if (nextBranches.length === 0 && segment === END_OF_INPUT && input.length === 1) {
+            return [{
+                node: NODE_INITIAL,
+                state: basicHelpState,
+            }];
+        }
+
         if (nextBranches.length === 0) {
             throw new errors.UnknownSyntaxError(input, branches.filter(({node}) => {
                 return node !== NODE_ERRORED;
@@ -222,8 +240,7 @@ export function runMachineInternal(machine: StateMachine, input: string[], parti
         if (nextBranches.every(({node}) => node === NODE_ERRORED)) {
             throw new errors.UnknownSyntaxError(input, nextBranches.map(({state}) => {
                 return {usage: state.candidateUsage!, reason: state.errorMessage};
-            }));
-        }
+            }));        }
 
         branches = trimSmallerBranches(nextBranches);
     }
@@ -408,14 +425,9 @@ export function aggregateHelpStates(states: RunState[]) {
 
     if (helps.length > 0) {
         notHelps.push({
-            candidateUsage: null,
-            errorMessage: null,
-            ignoreOptions: false,
+            ...basicHelpState,
             path: findCommonPrefix(...helps.map(state => state.path)),
-            positionals: [],
             options: helps.reduce((options, state) => options.concat(state.options), [] as RunState['options']),
-            remainder: null,
-            selectedIndex: HELP_COMMAND_INDEX,
         });
     }
 
