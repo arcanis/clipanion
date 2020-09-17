@@ -200,7 +200,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
 
         switch (state.selectedIndex) {
             case HELP_COMMAND_INDEX: {
-                return HelpCommand.from<Context>(state, this, contexts);
+                return HelpCommand.from<Context>(state, contexts);
             } break;
 
             default: {

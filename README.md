@@ -119,7 +119,7 @@ Specifies through which CLI path should trigger the command.
 class RunCommand extends Command {
     @Command.Path(segment1, segment2, segment3)
     async execute() {
-    // ...
+        // ...
     }
 }
 ```
@@ -137,7 +137,7 @@ class YarnCommand extends Command {
     @Command.Path(`install`)
     @Command.Path()
     async execute() {
-    // ...
+        // ...
     }
 }
 ```
@@ -150,9 +150,13 @@ yarn install
 yarn
 ```
 
-#### `@Command.String({required?: boolean})`
+#### `@Command.String(opts: {...})`
 
-Specifies that the command accepts a positional argument. By default it will be required, but this can be toggled off.
+| Option | type | Description |
+| --- | --- | --- |
+| `required` | `boolean` | Whether the positional argument is required or not |
+
+Specifies that the command accepts a positional argument. By default it will be required, but this can be toggled off using `required`.
 
 ```ts
 class RunCommand extends Command {
@@ -195,36 +199,42 @@ run
 # invalid
 ```
 
-#### `@Command.String(optionNames: string, {tolerateBoolean?: boolean, description?: string})`
+#### `@Command.String(optionNames: string, opts: {...})`
 
-Specifies that the command accepts an option that takes an argument. Arguments can be specified on the command line using either `--foo=ARG` or `--foo ARG`.
+| Option | type | Description |
+| --- | --- | --- |
+| `arity` | `number` | Number of arguments for the option |
+| `description` | `string`| Short description for the help message |
+| `hidden` | `boolean` | Hide the option from any usage list |
+| `tolerateBoolean` | `boolean` | Accept the option even if no argument is provided |
+
+Specifies that the command accepts an option that takes arguments (by default one, unless overriden via `arity`). Arguments can be specified on the command line using either `--foo=ARG` or `--foo ARG`.
 
 ```ts
 class RunCommand extends Command {
-    @Command.String('--foo,-f')
-    public bar?: string;
+    @Command.String(`-a,--arg`)
+    arg?: string;
 }
 ```
 
 Generates:
 
 ```bash
-run --foo <ARG>
-run --foo=<ARG>
-run -f <ARG>
-run -f=<ARG>
-# => bar = ARG
+run --arg <ARG>
+run --arg=<ARG>
+run -a <ARG>
+run -a=<ARG>
+# => arg = ARG
 ```
 
 Be careful, by default, options that accept an argument must receive one on the CLI (ie `--foo --bar` wouldn't be valid if `--foo` accepts an argument).
 
-This behaviour can be toggled off if the `tolerateBoolean` option is set. In this case, the option will act like a boolean flag if it doesn't have a value. Note that with this option on, arguments values can only be specified using the `--foo=ARG` syntax.
+This behaviour can be toggled off if the `tolerateBoolean` option is set. In this case, the option will act like a boolean flag if it doesn't have a value. Note that with this option on, arguments values can only be specified using the `--foo=ARG` syntax, which makes this option incompatible with arities higher than one.
 
 ```ts
 class RunCommand extends Command {
     @Command.String(`--inspect`, {tolerateBoolean: true})
     public debug: boolean | string = false;
-    // ...
 }
 ```
 
@@ -235,33 +245,41 @@ run --inspect
 # => debug = true
 
 run --inspect=1234
-# debug = "1234"
+# => debug = "1234"
 
 run --inspect 1234
 # invalid
 ```
 
+#### `@Command.Boolean(optionNames: string, opts: {...})`
 
-#### `@Command.Boolean(optionNames: string, {description?: string})`
+| Option | type | Description |
+| --- | --- | --- |
+| `description` | `string`| Short description for the help message |
+| `hidden` | `boolean` | Hide the option from any usage list |
 
 Specifies that the command accepts a boolean flag as an option.
 
 ```ts
 class RunCommand extends Command {
-    @Command.Boolean('--foo')
-    public bar: boolean;
-    // ...
+    @Command.Boolean(`--flag`)
+    public flag: boolean;
 }
 ```
 
 Generates:
 
 ```bash
-run --foo
-# => bar = true
+run --flag
+# => flag = true
 ```
 
-#### `@Command.Counter(optionNames: string, {description?: string})`
+#### `@Command.Counter(optionNames: string, {...})`
+
+| Option | type | Description |
+| --- | --- | --- |
+| `description` | `string`| Short description for the help message |
+| `hidden` | `boolean` | Hide the option from any usage list |
 
 Specifies that the command accepts a boolean flag as an option, which will increment a counter for each detected occurrence. Each time the argument is negated, the counter will be reset to `0`. The counter won't be set unless the option is found, so you must remember to set it to an appropriate default value.
 
@@ -269,7 +287,6 @@ Specifies that the command accepts a boolean flag as an option, which will incre
 class RunCommand extends Command {
     @Command.Counter('-v,--verbose')
     public verbose: number = 0;
-    // ...
 }
 ```
 
@@ -292,15 +309,23 @@ run --verbose -v --verbose -v --no-verbose
 # => verbose = 0
 ```
 
-#### `@Command.Array(optionNames: string, {description?: string})`
+#### `@Command.Array(optionNames: string, opts: {...})`
 
-Specifies that the command accepts a set of string arguments.
+| Option | type | Description |
+| --- | --- | --- |
+| `arity` | `number` | Number of arguments for the option |
+| `description` | `string`| Short description for the help message |
+| `hidden` | `boolean` | Hide the option from any usage list |
+
+Specifies that the command accepts a set of string arguments. The `arity` parameter defines how many values need to be accepted for each item.
 
 ```ts
 class RunCommand extends Command {
     @Command.Array('--arg')
-    public values: string[];
-    // ...
+    public args: string[];
+
+    @Command.Array('--point', {arity: 3})
+    public points: [string, string, string][];
 }
 ```
 
@@ -308,7 +333,10 @@ Generates:
 
 ```bash
 run --arg value1 --arg value2
-# => values = [value1, value2]
+# => args = [value1, value2]
+
+run --point x y z --point a b c
+# => points = [['x', 'y', 'z'], ['a', 'b', 'c']]
 ```
 
 #### `@Command.Rest({required?: number})`

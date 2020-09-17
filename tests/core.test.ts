@@ -1,4 +1,5 @@
 import {expect}                         from 'chai';
+import { HELP_COMMAND_INDEX } from '../sources/constants';
 
 import {CliBuilderCallback, CliBuilder, NoLimits} from '../sources/core';
 
@@ -708,16 +709,15 @@ describe(`Core`, () => {
         }).to.throw(`Extraneous positional argument ("foo")`);
     });
 
-    it(`should throw acceptable errors when a command is incomplete`, () => {
+    it(`should print the help when there's no argv on a CLI without default command`, () => {
         const cli = makeCli([
             b => {
                 b.addPath([`foo`]);
             },
         ]);
 
-        expect(() => {
-            cli.process([]);
-        }).to.throw(`Command not found; did you mean:`);
+        const {selectedIndex} = cli.process([]);
+        expect(selectedIndex).to.equal(HELP_COMMAND_INDEX);
     });
 
     it(`should throw acceptable errors when a command is incomplete (multiple choices)`, () => {
@@ -730,9 +730,20 @@ describe(`Core`, () => {
             },
         ]);
 
+        const {selectedIndex} = cli.process([]);
+        expect(selectedIndex).to.equal(HELP_COMMAND_INDEX);
+    });
+
+    it(`should throw acceptable errors when using an incomplete path`, () => {
+        const cli = makeCli([
+            b => {
+                b.addPath([`foo`, `bar`]);
+            },
+        ]);
+
         expect(() => {
-            cli.process([]);
-        }).to.throw(`Command not found; did you mean one of:`);
+            cli.process([`foo`]);
+        }).to.throw(`Command not found; did you mean`);
     });
 
     it(`should throw acceptable errors when omitting mandatory positional arguments`, () => {
