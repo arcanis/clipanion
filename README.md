@@ -339,9 +339,13 @@ run --point x y z --point a b c
 # => points = [['x', 'y', 'z'], ['a', 'b', 'c']]
 ```
 
-#### `@Command.Rest({required?: number})`
+#### `@Command.Rest(opts: {...})`
 
-Specifies that the command accepts a set of positional arguments. By default, no arguments are required, but this can be changed by setting the `required` option.
+| Option | type | Description |
+| --- | --- | --- |
+| `required` | `number` | Number of required trailing arguments |
+
+Specifies that the command accepts an unlimited number of positional arguments. By default no arguments are required, but this can be changed by setting the `required` option.
 
 ```ts
 class RunCommand extends Command {
@@ -364,9 +368,9 @@ run
 # => values = []
 ```
 
-**Note:** Rest arguments are strictly positionals. All options found between rest arguments will be consumed as options of the `Command` instance. For proxying, `Command.Proxy` has to be used instead.
+**Note:** Rest arguments are strictly positionals. All options found between rest arguments will be consumed as options of the `Command` instance. If you wish to forward a list of option to another command without having to parse them yourself, use `Command.Proxy` instead.
 
-**Note:** Rest arguments can be surrounded by other *finite* *non-optional* positionals such as `Command.String({required: true})`.
+**Note:** Rest arguments can be surrounded by other *finite* *non-optional* positionals such as `Command.String({required: true})`. Having multiple rest arguments in the same command is however invalid.
 
 **Advanced Example:**
 
@@ -410,9 +414,13 @@ run dest
 # => Error - Not enough positional arguments.
 ```
 
-#### `@Command.Proxy({required?: number})`
+#### `@Command.Proxy(opts: {...})`
 
-Specifies that the command accepts an infinite set of positional arguments that will not be consumed by the options of the `Command` instance. Used to proxy arguments to another command. By default, no arguments are required, but this can be changed by setting the `required` option.
+| Option | type | Description |
+| --- | --- | --- |
+| `required` | `number` | Number of required trailing arguments |
+
+Specifies that the command accepts an infinite set of positional arguments that will not be consumed by the options of the `Command` instance. Use this decorator instead of `Command.Rest` when you wish to forward arguments to another command parsing them in any way. By default no arguments are required, but this can be changed by setting the `required` option.
 
 ```ts
 class RunCommand extends Command {
@@ -539,6 +547,34 @@ class FooCommand extends BaseCommand {
 ```
 
 **Note:** Because of the decorator evaluation order, positional arguments of a subclass will be consumed before positional arguments of a superclass. Because of this, it is not recommended to inherit anything other than options and handlers.
+
+## Lazy evaluation
+
+Many commands have the following form:
+
+```ts
+import {uniqBy} from 'lodash';
+
+export class MyCommand extends Command {
+    async execute() {
+        // ...
+    }
+}
+```
+
+While it works just fine, if you have a lot of command, each with its own set of dependencies (here, `lodash`), the startup time may suffer. This is because the `import` statements will always be eagerly evaluated, even if the command doesn't end up being used in the end. To solve this problem, you can move your imports inside the body of the `execute` function, thus making sure they'll only be evaluated if actually relevant:
+
+```ts
+export class MyCommand extends Command {
+    async execute() {
+        const {uniqBy} = await import(`lodash`);
+
+        // ...
+    }
+}
+```
+
+This strategy is slightly harder to read, so it may not be necessary in every situation. If you like living on the edge, the [`babel-plugin-lazy-import`](https://github.com/arcanis/babel-plugin-lazy-import) plugin is meant to automatically apply this kind of transformation - although it requires you to run Babel on your sources.
 
 ## Contexts
 
