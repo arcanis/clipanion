@@ -206,12 +206,18 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
             default: {
                 const {commandClass} = contexts[state.selectedIndex!];
 
+                const index = this.registrations.get(commandClass);
+                if (typeof index === `undefined`)
+                    throw new Error(`Assertion failed: Expected the command class to have been registered.`);
+
+                const commandBuilder = this.builder.getBuilderByIndex(index);
+
                 const command = new commandClass();
                 command.path = state.path;
 
                 const {transformers} = commandClass.resolveMeta(commandClass.prototype);
                 for (const transformer of transformers)
-                    transformer(state, command);
+                    transformer(state, command, commandBuilder);
 
                 return command;
             } break;

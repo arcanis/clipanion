@@ -1,4 +1,4 @@
-import {CommandBuilder, RunState}         from '../core';
+import {CommandBuilder, NoLimits, RunState}         from '../core';
 
 import {BaseContext, CliContext, MiniCli} from './Cli';
 
@@ -7,7 +7,7 @@ import type {VersionCommand} from './entries/version';
 
 export type Meta<Context extends BaseContext> = {
     definitions: ((command: CommandBuilder<CliContext<Context>>) => void)[];
-    transformers: ((state: RunState, command: Command<Context>) => void)[];
+    transformers: ((state: RunState, command: Command<Context>, builder: CommandBuilder<CliContext<Context>>) => void)[];
 };
 
 /**
@@ -139,7 +139,7 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
         this.getMeta(prototype).definitions.push(definition);
     }
 
-    private static registerTransformer<Context extends BaseContext>(prototype: Command<Context>, transformer: (state: RunState, command: Command<Context>) => void) {
+    private static registerTransformer<Context extends BaseContext>(prototype: Command<Context>, transformer: (state: RunState, command: Command<Context>, builder: CommandBuilder<CliContext<Context>>) => void) {
         this.getMeta(prototype).transformers.push(transformer);
     }
 
@@ -254,14 +254,39 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
                     }
                 });
             } else {
+                const {name = propertyName, required = true} = descriptor;
+
                 this.registerDefinition(prototype, command => {
-                    command.addPositional({name: descriptor.name ?? propertyName, required: descriptor.required !== false});
+                    command.addPositional({name, required});
                 });
 
                 this.registerTransformer(prototype, (state, command) => {
-                    if (state.positionals.length > 0) {
+                    for (let i = 0; i < state.positionals.length; ++i) {
+                        // We skip NoLimits extras. We only care about
+                        // required and optional finite positionals.
+                        if (state.positionals[i].extra === NoLimits)
+                            continue;
+
+                        // We skip optional positionals when we only
+                        // care about required positionals.
+                        if (required && state.positionals[i].extra === true)
+                            continue;
+
+                        // We skip required positionals when we only
+                        // care about optional positionals.
+                        if (!required && state.positionals[i].extra === false)
+                            continue;
+
+                        // We remove the positional from the list
+                        const [positional] = state.positionals.splice(i, 1);
+
+                        // We assign its value to the property.
+
                         // @ts-ignore: The property is meant to have been defined by the child class
-                        command[propertyName] = state.positionals.shift()!.value;
+                        command[propertyName] = positional.value;
+
+                        // We stop after the first successful iteration.
+                        break;
                     }
                 });
             }
@@ -314,9 +339,32 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
                 command.addRest({name: propertyName, required});
             });
 
-            this.registerTransformer(prototype, (state, command) => {
+            this.registerTransformer(prototype, (state, command, builder) => {
+                // The builder's arity.extra will always be NoLimits,
+                // because it is set when we call registerDefinition
+
+                const isRestPositional = (index: number) => {
+                    const positional = state.positionals[index];
+
+                    // A NoLimits extra (i.e. an optional rest argument)
+                    if (positional.extra === NoLimits)
+                        return true;
+
+                    // A leading positional (i.e. a required rest argument)
+                    if (positional.extra === false && index < builder.arity.leading.length)
+                        return true;
+
+                    return false;
+                };
+
+                let count = 0;
+                while(count < state.positionals.length && isRestPositional(count))
+                    count += 1;
+
                 // @ts-ignore: The property is meant to have been defined by the child class
-                command[propertyName] = state.positionals.map(({value}) => value);
+                command[propertyName] = state.positionals
+                    .splice(0, count)
+                    .map(({value}) => value);
             });
         };
     }
@@ -332,6 +380,9 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
             });
 
             this.registerTransformer(prototype, (state, command) => {
+                // No need to filter / splice any positionals for Command.Proxy.
+                // Once inside a proxy, we've already reached the point of no return.
+
                 // @ts-ignore: The property is meant to have been defined by the child class
                 command[propertyName] = state.positionals.map(({value}) => value);
             });

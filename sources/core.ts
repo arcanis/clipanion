@@ -29,7 +29,7 @@ export type RunState = {
     ignoreOptions: boolean;
     options: {name: string, value: any}[];
     path: string[];
-    positionals: {value: string, extra: boolean}[];
+    positionals: {value: string, extra: boolean | typeof NoLimits}[];
     remainder: string | null;
     selectedIndex: number | null;
 };
@@ -603,6 +603,9 @@ export const reducers = {
     pushExtra: (state: RunState, segment: string) => {
         return {...state, positionals: state.positionals.concat({value: segment, extra: true})}
     },
+    pushExtraNoLimits: (state: RunState, segment: string) => {
+        return {...state, positionals: state.positionals.concat({value: segment, extra: NoLimits})}
+    },
     pushTrue: (state: RunState, segment: string, name: string = segment) => {
         return {...state, options: state.options.concat({name: segment, value: true})};
     },
@@ -671,10 +674,10 @@ export class CommandBuilder<Context> {
     public readonly cliIndex: number;
     public readonly cliOpts: Readonly<CliOptions>;
 
-    private readonly allOptionNames: string[] = [];
-    private readonly arity: ArityDefinition = {leading: [], trailing: [], extra: [], proxy: false};
-    private readonly options: OptDefinition[] = [];
-    private readonly paths: string[][] = [];
+    public readonly allOptionNames: string[] = [];
+    public readonly arity: ArityDefinition = {leading: [], trailing: [], extra: [], proxy: false};
+    public readonly options: OptDefinition[] = [];
+    public readonly paths: string[][] = [];
 
     private context?: Context;
 
@@ -876,8 +879,8 @@ export class CommandBuilder<Context> {
                     if (!this.arity.proxy)
                         this.registerOptions(machine, extraNode);
 
-                    registerDynamic(machine, lastLeadingNode, positionalArgument, extraNode, `pushExtra`);
-                    registerDynamic(machine, extraNode, positionalArgument, extraNode, `pushExtra`);
+                    registerDynamic(machine, lastLeadingNode, positionalArgument, extraNode, `pushExtraNoLimits`);
+                    registerDynamic(machine, extraNode, positionalArgument, extraNode, `pushExtraNoLimits`);
                     registerShortcut(machine, extraNode, extraShortcutNode);
                 } else {
                     for (let t = 0; t < this.arity.extra.length; ++t) {

@@ -1,7 +1,7 @@
 import {expect}                         from 'chai';
 import { HELP_COMMAND_INDEX } from '../sources/constants';
 
-import {CliBuilderCallback, CliBuilder} from '../sources/core';
+import {CliBuilderCallback, CliBuilder, NoLimits} from '../sources/core';
 
 const makeCli = (definitions: CliBuilderCallback<{}>[]) => {
     return CliBuilder.build<{}>(definitions.map(cb => {
@@ -435,9 +435,9 @@ describe(`Core`, () => {
 
         const {positionals} = cli.process([`foo`, `bar`, `baz`]);
         expect(positionals).to.deep.equal([
-            {value: `foo`, extra: true},
-            {value: `bar`, extra: true},
-            {value: `baz`, extra: true},
+            {value: `foo`, extra: NoLimits},
+            {value: `bar`, extra: NoLimits},
+            {value: `baz`, extra: NoLimits},
         ]);
     });
 
@@ -451,9 +451,9 @@ describe(`Core`, () => {
 
         const {positionals} = cli.process([`src1`, `src2`, `src3`, `dest`]);
         expect(positionals).to.deep.equal([
-            {value: `src1`, extra: true},
-            {value: `src2`, extra: true},
-            {value: `src3`, extra: true},
+            {value: `src1`, extra: NoLimits},
+            {value: `src2`, extra: NoLimits},
+            {value: `src3`, extra: NoLimits},
             {value: `dest`, extra: false},
         ]);
     });
@@ -470,9 +470,9 @@ describe(`Core`, () => {
         const {positionals} = cli.process([`foo`, `src1`, `src2`, `src3`, `dest`]);
         expect(positionals).to.deep.equal([
             {value: `foo`, extra: false},
-            {value: `src1`, extra: true},
-            {value: `src2`, extra: true},
-            {value: `src3`, extra: true},
+            {value: `src1`, extra: NoLimits},
+            {value: `src2`, extra: NoLimits},
+            {value: `src3`, extra: NoLimits},
             {value: `dest`, extra: false},
         ]);
     });
@@ -494,9 +494,9 @@ describe(`Core`, () => {
         ]);
 
         expect(positionals).to.deep.equal([
-            {value: `src1`, extra: true},
-            {value: `src2`, extra: true},
-            {value: `src3`, extra: true},
+            {value: `src1`, extra: NoLimits},
+            {value: `src2`, extra: NoLimits},
+            {value: `src3`, extra: NoLimits},
         ]);
     });
 
@@ -536,7 +536,7 @@ describe(`Core`, () => {
 
         expect(positionals).to.deep.equal([
             {value: `foo`, extra: false},
-            {value: `-x`, extra: true},
+            {value: `-x`, extra: NoLimits},
         ]);
     });
 
@@ -556,7 +556,7 @@ describe(`Core`, () => {
         ]);
 
         expect(positionals).to.deep.equal([
-            {value: `-x`, extra: true},
+            {value: `-x`, extra: NoLimits},
         ]);
     });
 
@@ -680,8 +680,8 @@ describe(`Core`, () => {
 
         const {positionals} = cli.process([`--foo`, `--bar`]);
         expect(positionals).to.deep.equal([
-            {value: `--foo`, extra: true},
-            {value: `--bar`, extra: true},
+            {value: `--foo`, extra: NoLimits},
+            {value: `--bar`, extra: NoLimits},
         ]);
     });
 

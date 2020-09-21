@@ -339,6 +339,118 @@ run --point x y z --point a b c
 # => points = [['x', 'y', 'z'], ['a', 'b', 'c']]
 ```
 
+#### `@Command.Rest(opts: {...})`
+
+| Option | type | Description |
+| --- | --- | --- |
+| `required` | `number` | Number of required trailing arguments |
+
+Specifies that the command accepts an unlimited number of positional arguments. By default no arguments are required, but this can be changed by setting the `required` option.
+
+```ts
+class RunCommand extends Command {
+    @Command.Rest()
+    public values: string[];
+    // ...
+}
+```
+
+Generates:
+
+```bash
+run value1 value2
+# => values = [value1, value2]
+
+run value1
+# => values = [value1]
+
+run
+# => values = []
+```
+
+**Note:** Rest arguments are strictly positionals. All options found between rest arguments will be consumed as options of the `Command` instance. If you wish to forward a list of option to another command without having to parse them yourself, use `Command.Proxy` instead.
+
+**Note:** Rest arguments can be surrounded by other *finite* *non-optional* positionals such as `Command.String({required: true})`. Having multiple rest arguments in the same command is however invalid.
+
+**Advanced Example:**
+
+```ts
+class CopyCommand extends Command {
+    @Command.Rest({required: 1})
+    sources: string[] = [];
+
+    @Command.String()
+    destination!: string;
+
+    @Command.Boolean(`-f,--force`)
+    force: boolean = false;
+
+    @Command.String(`--reflink`, {tolerateBoolean: true})
+    reflink: string | boolean = false;
+
+    // ...
+}
+```
+
+Generates:
+
+```bash
+run src dest
+# => sources = [src]; destination = dest
+
+run src1 src2 dest
+# => sources = [src1, src2]; destination = dest
+
+run src1 --force src2 dest
+# => sources = [src1, src2]; destination = dest; force = true
+
+run src1 src2 --reflink=always dest
+# => sources = [src1, src2]; destination = dest; reflink = always
+
+run src
+# => Error - Not enough positional arguments.
+
+run dest
+# => Error - Not enough positional arguments.
+```
+
+#### `@Command.Proxy(opts: {...})`
+
+| Option | type | Description |
+| --- | --- | --- |
+| `required` | `number` | Number of required trailing arguments |
+
+Specifies that the command accepts an infinite set of positional arguments that will not be consumed by the options of the `Command` instance. Use this decorator instead of `Command.Rest` when you wish to forward arguments to another command parsing them in any way. By default no arguments are required, but this can be changed by setting the `required` option.
+
+```ts
+class RunCommand extends Command {
+    @Command.Proxy()
+    public args: string[];
+    // ...
+}
+```
+
+Generates:
+
+```bash
+run value1 value2
+# => values = [value1, value2]
+
+run value1 --foo
+# => values = [value1, --foo]
+
+run --bar=baz
+# => values = [--bar=baz]
+```
+
+**Note:** Proxying can only happen once per command. Once triggered, a command can't get out of "proxy mode", all remaining arguments being proxied into a list. "Proxy mode" can be triggered in the following ways:
+
+- By passing a positional or an option that doesn't have any listeners attached to it. This happens when the listeners don't exist in the first place.
+
+- By passing a positional that doesn't have any *remaining* listeners attached to it. This happens when the listeners have already consumed a positional.
+
+- By passing the `--` separator before an option that has a listener attached to it. This will cause Clipanion to activate "proxy mode" for all arguments after the separator, *without* proxying the separator itself. In all other cases, the separator *will* be proxied and *not* consumed by Clipanion.
+
 ## Command Help Pages
 
 Clipanion automatically adds support for the `-h` option to all the commands that you define. The information printed will come from the `usage` property attached to the class. For example, the following command:
@@ -435,6 +547,34 @@ class FooCommand extends BaseCommand {
 ```
 
 **Note:** Because of the decorator evaluation order, positional arguments of a subclass will be consumed before positional arguments of a superclass. Because of this, it is not recommended to inherit anything other than options and handlers.
+
+## Lazy evaluation
+
+Many commands have the following form:
+
+```ts
+import {uniqBy} from 'lodash';
+
+export class MyCommand extends Command {
+    async execute() {
+        // ...
+    }
+}
+```
+
+While it works just fine, if you have a lot of command, each with its own set of dependencies (here, `lodash`), the startup time may suffer. This is because the `import` statements will always be eagerly evaluated, even if the command doesn't end up being used in the end. To solve this problem, you can move your imports inside the body of the `execute` function, thus making sure they'll only be evaluated if actually relevant:
+
+```ts
+export class MyCommand extends Command {
+    async execute() {
+        const {uniqBy} = await import(`lodash`);
+
+        // ...
+    }
+}
+```
+
+This strategy is slightly harder to read, so it may not be necessary in every situation. If you like living on the edge, the [`babel-plugin-lazy-import`](https://github.com/arcanis/babel-plugin-lazy-import) plugin is meant to automatically apply this kind of transformation - although it requires you to run Babel on your sources.
 
 ## Contexts
 
