@@ -1,5 +1,4 @@
 import * as errors from './errors';
-import { richFormat } from './format';
 import {
     BATCH_REGEX, BINDING_REGEX, END_OF_INPUT,
     HELP_COMMAND_INDEX, HELP_REGEX, NODE_ERRORED,
@@ -738,15 +737,11 @@ export class CommandBuilder<Context> {
         this.options.push({names, description, arity, hidden, allowBinding});
     }
 
-    getOptions() {
-        return this.options;
-    }
-
     setContext(context: Context) {
         this.context = context;
     }
 
-    usage({detailed = true, showOptionList = false}: {detailed?: boolean; showOptionList?: boolean} = {}) {
+    usage({detailed = true, inlineOptions = true}: {detailed?: boolean; inlineOptions?: boolean} = {}) {
         const segments = [this.cliOpts.binaryName];
 
         const detailedOptionList: {
@@ -768,7 +763,7 @@ export class CommandBuilder<Context> {
 
                 const definition = `${names.join(`,`)}${args.join(``)}`;
 
-                if (showOptionList && description) {
+                if (!inlineOptions && description) {
                     detailedOptionList.push({definition, description});
                 } else {
                     segments.push(`[${definition}]`);
@@ -787,23 +782,7 @@ export class CommandBuilder<Context> {
 
         let usage = segments.join(` `);
 
-        if (detailed) {
-            if (detailedOptionList.length > 0) {
-                usage += `\n\n`;
-                usage += `${richFormat.bold('Options:')}\n`;
-
-                const maxDefinitionLength = detailedOptionList.reduce((length, option) => {
-                    return Math.max(length, option.definition.length);
-                }, 0);
-
-                for (const {definition, description} of detailedOptionList) {
-                    usage += `\n`;
-                    usage += `  ${definition.padEnd(maxDefinitionLength)}    ${description}`;
-                }
-            }
-        }
-
-        return usage;
+        return {usage, options: detailedOptionList};
     }
 
     compile() {

@@ -291,9 +291,8 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
             if (typeof commandClass.usage === `undefined`)
                 continue;
 
-            const builder = this.builder.getBuilderByIndex(number);
-            const path = this.getUsageByIndex(number, {detailed: false});
-            const usage = this.getUsageByIndex(number, {detailed: true});
+            const {usage: path} = this.getUsageByIndex(number, {detailed: false});
+            const {usage, options} = this.getUsageByIndex(number, {detailed: true, inlineOptions: false});
 
             const category = typeof commandClass.usage.category !== `undefined`
                 ? formatMarkdownish(commandClass.usage.category, {format: this.format(colored), paragraphs: false})
@@ -310,8 +309,6 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
             const examples: Definition['examples'] = typeof commandClass.usage.examples !== `undefined`
                 ? commandClass.usage.examples.map(([label, cli]) => [formatMarkdownish(label, {format: this.format(colored), paragraphs: false}), cli.replace(/\$0/g, this.binaryName)])
                 : undefined;
-
-            const options = builder.getOptions().map(({names, description}) => ({definition: names.join(','), description}));
 
             data.push({path, usage, category, description, details, examples, options});
         }
@@ -345,7 +342,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
                 if (typeof categoryCommands === `undefined`)
                     commandsByCategories.set(category, categoryCommands = []);
 
-                const usage = this.getUsageByIndex(number);
+                const {usage} = this.getUsageByIndex(number);
                 categoryCommands.push({commandClass, usage});
             }
 
@@ -414,7 +411,24 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
                     result += `\n`;
                 }
 
-                result += `${this.format(colored).bold(prefix)}${this.getUsageByRegistration(commandClass, {showOptionList: true})}\n`;
+                const {usage, options} = this.getUsageByRegistration(commandClass, {inlineOptions: false});
+
+                result += `${this.format(colored).bold(prefix)}${usage}\n`;
+
+                if (options.length > 0) {
+                    result += `\n`;
+                    result += `${richFormat.bold('Options:')}\n`;
+
+                    const maxDefinitionLength = options.reduce((length, option) => {
+                        return Math.max(length, option.definition.length);
+                    }, 0);
+
+                    result += `\n`;
+
+                    for (const {definition, description} of options) {
+                        result += `  ${definition.padEnd(maxDefinitionLength)}    ${formatMarkdownish(description, {format: this.format(colored), paragraphs: false})}`;
+                    }
+                }
 
                 if (details !== ``) {
                     result += `\n`;
@@ -472,7 +486,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
         return result;
     }
 
-    private getUsageByRegistration(klass: CommandClass<Context>, opts?: {detailed?: boolean; showOptionList?: boolean}) {
+    private getUsageByRegistration(klass: CommandClass<Context>, opts?: {detailed?: boolean; inlineOptions?: boolean}) {
         const index = this.registrations.get(klass);
         if (typeof index === `undefined`)
             throw new Error(`Assertion failed: Unregistered command`);
@@ -480,7 +494,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
         return this.getUsageByIndex(index, opts);
     }
 
-    private getUsageByIndex(n: number, opts?: {detailed?: boolean; showOptionList?: boolean}) {
+    private getUsageByIndex(n: number, opts?: {detailed?: boolean; inlineOptions?: boolean}) {
         return this.builder.getBuilderByIndex(n).usage(opts);
     }
 
