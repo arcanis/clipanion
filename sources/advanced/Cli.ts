@@ -393,7 +393,8 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
             result += formatMarkdownish(`You can also print more details about any of these commands by calling them after adding the \`-h,--help\` flag right after the command name.`, {format: this.format(colored), paragraphs: true});
         } else {
             if (!detailed) {
-                result += `${this.format(colored).bold(prefix)}${this.getUsageByRegistration(commandClass)}\n`;
+                const {usage} = this.getUsageByRegistration(commandClass);
+                result += `${this.format(colored).bold(prefix)}${usage}\n`;
             } else {
                 const {
                     description = ``,
