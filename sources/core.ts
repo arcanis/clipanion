@@ -500,8 +500,8 @@ export function registerDynamic<T extends keyof typeof tests, R extends keyof ty
 
 export function registerShortcut<R extends keyof typeof reducers>(machine: StateMachine, from: number, to: number, reducer?: Callback<R, typeof reducers>) {
     machine.nodes[from].shortcuts.push(
-        {to, reducer: reducer as Callback<keyof typeof reducers, typeof reducers>
-    });
+        {to, reducer: reducer as Callback<keyof typeof reducers, typeof reducers>}
+    );
 }
 
 export function registerStatic<R extends keyof typeof reducers>(machine: StateMachine, from: number, test: string, to: number, reducer?: Callback<R, typeof reducers>) {
@@ -514,17 +514,26 @@ export function registerStatic<R extends keyof typeof reducers>(machine: StateMa
 
 // ------------------------------------------------------------------------
 
+type UndefinedKeys<T> = {[P in keyof T]-?: undefined extends T[P] ? P : never}[keyof T];
+type UndefinedTupleKeys<T extends unknown[]> = UndefinedKeys<Omit<T, keyof []>>;
+type TupleKeys<T> = Exclude<keyof T, keyof []>;
+
 export type CallbackFn<P extends any[], R> = (state: RunState, segment: string, ...args: P) => R;
 export type CallbackFnParameters<T extends CallbackFn<any, any>> = T extends ((state: RunState, segment: string, ...args: infer P) => any) ? P : never;
 export type CallbackStore<T extends string, R> = Record<T, CallbackFn<any, R>>;
-export type Callback<T extends string, S extends CallbackStore<T, any>> = T | [T, ...CallbackFnParameters<S[T]>];
+export type Callback<T extends string, S extends CallbackStore<T, any>> =
+    [TupleKeys<CallbackFnParameters<S[T]>>] extends [UndefinedTupleKeys<CallbackFnParameters<S[T]>>]
+        ? (T | [T, ...CallbackFnParameters<S[T]>])
+        : [T, ...CallbackFnParameters<S[T]>];
 
 export function execute<T extends string, R, S extends CallbackStore<T, R>>(store: S, callback: Callback<T, S>, state: RunState, segment: string) {
+    // TypeScript's control flow can't properly narrow
+    // generic conditionals for some mysterious reason
     if (Array.isArray(callback)) {
-        const [name, ...args] = callback;
+        const [name, ...args] = callback as [T, ...CallbackFnParameters<S[T]>];
         return store[name](state, segment, ...args);
     } else {
-        return store[callback](state, segment);
+        return store[callback as T](state, segment);
     }
 }
 
