@@ -793,7 +793,7 @@ export class CommandBuilder<Context> {
         let firstNode = NODE_INITIAL;
 
         firstNode = injectNode(machine, makeNode());
-        registerStatic(machine, NODE_INITIAL, START_OF_INPUT, firstNode, [`setCandidateUsage`, this.usage()]);
+        registerStatic(machine, NODE_INITIAL, START_OF_INPUT, firstNode, [`setCandidateUsage`, this.usage().usage]);
 
         const positionalArgument = this.arity.proxy
             ? `always`
