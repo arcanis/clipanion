@@ -920,7 +920,7 @@ export class CommandBuilder<Context> {
                 for (const name of option.names) {
                     registerDynamic(machine, node, [`isOption`, name, option.hidden || name !== longestName], node, `pushTrue`);
 
-                    if (name.startsWith(`--`)) {
+                    if (name.startsWith(`--`) && !name.startsWith(`--no-`)) {
                         registerDynamic(machine, node, [`isNegatedOption`, name, option.hidden || name !== longestName], node, [`pushFalse`, name]);
                     }
                 }

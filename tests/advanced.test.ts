@@ -878,4 +878,20 @@ describe(`Advanced`, () => {
         expect(cli.process([`foo`, `--bar`])).to.deep.contain({args: [`foo`, `--bar`]});
         expect(cli.process([`foo`, `--bar`, `--baz=1`])).to.deep.contain({args: [`foo`, `--bar`, `--baz=1`]});
     });
+
+    it(`should not allow negating options with arity 1 that already start with "--no-"`, async () => {
+        class FooCommand extends Command {
+            @Command.Boolean(`--no-redacted`)
+            noRedacted: string[] = [];
+
+            async execute() {}
+        }
+
+        const cli = Cli.from([FooCommand]);
+
+        expect(() => cli.process([`--no-redacted`])).not.to.throw();
+        expect(() => cli.process([`--redacted`])).to.throw(`Unsupported option name ("--redacted")`);
+        expect(() => cli.process([`--no-no-redacted`])).to.throw(`Unsupported option name ("--no-no-redacted")`);
+        expect(() => cli.process([`--no-no-no-redacted`])).to.throw(`Unsupported option name ("--no-no-no-redacted")`);
+    });
 });
