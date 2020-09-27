@@ -448,11 +448,11 @@ function findCommonPrefix(firstPath: string[], secondPath: string[]|undefined, .
 
 type Transition = {
     to: number;
-    reducer?: Callback<keyof typeof reducers>;
+    reducer?: Callback<keyof typeof reducers, typeof reducers>;
 };
 
 type Node = {
-    dynamics: [Callback<keyof typeof tests>, Transition][];
+    dynamics: [Callback<keyof typeof tests, typeof tests>, Transition][];
     shortcuts: Transition[];
     statics: {[segment: string]: Transition[]};
 };
@@ -491,37 +491,53 @@ export function cloneNode(input: Node, offset: number = 0) {
     return output;
 }
 
-export function registerDynamic(machine: StateMachine, from: number, test: Callback<keyof typeof tests>, to: number, reducer?: Callback<keyof typeof reducers>) {
-    machine.nodes[from].dynamics.push([test, {to, reducer}]);
+export function registerDynamic<T extends keyof typeof tests, R extends keyof typeof reducers>(machine: StateMachine, from: number, test: Callback<T, typeof tests>, to: number, reducer?: Callback<R, typeof reducers>) {
+    machine.nodes[from].dynamics.push([
+        test as Callback<keyof typeof tests, typeof tests>,
+        {to, reducer: reducer as Callback<keyof typeof reducers, typeof reducers>}
+    ]);
 }
 
-export function registerShortcut(machine: StateMachine, from: number, to: number, reducer?: Callback<keyof typeof reducers>) {
-    machine.nodes[from].shortcuts.push({to, reducer});
+export function registerShortcut<R extends keyof typeof reducers>(machine: StateMachine, from: number, to: number, reducer?: Callback<R, typeof reducers>) {
+    machine.nodes[from].shortcuts.push(
+        {to, reducer: reducer as Callback<keyof typeof reducers, typeof reducers>}
+    );
 }
 
-export function registerStatic(machine: StateMachine, from: number, test: string, to: number, reducer?: Callback<keyof typeof reducers>) {
+export function registerStatic<R extends keyof typeof reducers>(machine: StateMachine, from: number, test: string, to: number, reducer?: Callback<R, typeof reducers>) {
     let store = !Object.prototype.hasOwnProperty.call(machine.nodes[from].statics, test)
         ? machine.nodes[from].statics[test] = []
         : machine.nodes[from].statics[test];
 
-    store.push({to, reducer});
+    store.push({to, reducer: reducer as Callback<keyof typeof reducers, typeof reducers>});
 }
 
 // ------------------------------------------------------------------------
 
-export type CallbackStore<T extends string> = {[key: string]: (state: RunState, segment: string, ...args: any[]) => {}};
-export type Callback<T extends string> = T | [T, ...any[]];
+type UndefinedKeys<T> = {[P in keyof T]-?: undefined extends T[P] ? P : never}[keyof T];
+type UndefinedTupleKeys<T extends unknown[]> = UndefinedKeys<Omit<T, keyof []>>;
+type TupleKeys<T> = Exclude<keyof T, keyof []>;
 
-export function execute<T extends string>(store: CallbackStore<T>, callback: Callback<T>, state: RunState, segment: string): any {
+export type CallbackFn<P extends any[], R> = (state: RunState, segment: string, ...args: P) => R;
+export type CallbackFnParameters<T extends CallbackFn<any, any>> = T extends ((state: RunState, segment: string, ...args: infer P) => any) ? P : never;
+export type CallbackStore<T extends string, R> = Record<T, CallbackFn<any, R>>;
+export type Callback<T extends string, S extends CallbackStore<T, any>> =
+    [TupleKeys<CallbackFnParameters<S[T]>>] extends [UndefinedTupleKeys<CallbackFnParameters<S[T]>>]
+        ? (T | [T, ...CallbackFnParameters<S[T]>])
+        : [T, ...CallbackFnParameters<S[T]>];
+
+export function execute<T extends string, R, S extends CallbackStore<T, R>>(store: S, callback: Callback<T, S>, state: RunState, segment: string) {
+    // TypeScript's control flow can't properly narrow
+    // generic conditionals for some mysterious reason
     if (Array.isArray(callback)) {
-        const [name, ...args] = callback;
+        const [name, ...args] = callback as [T, ...CallbackFnParameters<S[T]>];
         return store[name](state, segment, ...args);
     } else {
-        return store[callback](state, segment);
+        return store[callback as T](state, segment);
     }
 }
 
-export function suggest(callback: Callback<keyof typeof tests>, state: RunState): string[] | null {
+export function suggest(callback: Callback<keyof typeof tests, typeof tests>, state: RunState): string[] | null {
     const fn = Array.isArray(callback)
         ? tests[callback[0]]
         : tests[callback];
@@ -548,7 +564,7 @@ export const tests = {
     isNotOptionLike: (state: RunState, segment: string) => {
         return state.ignoreOptions || !segment.startsWith(`-`);
     },
-    isOption: (state: RunState, segment: string, name: string, hidden: boolean) => {
+    isOption: (state: RunState, segment: string, name: string, hidden?: boolean) => {
         return !state.ignoreOptions && segment === name;
     },
     isBatchOption: (state: RunState, segment: string, names: string[]) => {
@@ -793,7 +809,7 @@ export class CommandBuilder<Context> {
         let firstNode = NODE_INITIAL;
 
         firstNode = injectNode(machine, makeNode());
-        registerStatic(machine, NODE_INITIAL, START_OF_INPUT, firstNode, [`setCandidateUsage`, this.usage()]);
+        registerStatic(machine, NODE_INITIAL, START_OF_INPUT, firstNode, [`setCandidateUsage`, this.usage().usage]);
 
         const positionalArgument = this.arity.proxy
             ? `always`
@@ -921,7 +937,7 @@ export class CommandBuilder<Context> {
                     registerDynamic(machine, node, [`isOption`, name, option.hidden || name !== longestName], node, `pushTrue`);
 
                     if (name.startsWith(`--`)) {
-                        registerDynamic(machine, node, [`isNegatedOption`, name, option.hidden || name !== longestName], node, [`pushFalse`, name]);
+                        registerDynamic(machine, node, [`isNegatedOption`, name], node, [`pushFalse`, name]);
                     }
                 }
             } else {
