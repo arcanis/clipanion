@@ -1,6 +1,6 @@
 # <img src="./logo.svg" height="25" /> Clipanion
 
-> Type-safe CLI library with no dependencies
+> Type-safe CLI library with no runtime dependencies
 
 [![](https://img.shields.io/npm/v/clipanion.svg)]() [![](https://img.shields.io/npm/l/clipanion.svg)]() [![](https://img.shields.io/badge/developed%20with-Yarn%202-blue)](https://github.com/yarnpkg/berry)
 
