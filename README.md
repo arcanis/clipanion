@@ -30,7 +30,7 @@ In essence you just need to declare a class that extends the `Command` abstract 
 Options and command paths are set using the `Command` option declarators. Because you're in a regular class, you can easily create command that extend others! If you use TypeScript, all property types will be properly inferred with no extra work required - even your validators support coercion (cf [Typanion](https://github.com/arcanis/typanion)'s documentation for more details).
 
 ```ts
-import {Cli, Command, Argument, Entries} from 'clipanion';
+import {Cli, Command, Argument, Builtins} from 'clipanion';
 import * as yup from 'yup';
 
 // greet [-v,--verbose] [--name ARG]
@@ -65,8 +65,8 @@ const cli = new Cli({
     binaryVersion: `1.0.0`,
 });
 
-cli.register(Entries.HelpCommand);
-cli.register(Entries.VersionCommand);
+cli.register(Builtins.HelpCommand);
+cli.register(Builtins.VersionCommand);
 
 cli.register(GreetCommand);
 cli.register(AddCommand);
@@ -435,19 +435,19 @@ Note that the inline code blocks will be automatically highlighted.
 
 ## Optional Built-in Command Entries
 
-Clipanion offers common optional command entries out-of-the-box, under the `Command.Entries` namespace.
+Clipanion offers common optional command entries out-of-the-box, under the `Builtins` namespace.
 
 They have to be manually registered:
 ```ts
-cli.register(Entries.HelpCommand);
-cli.register(Entries.VersionCommand);
+cli.register(Builtins.HelpCommand);
+cli.register(Builtins.VersionCommand);
 ```
 
 ### Help Command - General Help Page
 
 > Paths: `-h`, `--help`
 
-The `Entries.HelpCommand` command displays the list of commands available to the application, printing a block similar to the following.
+The `Builtins.HelpCommand` command displays the list of commands available to the application, printing a block similar to the following.
 
 ![](assets/example-general-help.png)
 
@@ -455,7 +455,7 @@ The `Entries.HelpCommand` command displays the list of commands available to the
 
 > Paths: `-v`, `--version`
 
-The `Command.Entries.Version` command displays the version of the binary provided under `binaryVersion` when creating the CLI.
+The `Command.Builtins.Version` command displays the version of the binary provided under `binaryVersion` when creating the CLI.
 
 ## Composition
 

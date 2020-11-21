@@ -1,7 +1,7 @@
 import {Readable, Writable} from 'stream';
 import * as t               from 'typanion';
 
-import {Argument, Cli, Command, Entries}       from '../advanced';
+import {Argument, Cli, Command, Builtins} from '../advanced';
 
 type Context = {
     cwd: string;
@@ -144,9 +144,9 @@ const cli = new Cli<Context>({
     binaryVersion: `0.0.0`,
 });
 
-cli.register(Entries.DefinitionsCommand);
-cli.register(Entries.HelpCommand);
-cli.register(Entries.VersionCommand);
+cli.register(Builtins.DefinitionsCommand);
+cli.register(Builtins.HelpCommand);
+cli.register(Builtins.VersionCommand);
 
 cli.register(YarnDefaultRun);
 cli.register(YarnInstall);

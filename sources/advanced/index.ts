@@ -5,6 +5,6 @@ export {CommandClass, Usage, Definition} from './Command';
 
 export {UsageError} from '../errors';
     
-export * as Entries from './entries'
+export * as Builtins from './builtins'
 export * as Argument from './arguments'
 

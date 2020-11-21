@@ -3,7 +3,7 @@ import chai, {expect}               from 'chai';
 import getStream                    from 'get-stream';
 import {PassThrough}                from 'stream';
 
-import { Cli, CommandClass, Command, CliOptions, Argument, Entries } from '../sources/advanced';
+import { Cli, CommandClass, Command, CliOptions, Argument, Builtins } from '../sources/advanced';
 
 chai.use(chaiAsPromised);
 
@@ -76,7 +76,7 @@ describe(`Advanced`, () => {
 
                 expect(cli.process([`-h`]).path).to.deep.equal([]);
 
-                cli.register(Entries.HelpCommand);
+                cli.register(Builtins.HelpCommand);
                 expect(cli.process([`-h`]).path).to.deep.equal([`-h`]);
 
                 expect(cli.process([`b`, `--help`]).path).to.deep.equal([`b`]);
@@ -85,7 +85,7 @@ describe(`Advanced`, () => {
 
             it(`should display the usage`, async () => {
                 const cli = new Cli()
-                cli.register(Entries.HelpCommand);
+                cli.register(Builtins.HelpCommand);
 
                 expect(await runCli(cli, [`-h`])).to.equal(cli.usage(null));
                 expect(await runCli(cli, [`--help`])).to.equal(cli.usage(null));
@@ -95,7 +95,7 @@ describe(`Advanced`, () => {
         describe(`version`, () => {
             it(`should display the version of the binary`, async () => {
                 const cli = new Cli({binaryVersion: `2.3.4`})
-                cli.register(Entries.VersionCommand);
+                cli.register(Builtins.VersionCommand);
 
                 expect(await runCli(cli, [`-v`])).to.equal(`2.3.4\n`);
                 expect(await runCli(cli, [`--version`])).to.equal(`2.3.4\n`);
@@ -104,7 +104,7 @@ describe(`Advanced`, () => {
 
             it(`should display "<unknown>" when no version is specified`, async () => {
                 const cli = new Cli()
-                cli.register(Entries.VersionCommand);
+                cli.register(Builtins.VersionCommand);
 
                 expect(await runCli(cli, [`-v`])).to.equal(`<unknown>\n`);
                 expect(await runCli(cli, [`--version`])).to.equal(`<unknown>\n`);
