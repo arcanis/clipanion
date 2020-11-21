@@ -4,13 +4,13 @@
     "esModuleInterop": true,
     "experimentalDecorators": true,
     "lib": [
-      "es2017"
+      "ES2018"
     ],
     "module": "commonjs",
     "rootDir": "sources",
     "outDir": "lib",
     "strict": true,
-    "target": "es2017"
+    "target": "ES2018"
   },
   "include": [
     "sources/**/*"
