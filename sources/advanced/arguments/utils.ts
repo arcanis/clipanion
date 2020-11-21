@@ -55,17 +55,17 @@ export function formatError(message: string, errors: string[]) {
 
 export function applyValidator<U, V>(name: string, value: U, validator?: StrictValidator<unknown, V>) {
   if (typeof validator === `undefined`)
-      return value;
+    return value;
 
   const errors: string[] = [];
   const coercions: Coercion[] = [];
 
   const check = validator(value, {errors, coercions, coercion: v => { value = v; }});
   if (!check) 
-      throw formatError(`Invalid option validation for ${name}`, errors);
+    throw formatError(`Invalid option validation for ${name}`, errors);
 
   for (const [, op] of coercions)
-      op();
+    op();
 
   return value;
 }
