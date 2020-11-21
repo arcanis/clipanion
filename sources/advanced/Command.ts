@@ -4,9 +4,6 @@ import {CommandBuilder, NoLimits, RunState} from '../core';
 import { UsageError } from '../errors';
 
 import {BaseContext, CliContext, MiniCli}   from './Cli';
-import {DefinitionsCommand} from './entries/definitions';
-import {HelpCommand} from './entries/help';
-import {VersionCommand} from './entries/version';
 
 const isOptionSymbol = Symbol(`clipanion/isOption`);
 
@@ -175,22 +172,16 @@ export type Definition = Usage & {
 
 export type CommandClass<Context extends BaseContext = BaseContext> = {
     new(): Command<Context>;
-    path?: string | (string[]);
-    paths?: (string | (string[]))[];
+    paths?: string[][];
     schema?: LooseTest<{[key: string]: unknown}>[];
     usage?: Usage;
 };
 
 export abstract class Command<Context extends BaseContext = BaseContext> {
     /**
-     * Path under which the command should be exposed.
-     */
-    static path?: string | (string[]);
-
-    /**
      * Paths under which the command should be exposed.
      */
-    static paths?: (string | (string[]))[];
+    static paths?: string[][];
 
     /**
      * Defines the usage information for the given command.
@@ -655,7 +646,7 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
          * A command that prints the clipanion definitions.
          */
         Definitions: class DefinitionsCommand extends Command<any> {
-            static path = `--clipanion=definitions`;
+            static path = [[`--clipanion=definitions`]];
             async execute() {
                 this.context.stdout.write(`${JSON.stringify(this.cli.definitions(), null, 2)}\n`);
             }
@@ -667,7 +658,7 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
          * Paths: `-h`, `--help`
          */
         Help: class HelpCommand extends Command<any> {
-            static paths = [`-h`, `--help`];
+            static paths = [[`-h`], [`--help`]];
             async execute() {
                 this.context.stdout.write(this.cli.usage(null));
             }
@@ -679,7 +670,7 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
          * Paths: `-v`, `--version`
          */
         Version: class VersionCommand extends Command<any> {
-            static paths = [`-v`, `--version`];
+            static paths = [[`-v`], [`--version`]];
             async execute() {
                 this.context.stdout.write(`${this.cli.binaryVersion ?? `<unknown>`}\n`);
             }

@@ -193,20 +193,9 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
         const builder = this.builder.command();
         const index = builder.cliIndex;
 
-        const pushPath = (path: string | string[]) => {
-            if (typeof path === `string`) {
-                builder.addPath([path]);
-            } else if (Array.isArray(path)) {
-                builder.addPath(path);
-            }
-        };
-
-        if (typeof commandClass.path !== `undefined`)
-            pushPath(commandClass.path);
-
         if (typeof commandClass.paths !== `undefined`)
             for (const path of commandClass.paths)
-                pushPath(path);
+                builder.addPath(path);
 
         const command = new commandClass();
         for (const [key, value] of Object.entries(command))

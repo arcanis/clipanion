@@ -38,7 +38,7 @@ class GreetCommand extends Command {
     verbose = Command.Boolean(`-v,--verbose`, false);
     name = Command.String(`--name`);
 
-    static path = `greet`;
+    static paths = [[`greet`]];
     async execute() {
         if (typeof this.name === `undefined`) {
             this.context.stdout.write(`You're not registered.\n`);
@@ -53,7 +53,7 @@ class AddCommand extends Command {
     a = Command.String({required: true, validator: t.isNumber()});
     b = Command.String({required: true, validator: t.isNumber()});
 
-    static path = `fibo`;
+    static paths = [[`fibo`]];
     async execute() {
         this.context.stdout.write(`${this.a + this.b}\n`);
     }
@@ -64,6 +64,9 @@ const cli = new Cli({
     binaryName: `bin`,
     binaryVersion: `1.0.0`,
 });
+
+cli.register(Command.Entries.Help);
+cli.register(Command.Entries.Version);
 
 cli.register(GreetCommand);
 cli.register(AddCommand);
@@ -77,13 +80,13 @@ cli.runExit(process.argv.slice(2), {
 
 The `optionNames` parameters all indicate that you should put there a comma-separated list of option names (along with their leading `-`). For example, `-v,--verbose` is a valid parameter.
 
-#### `static path = [segment1?: string, segment2?: string, ...]`
+#### `static paths: string[][]`
 
-Specifies the CLI path that should trigger the command.
+Specifies the CLI paths that should trigger the command.
 
 ```ts
 class WorkspaceCommand extends Command {
-    static path = [`workspaces`, `foreach`];
+    static paths = [[`workspaces`, `foreach`]];
     // ...
 }
 ```

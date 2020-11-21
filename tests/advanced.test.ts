@@ -60,17 +60,17 @@ describe(`Advanced`, () => {
                 });
 
                 cli.register(class CommandB extends Command {
-                    static path = [`b`];
+                    static paths = [[`b`]];
                     async execute() {}
                 });
 
                 cli.register(class CommandB1 extends Command {
-                    static path = [`b`, `one`];
+                    static paths = [[`b`, `one`]];
                     async execute() {}
                 });
 
                 cli.register(class CommandB2 extends Command {
-                    static path = [`b`, `two`];
+                    static paths = [[`b`, `two`]];
                     async execute() {}
                 });
 
@@ -116,7 +116,7 @@ describe(`Advanced`, () => {
     it(`should print the general help listing when using --help on the raw command`, async () => {
         const output = await runCli(() => {
             class CommandHelp extends Command {
-                static paths = [`-h`, `--help`];
+                static paths = [[`-h`], [`--help`]];
                 async execute() {
                     this.context.stdout.write(this.cli.usage(null));
                 }
@@ -190,7 +190,7 @@ describe(`Advanced`, () => {
     it(`should replace binary name in command help`, async () => {
         const output = await runCli(() => {
             class CommandA extends Command {
-                static path = [`add`];
+                static paths = [[`add`]];
                 async execute() {log(this)}
             }
             return [
@@ -231,7 +231,7 @@ describe(`Advanced`, () => {
     it(`should allow calling a command from another`, async () => {
         const output = await runCli(() => {
             class CommandA extends Command {
-                static path = [`foo`];
+                static paths = [[`foo`]];
                 async execute() {
                     log(this);
                     this.cli.run([`bar`]);
@@ -239,7 +239,7 @@ describe(`Advanced`, () => {
             }
 
             class CommandB extends Command {
-                static path = [`bar`];
+                static paths = [[`bar`]];
                 async execute() {
                     log(this);
                 }
@@ -281,7 +281,7 @@ describe(`Advanced`, () => {
             extra = Command.String({required: false});
             scriptName = Command.String();
 
-            static path = [`workspace`];
+            static paths = [[`workspace`]];
             async execute() {
                 throw new Error('not implemented, just testing usage()')
             }
@@ -296,7 +296,7 @@ describe(`Advanced`, () => {
         class CommandA extends Command {
             workspaceNames = Command.Rest({required: 2});
 
-            static path = [`clean`];
+            static paths = [[`clean`]];
             async execute() {
                 throw new Error('not implemented, just testing usage()')
             }
@@ -483,7 +483,7 @@ describe(`Advanced`, () => {
             output = Command.String('--output', {description: 'The output directory'});
             message = Command.String('--message');
 
-            static path = [`greet`];
+            static paths = [[`greet`]];
             async execute() {
                 throw new Error('not implemented, just testing usage()')
             }

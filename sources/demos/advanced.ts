@@ -34,7 +34,7 @@ class YarnInstall extends Command<Context> {
     frozenLockfile = Command.Boolean(`--frozen-lockfile`, false);
     maxRetries = Command.String(`--max-retries`, `0`, {validator: isPositiveInteger});
 
-    static paths = [Command.Default, `install`];
+    static paths = [Command.Default, [`install`]];
     async execute() {
         this.context.stdout.write(`Running an install: ${this.context.cwd}, with ${this.maxRetries} max retries\n`);
     }
@@ -43,7 +43,7 @@ class YarnInstall extends Command<Context> {
 class YarnRunListing extends Command<Context> {
     json = Command.Boolean(`--json`, false);
 
-    static path = `run`;
+    static paths = [[`run`]];
     async execute() {
         this.context.stdout.write(`Listing all the commands (json = ${this.json})\n`);
     }
@@ -57,7 +57,7 @@ class YarnRunExec extends Command<Context> {
         category: `Script-related commands`,
     });
 
-    static path = `run`;
+    static paths = [[`run`]];
     async execute() {
         this.context.stdout.write(`Executing a script named ${this.scriptName} ${this.rest}\n`)
     }
@@ -104,7 +104,7 @@ export default class YarnAdd extends Command<Context> {
         ]],
     });
 
-    static path = `add`;
+    static paths = [[`add`]];
     async execute() {
         if (this.dev) {
             this.context.stdout.write(`Adding a dev dependency\n`);
@@ -133,7 +133,7 @@ class YarnRemove extends Command<Context> {
         ]],
     });
 
-    static path = `remove`;
+    static paths = [[`remove`]];
     async execute() {
     }
 }
