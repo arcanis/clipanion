@@ -36,6 +36,40 @@ function rerouteArguments<A, B>(a: A | B | undefined, b: B): [Exclude<A, B>, B] 
     }
 }
 
+function cleanValidationError(message: string, lowerCase: boolean = false) {
+    let cleaned = message.replace(/^\.: /, ``);
+
+    if (lowerCase)
+        cleaned = cleaned[0].toLowerCase() + cleaned.slice(1);
+
+    return cleaned;
+}
+
+function formatError(message: string, errors: string[]) {
+    if (errors.length === 1) {
+        return new UsageError(`${message}: ${cleanValidationError(errors[0], true)}`)
+    } else {
+        return new UsageError(`${message}:\n${errors.map(error => `\n- ${cleanValidationError(error)}`).join(``)}`)
+    }
+}
+
+function applyValidator<U, V>(name: string, value: U, validator?: StrictValidator<unknown, V>) {
+    if (typeof validator === `undefined`)
+        return value;
+
+    const errors: string[] = [];
+    const coercions: Coercion[] = [];
+
+    const check = validator(value, {errors, coercions, coercion: v => { value = v; }});
+    if (!check) 
+        throw formatError(`Invalid option validation for ${name}`, errors);
+
+    for (const [, op] of coercions)
+        op();
+
+    return value;
+}
+
 export type GeneralFlags = {
     description?: string,
     hidden?: boolean,
@@ -233,7 +267,7 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
 
             const check = schema(this, {errors, coercions});
             if (!check)
-                throw new UsageError(`Invalid options:${errors.map(error => `\n- ${error}`).join(``)}`);
+                throw formatError(`Invalid option schema`, errors);
 
             for (const [, op] of coercions) {
                 op();
@@ -481,7 +515,7 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
                     currentValue = value;
                 }
 
-                return currentValue;
+                return applyValidator(key, currentValue, opts.validator);
             }
         });
     }
@@ -616,24 +650,39 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
      * cli.register(Command.Entries.Help);
      * cli.register(Command.Entries.Version);
      */
-    static Entries: {
+    static Entries = {
         /**
          * A command that prints the clipanion definitions.
          */
-        Definitions: typeof DefinitionsCommand;
+        Definitions: class DefinitionsCommand extends Command<any> {
+            static path = `--clipanion=definitions`;
+            async execute() {
+                this.context.stdout.write(`${JSON.stringify(this.cli.definitions(), null, 2)}\n`);
+            }
+        },
 
         /**
          * A command that prints the usage of all commands.
          *
          * Paths: `-h`, `--help`
          */
-        Help: typeof HelpCommand;
+        Help: class HelpCommand extends Command<any> {
+            static paths = [`-h`, `--help`];
+            async execute() {
+                this.context.stdout.write(this.cli.usage(null));
+            }
+        },
 
         /**
          * A command that prints the version of the binary (`cli.binaryVersion`).
          *
          * Paths: `-v`, `--version`
          */
-        Version: typeof VersionCommand;
-    } = {} as any;
+        Version: class VersionCommand extends Command<any> {
+            static paths = [`-v`, `--version`];
+            async execute() {
+                this.context.stdout.write(`${this.cli.binaryVersion ?? `<unknown>`}\n`);
+            }
+        },
+    };
 }

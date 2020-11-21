@@ -7,6 +7,8 @@ import {formatMarkdownish, ColorFormat, richFormat, textFormat}                 
 import {CommandClass, Command, Definition, CommandOption} from './Command';
 import {HelpCommand}                       from './HelpCommand';
 
+const errorCommandSymbol = Symbol(`clipanion/errorCommand`);
+
 /**
  * The base context of the CLI.
  *
@@ -240,10 +242,15 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
                 const command = new commandClass();
                 command.path = state.path;
 
-                for (const [key, {transformer}] of record.specs.entries())
-                    (command as any)[key] = transformer(record.builder, key, state);
+                try {
+                    for (const [key, {transformer}] of record.specs.entries())
+                        (command as any)[key] = transformer(record.builder, key, state);
 
-                return command;
+                    return command;
+                } catch (error) {
+                    error[errorCommandSymbol] = command;
+                    throw error;
+                }
             } break;
         }
     }
@@ -482,7 +489,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
         return result;
     }
 
-    error(error: Error | any, {colored, command = null}: {colored?: boolean, command?: Command<Context> | null} = {}) {
+    error(error: Error | any, {colored, command = error[errorCommandSymbol] ?? null}: {colored?: boolean, command?: Command<Context> | null} = {}) {
         if (!(error instanceof Error))
             error = new Error(`Execution failed with a non-error rejection (rejected value: ${JSON.stringify(error)})`);
 

@@ -16,13 +16,6 @@ declare module 'yup' {
     }
 }
 
-class YarnDefaultDefinitions extends Command<Context> {
-    static path = [`--clipanion=definitions`];
-    async execute() {
-        this.context.stdout.write(`${JSON.stringify(this.cli.definitions(), null, 2)}\n`);
-    }
-}
-
 class YarnDefaultRun extends Command<Context> {
     scriptName = Command.String();
     rest = Command.Proxy();
@@ -32,12 +25,18 @@ class YarnDefaultRun extends Command<Context> {
     }
 }
 
+const isPositiveInteger = t.applyCascade(t.isNumber(), [
+    t.isInteger(),
+    t.isAtLeast(1),
+]);
+
 class YarnInstall extends Command<Context> {
     frozenLockfile = Command.Boolean(`--frozen-lockfile`, false);
+    maxRetries = Command.String(`--max-retries`, `0`, {validator: isPositiveInteger});
 
     static paths = [Command.Default, `install`];
     async execute() {
-        this.context.stdout.write(`Running an install: ${this.context.cwd}\n`);
+        this.context.stdout.write(`Running an install: ${this.context.cwd}, with ${this.maxRetries} max retries\n`);
     }
 }
 
@@ -145,10 +144,10 @@ const cli = new Cli<Context>({
     binaryVersion: `0.0.0`,
 });
 
+cli.register(Command.Entries.Definitions);
 cli.register(Command.Entries.Help);
 cli.register(Command.Entries.Version);
 
-cli.register(YarnDefaultDefinitions);
 cli.register(YarnDefaultRun);
 cli.register(YarnInstall);
 cli.register(YarnRemove);
