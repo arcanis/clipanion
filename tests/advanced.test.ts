@@ -55,28 +55,24 @@ describe(`Advanced`, () => {
             it(`should have a path`, async () => {
                 const cli = new Cli();
 
-                class CommandA extends Command {
+                cli.register(class CommandA extends Command {
                     async execute() {}
-                }
-                cli.register(CommandA);
+                });
 
-                class CommandB extends Command {
-                    @Command.Path(`b`)
+                cli.register(class CommandB extends Command {
+                    static paths = [[`b`]];
                     async execute() {}
-                }
-                cli.register(CommandB);
+                });
 
-                class CommandB1 extends Command {
-                    @Command.Path(`b`, `one`)
+                cli.register(class CommandB1 extends Command {
+                    static paths = [[`b`, `one`]];
                     async execute() {}
-                }
-                cli.register(CommandB1);
+                });
 
-                class CommandB2 extends Command {
-                    @Command.Path(`b`, `two`)
+                cli.register(class CommandB2 extends Command {
+                    static paths = [[`b`, `two`]];
                     async execute() {}
-                }
-                cli.register(CommandB2);
+                });
 
                 expect(cli.process([`-h`]).path).to.deep.equal([]);
 
@@ -120,8 +116,7 @@ describe(`Advanced`, () => {
     it(`should print the general help listing when using --help on the raw command`, async () => {
         const output = await runCli(() => {
             class CommandHelp extends Command {
-                @Command.Path(`--help`)
-                @Command.Path(`-h`)
+                static paths = [[`-h`], [`--help`]];
                 async execute() {
                     this.context.stdout.write(this.cli.usage(null));
                 }
@@ -145,9 +140,7 @@ describe(`Advanced`, () => {
     it(`should print the help message when using --help`, async () => {
         const output = await runCli(() => {
             class CommandA extends Command {
-                @Command.Boolean(`--foo`)
-                foo: boolean = false;
-
+                foo = Command.Boolean(`--foo`);
                 async execute() {log(this)}
             }
 
@@ -164,9 +157,7 @@ describe(`Advanced`, () => {
     it(`shouldn't detect --help past the -- separator`, async () => {
         const output = await runCli(() => {
             class CommandA extends Command {
-                @Command.String()
-                arg!: string;
-
+                arg = Command.String();
                 async execute() {log(this)}
             }
             return [
@@ -183,9 +174,7 @@ describe(`Advanced`, () => {
     it(`shouldn't detect --help on proxies`, async () => {
         const output = await runCli(() => {
             class CommandA extends Command {
-                @Command.Proxy()
-                args: string[] = [];
-
+                args = Command.Proxy();
                 async execute() {log(this, [`args`])}
             }
             return [
@@ -201,7 +190,7 @@ describe(`Advanced`, () => {
     it(`should replace binary name in command help`, async () => {
         const output = await runCli(() => {
             class CommandA extends Command {
-                @Command.Path(`add`)
+                static paths = [[`add`]];
                 async execute() {log(this)}
             }
             return [
@@ -242,7 +231,7 @@ describe(`Advanced`, () => {
     it(`should allow calling a command from another`, async () => {
         const output = await runCli(() => {
             class CommandA extends Command {
-                @Command.Path(`foo`)
+                static paths = [[`foo`]];
                 async execute() {
                     log(this);
                     this.cli.run([`bar`]);
@@ -250,7 +239,7 @@ describe(`Advanced`, () => {
             }
 
             class CommandB extends Command {
-                @Command.Path(`bar`)
+                static paths = [[`bar`]];
                 async execute() {
                     log(this);
                 }
@@ -268,9 +257,7 @@ describe(`Advanced`, () => {
     it(`should support inheritance`, async () => {
         const output = await runCli(() => {
             abstract class CommandA extends Command {
-                @Command.String(`--foo`)
-                foo!: string;
-
+                foo = Command.String(`--foo`);
                 abstract execute(): Promise<number | void>;
             }
 
@@ -290,16 +277,11 @@ describe(`Advanced`, () => {
 
     it(`derives positional argument names from the property name`, async () => {
         class CommandA extends Command {
-            @Command.String()
-            workspaceName!: string;
+            workspaceName = Command.String();
+            extra = Command.String({required: false});
+            scriptName = Command.String();
 
-            @Command.String({required: false})
-            extra!: string;
-
-            @Command.String()
-            scriptName!: string;
-
-            @Command.Path(`workspace`)
+            static paths = [[`workspace`]];
             async execute() {
                 throw new Error('not implemented, just testing usage()')
             }
@@ -312,10 +294,9 @@ describe(`Advanced`, () => {
 
     it(`derives rest argument names from the property name`, async () => {
         class CommandA extends Command {
-            @Command.Rest({required: 2})
-            workspaceNames!: string;
+            workspaceNames = Command.Rest({required: 2});
 
-            @Command.Path(`clean`)
+            static paths = [[`clean`]];
             async execute() {
                 throw new Error('not implemented, just testing usage()')
             }
@@ -328,8 +309,7 @@ describe(`Advanced`, () => {
 
     it(`supports strings that act like booleans if not bound to a value`, async () => {
         class CommandA extends Command {
-            @Command.String(`--break`, { tolerateBoolean: true })
-            enableDebugger: boolean | string = false;
+            enableDebugger = Command.String(`--break`, false, {tolerateBoolean: true});
 
             async execute() {
                 log(this, [`enableDebugger`]);
@@ -337,8 +317,7 @@ describe(`Advanced`, () => {
         }
 
         class InvertedCommandA extends Command {
-            @Command.String(`--break`, { tolerateBoolean: true })
-            enableDebugger: boolean | string = true;
+            enableDebugger = Command.String(`--break`, true, {tolerateBoolean: true});
 
             async execute() {
                 log(this, [`enableDebugger`]);
@@ -375,9 +354,7 @@ describe(`Advanced`, () => {
 
     it(`shouldn't crash when throwing non-error exceptions`, async () => {
         class CommandA extends Command {
-            @Command.String({name: 'prettyName'})
-            thisNameIsntUsed!: string;
-
+            thisNameIsntUsed = Command.String({name: 'prettyName'});
             async execute() {throw 42}
         }
 
@@ -479,9 +456,7 @@ describe(`Advanced`, () => {
 
     it(`should extract counter options from complex options`, async () => {
         class CommandA extends Command {
-            @Command.Counter(`-v,--verbose`)
-            verbose: number = 0;
-
+            verbose = Command.Counter(`-v,--verbose`, 0);
             async execute() {}
         }
 
@@ -504,16 +479,11 @@ describe(`Advanced`, () => {
 
     it(`should print flags with a description separately`, async () => {
         class CommandA extends Command {
-            @Command.Boolean('--verbose', {description: 'Log output'})
-            verbose: boolean = false
+            verbose = Command.Boolean('--verbose', {description: 'Log output'});
+            output = Command.String('--output', {description: 'The output directory'});
+            message = Command.String('--message');
 
-            @Command.String('--output', {description: 'The output directory'})
-            output?: string;
-
-            @Command.String('--message')
-            message?: string;
-
-            @Command.Path(`greet`)
+            static paths = [[`greet`]];
             async execute() {
                 throw new Error('not implemented, just testing usage()')
             }
@@ -526,9 +496,7 @@ describe(`Advanced`, () => {
 
     it(`should support tuples`, async () => {
         class PointCommand extends Command {
-            @Command.String(`--point`, {arity: 3})
-            point!: [x: string, y: string, z: string];
-
+            point = Command.String(`--point`, {arity: 3});
             async execute() {}
         }
 
@@ -539,12 +507,8 @@ describe(`Advanced`, () => {
 
     it(`should extract tuples from complex options surrounded by rest arguments`, async () => {
         class PointCommand extends Command {
-            @Command.String(`--point`, {arity: 3})
-            point!: [x: string, y: string, z: string];
-
-            @Command.Rest()
-            rest: string[] = [];
-
+            point = Command.String(`--point`, {arity: 3});
+            rest = Command.Rest();
             async execute() {}
         }
 
@@ -560,9 +524,7 @@ describe(`Advanced`, () => {
 
     it(`should throw acceptable errors when tuple length is not finite`, async () => {
         class PointCommand extends Command {
-            @Command.String(`--point`, {arity: Infinity})
-            point!: [x: string, y: string, z: string];
-
+            point = Command.String(`--point`, {arity: Infinity});
             async execute() {}
         }
 
@@ -573,9 +535,7 @@ describe(`Advanced`, () => {
 
     it(`should throw acceptable errors when tuple length is not an integer`, async () => {
         class PointCommand extends Command {
-            @Command.String(`--point`, {arity: 1.5})
-            point!: [x: string, y: string, z: string];
-
+            point = Command.String(`--point`, {arity: 1.5});
             async execute() {}
         }
 
@@ -586,9 +546,7 @@ describe(`Advanced`, () => {
 
     it(`should throw acceptable errors when tuple length is not positive`, async () => {
         class PointCommand extends Command {
-            @Command.String(`--point`, {arity: -1})
-            point!: [x: string, y: string, z: string];
-
+            point = Command.String(`--point`, {arity: -1});
             async execute() {}
         }
 
@@ -599,9 +557,7 @@ describe(`Advanced`, () => {
 
     it(`should throw acceptable errors when not enough arguments are passed to a tuple`, async () => {
         class PointCommand extends Command {
-            @Command.String(`--point`, {arity: 3})
-            point!: [x: string, y: string, z: string];
-
+            point = Command.String(`--point`, {arity: 3});
             async execute() {}
         }
 
@@ -623,9 +579,7 @@ describe(`Advanced`, () => {
 
     it(`should extract string arrays from complex options`, async () => {
         class IncludeCommand extends Command {
-            @Command.Array(`--include`)
-            include: string[] = [];
-
+            include = Command.Array(`--include`, []);
             async execute() {}
         }
 
@@ -638,22 +592,23 @@ describe(`Advanced`, () => {
 
     it(`should extract tuple arrays from complex options`, async () => {
         class IncludeCommand extends Command {
-            @Command.Array(`--position`, {arity: 3})
-            position: Array<[string, string, string]> = [];
-
+            position = Command.Array(`--position`, [], {arity: 3});
             async execute() {}
         }
 
         const cli = Cli.from([IncludeCommand]);
 
         expect(cli.process([])).to.deep.contain({position: []});
+
         expect(cli.process(
             [`--position`, `1`, `2`, `3`]
         )).to.deep.contain({position: [[`1`, `2`, `3`]]});
+
         expect(cli.process([
             `--position`, `1`, `2`, `3`,
             `--position`, `4`, `5`, `6`,
         ])).to.deep.contain({position: [[`1`, `2`, `3`], [`4`, `5`, `6`]]});
+
         expect(cli.process([
             `--position`, `1`, `2`, `3`,
             `--position`, `4`, `5`, `6`,
@@ -663,60 +618,46 @@ describe(`Advanced`, () => {
 
     it(`should support optional string positionals`, async () => {
         class ThingCommand extends Command {
-            @Command.String({required: false})
-            thing: string | null = null;
-
+            thing = Command.String({required: false});
             async execute() {}
         }
 
         const cli = Cli.from([ThingCommand]);
 
-        expect(cli.process([])).to.contain({thing: null});
+        expect(cli.process([])).to.contain({thing: undefined});
         expect(cli.process([`hello`])).to.contain({thing: `hello`});
     });
 
     it(`should support optional string positionals after required string positionals`, async () => {
         class CopyCommand extends Command {
-            @Command.String()
-            requiredThing!: string;
-
-            @Command.String({required: false})
-            optionalThing: string | null = null;
-
+            requiredThing = Command.String();
+            optionalThing = Command.String({required: false});
             async execute() {}
         }
 
         const cli = Cli.from([CopyCommand]);
 
-        expect(cli.process([`hello`])).to.contain({optionalThing: null});
+        expect(cli.process([`hello`])).to.contain({optionalThing: undefined});
         expect(cli.process([`hello`, `world`])).to.contain({optionalThing: `world`});
     });
 
     it(`should support optional string positionals before required string positionals`, async () => {
         class CopyCommand extends Command {
-            @Command.String({required: false})
-            optionalThing: string | null = null;
-
-            @Command.String()
-            requiredThing!: string;
-
+            optionalThing = Command.String({required: false});
+            requiredThing = Command.String();
             async execute() {}
         }
 
         const cli = Cli.from([CopyCommand]);
 
-        expect(cli.process([`hello`])).to.contain({optionalThing: null, requiredThing: `hello`});
+        expect(cli.process([`hello`])).to.contain({optionalThing: undefined, requiredThing: `hello`});
         expect(cli.process([`hello`, `world`])).to.contain({optionalThing: `hello`, requiredThing: `world`});
     });
 
     it(`should support required positionals after rest arguments`, async () => {
         class CopyCommand extends Command {
-            @Command.Rest()
-            sources: string[] = [];
-
-            @Command.String()
-            destination!: string;
-
+            sources = Command.Rest();
+            destination = Command.String();
             async execute() {}
         }
 
@@ -740,9 +681,7 @@ describe(`Advanced`, () => {
 
     it(`should support rest arguments with a minimum required length`, async () => {
         class CopyCommand extends Command {
-            @Command.Rest({required: 1})
-            sources: string[] = [];
-
+            sources = Command.Rest({required: 1});
             async execute() {}
         }
 
@@ -756,12 +695,8 @@ describe(`Advanced`, () => {
 
     it(`should support required positionals after rest arguments with a minimum required length`, async () => {
         class CopyCommand extends Command {
-            @Command.Rest({required: 1})
-            sources: string[] = [];
-
-            @Command.String()
-            destination!: string;
-
+            sources = Command.Rest({required: 1});
+            destination = Command.String();
             async execute() {}
         }
 
@@ -785,18 +720,10 @@ describe(`Advanced`, () => {
     // We have this in the README, that's why we're testing it
     it(`should support implementing a cp-like command`, async () => {
         class CopyCommand extends Command {
-            @Command.Rest({required: 1})
-            sources: string[] = [];
-
-            @Command.String()
-            destination!: string;
-
-            @Command.Boolean(`-f,--force`)
-            force: boolean = false;
-
-            @Command.String(`--reflink`, {tolerateBoolean: true})
-            reflink: string | boolean = false;
-
+            sources = Command.Rest({required: 1});
+            destination = Command.String();
+            force = Command.Boolean(`-f,--force`, false);
+            reflink = Command.String(`--reflink`, false, {tolerateBoolean: true});
             async execute() {}
         }
 
@@ -849,9 +776,7 @@ describe(`Advanced`, () => {
 
     it(`should support proxies`, async () => {
         class CopyCommand extends Command {
-            @Command.Proxy()
-            args: string[] = [];
-
+            args = Command.Proxy();
             async execute() {}
         }
 
@@ -865,9 +790,7 @@ describe(`Advanced`, () => {
 
     it(`should support proxies with a minimum required length`, async () => {
         class CopyCommand extends Command {
-            @Command.Proxy({required: 1})
-            args: string[] = [];
-
+            args = Command.Proxy({required: 1})
             async execute() {}
         }
 
@@ -881,9 +804,7 @@ describe(`Advanced`, () => {
 
     it(`should not allow negating options with arity 1 that already start with "--no-"`, async () => {
         class FooCommand extends Command {
-            @Command.Boolean(`--no-redacted`)
-            noRedacted: string[] = [];
-
+            noRedacted = Command.Boolean(`--no-redacted`);
             async execute() {}
         }
 

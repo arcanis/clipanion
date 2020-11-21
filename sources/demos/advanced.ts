@@ -1,5 +1,5 @@
 import {Readable, Writable} from 'stream';
-import * as yup             from 'yup';
+import * as t               from 'typanion';
 
 import {Cli, Command}       from '../advanced';
 
@@ -10,105 +10,73 @@ type Context = {
     stderr: Writable;
 }
 
-yup.addMethod(yup.object, `atMostOneOf`, function (this: yup.ObjectSchema<object>, list: Array<string>) {
-    return this.test({
-        name: `atMostOneOf`,
-        message: `\${path} must only have at most one of these keys: \${keys}`,
-        params: { keys: list.join(`, `) },
-        test: value => value == null || list.filter(f => !!value[f]).length <= 1,
-    });
-});
-
 declare module 'yup' {
     interface Schema<T> {
         atMostOneOf(keys: string[]): this;
     }
 }
 
-class YarnDefaultDefinitions extends Command<Context> {
-    @Command.Path(`--clipanion=definitions`)
-    async execute() {
-        this.context.stdout.write(`${JSON.stringify(this.cli.definitions(), null, 2)}\n`);
-    }
-}
-
-class YarnDefaultHelp extends Command<Context> {
-    @Command.Path(`-h`)
-    @Command.Path(`--help`)
-    async execute() {
-        this.context.stdout.write(this.cli.usage());
-    }
-}
-
 class YarnDefaultRun extends Command<Context> {
-    @Command.String()
-    public scriptName!: string;
-
-    @Command.Proxy()
-    public rest!: Array<string>;
+    scriptName = Command.String();
+    rest = Command.Proxy();
 
     async execute() {
         return await this.cli.run([`run`, this.scriptName, ...this.rest], {});
     }
 }
 
-class YarnInstall extends Command<Context> {
-    @Command.Boolean(`--frozen-lockfile`)
-    public frozenLockfile: boolean = false;
+const isPositiveInteger = t.applyCascade(t.isNumber(), [
+    t.isInteger(),
+    t.isAtLeast(1),
+]);
 
-    @Command.Path(`install`)
-    @Command.Path()
+class YarnInstall extends Command<Context> {
+    frozenLockfile = Command.Boolean(`--frozen-lockfile`, false);
+    maxRetries = Command.String(`--max-retries`, `0`, {validator: isPositiveInteger});
+
+    static paths = [Command.Default, [`install`]];
     async execute() {
-        this.context.stdout.write(`Running an install: ${this.context.cwd}\n`);
+        this.context.stdout.write(`Running an install: ${this.context.cwd}, with ${this.maxRetries} max retries\n`);
     }
 }
 
 class YarnRunListing extends Command<Context> {
-    @Command.Boolean(`--json`)
-    public json: boolean = false;
+    json = Command.Boolean(`--json`, false);
 
-    @Command.Path(`run`)
+    static paths = [[`run`]];
     async execute() {
         this.context.stdout.write(`Listing all the commands (json = ${this.json})\n`);
     }
 }
 
 class YarnRunExec extends Command<Context> {
-    @Command.String()
-    public scriptName!: string;
-
-    @Command.Proxy()
-    public rest!: string[];
+    scriptName = Command.String();
+    rest = Command.Proxy();
 
     static usage = Command.Usage({
         category: `Script-related commands`,
     });
 
-    @Command.Path(`run`)
+    static paths = [[`run`]];
     async execute() {
         this.context.stdout.write(`Executing a script named ${this.scriptName} ${this.rest}\n`)
     }
 }
 
 export default class YarnAdd extends Command<Context> {
-    @Command.Boolean(`-D,--dev`, {description: `Use dev mode`})
-    public dev: boolean = false;
+    dev = Command.Boolean(`-D,--dev`, false, {description: `Use dev mode`});
+    peer = Command.Boolean(`-P,--peer`, false, {description: `Use peer mode`});
 
-    @Command.Boolean(`-P,--peer`, {description: `Use peer mode`})
-    public peer: boolean = false;
+    exact = Command.Boolean(`-E,--exact`, false, {description: `Don't add ^ nor ~`});
+    tilde = Command.Boolean(`-T,--tilde`, false, {description: `Use ~`});
+    caret = Command.Boolean(`-C,--caret`, false, {description: `Use ^`});
 
-    @Command.Boolean(`-E,--exact`)
-    public exact: boolean = false;
+    pkgs = Command.Rest({required: 1});
 
-    @Command.Boolean(`-T,--tilde`)
-    public tilde: boolean = false;
-
-    @Command.Rest({required: 1})
-    public pkgs: string[] = [];
-
-    static schema = yup.object()
-        .atMostOneOf([`dev`, `peer`])
-        .atMostOneOf([`exact`, `tilde`]);
+    static schema = [
+        t.hasMutuallyExclusiveKeys([`dev`, `peer`]),
+        t.hasMutuallyExclusiveKeys([`exact`, `tilde`, `caret`]),
+    ];
 
     static usage = Command.Usage({
         description: `
@@ -136,7 +104,7 @@ export default class YarnAdd extends Command<Context> {
         ]],
     });
 
-    @Command.Path(`add`)
+    static paths = [[`add`]];
     async execute() {
         if (this.dev) {
             this.context.stdout.write(`Adding a dev dependency\n`);
@@ -149,8 +117,7 @@ export default class YarnAdd extends Command<Context> {
 }
 
 class YarnRemove extends Command<Context> {
-    @Command.Rest()
-    packages: string[] = [];
+    packages = Command.Rest();
 
     static usage = Command.Usage({
         description: `remove dependencies from the project`,
@@ -166,7 +133,7 @@ class YarnRemove extends Command<Context> {
         ]],
     });
 
-    @Command.Path(`remove`)
+    static paths = [[`remove`]];
     async execute() {
     }
 }
@@ -174,11 +141,13 @@ class YarnRemove extends Command<Context> {
 const cli = new Cli<Context>({
     binaryLabel: `Yarn Project Manager`,
     binaryName: `yarn`,
-    binaryVersion: `v0.0.0`,
+    binaryVersion: `0.0.0`,
 });
 
-cli.register(YarnDefaultDefinitions);
-cli.register(YarnDefaultHelp);
+cli.register(Command.Entries.Definitions);
+cli.register(Command.Entries.Help);
+cli.register(Command.Entries.Version);
+
 cli.register(YarnDefaultRun);
 cli.register(YarnInstall);
 cli.register(YarnRemove);

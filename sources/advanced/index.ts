@@ -1,13 +1,6 @@
-import {Command} from './Command'
-import {HelpCommand} from "./entries/help";
-import {VersionCommand} from "./entries/version";
+export {Command} from './Command'
 
-Command.Entries.Help = HelpCommand
-Command.Entries.Version = VersionCommand
+export {BaseContext, Cli, CliOptions} from './Cli';
+export {CommandClass, Usage, Definition} from './Command';
 
-export {Command}
-
-export {BaseContext, Cli, CliOptions}                     from './Cli';
-export {CommandClass, Usage, Definition, Schema}          from './Command';
-
-export {UsageError}                                       from '../errors';
+export {UsageError} from '../errors';

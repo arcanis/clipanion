@@ -1,6 +1,6 @@
 # <img src="./logo.svg" height="25" /> Clipanion
 
-> Type-safe CLI library with no dependencies
+> Type-safe CLI library with no runtime dependencies
 
 [![](https://img.shields.io/npm/v/clipanion.svg)]() [![](https://img.shields.io/npm/l/clipanion.svg)]() [![](https://img.shields.io/badge/developed%20with-Yarn%202-blue)](https://github.com/yarnpkg/berry)
 
@@ -16,7 +16,7 @@ yarn add clipanion
   - Clipanion supports nested commands (`yarn workspaces list`)
   - Clipanion supports transparent option proxying without `--` (for example `yarn dlx eslint --fix`)
   - Clipanion supports all option types you could think of (including negations, batches, ...)
-  - Clipanion offers a [Yup](https://github.com/jquense/yup) integration for increased validation capabilities
+  - Clipanion offers a [Typanion](https://github.com/arcanis/typanion) integration for increased validation capabilities
   - Clipanion generates an optimized state machine out of your commands
   - Clipanion generates good-looking help pages out of the box
   - Clipanion offers common optional command entries out-of-the-box (e.g. version command, help command)
@@ -25,11 +25,9 @@ Clipanion is used in [Yarn](https://github.com/yarnpkg/berry) with great success
 
 ## Recommended Usage
 
-**Note:** This syntax assumes you have some way to compile decorators. TypeScript supports them via the `experimentalDecorators` setting, and Babel via the `@babel/plugin-proposal-decorators` plugin.
-
 In essence you just need to declare a class that extends the `Command` abstract class, and implement the `execute` method. This function will then be called by Clipanion and its return value will be set as exit code by the engine (by default the exit code will be 0, which means success).
 
-Options and command paths are set using the `@Command` decorators, unless you're in an environment that doesn't support them (in which case check the next section to see how to use the fallback syntax). Because you're in a regular class, you can even set default values to your options as you would with any other property!
+Options and command paths are set using the `Command` option declarators. Because you're in a regular class, you can easily create command that extend others! If you use TypeScript, all property types will be properly inferred with no extra work required - even your validators support coercion (cf [Typanion](https://github.com/arcanis/typanion)'s documentation for more details).
 
 ```ts
 import {Cli, Command} from 'clipanion';
@@ -37,13 +35,10 @@ import * as yup from 'yup';
 
 // greet [-v,--verbose] [--name ARG]
 class GreetCommand extends Command {
-    @Command.Boolean(`-v,--verbose`)
-    public verbose: boolean = false;
+    verbose = Command.Boolean(`-v,--verbose`, false);
+    name = Command.String(`--name`);
 
-    @Command.String(`--name`)
-    public name?: string;
-
-    @Command.Path(`greet`)
+    static paths = [[`greet`]];
     async execute() {
         if (typeof this.name === `undefined`) {
             this.context.stdout.write(`You're not registered.\n`);
@@ -53,23 +48,15 @@ class GreetCommand extends Command {
     }
 }
 
-// fibo <a> <b>
-class FibonacciCommand extends Command {
-    @Command.String({required: true})
-    public a!: number;
+// add <a> <b>
+class AddCommand extends Command {
+    a = Command.String({required: true, validator: t.isNumber()});
+    b = Command.String({required: true, validator: t.isNumber()});
 
-    @Command.String({required: true})
-    public b!: number;
-
-    @Command.Path(`fibo`)
+    static paths = [[`fibo`]];
     async execute() {
-        // ...
+        this.context.stdout.write(`${this.a + this.b}\n`);
     }
-
-    static schema = yup.object().shape({
-        a: yup.number().integer(),
-        b: yup.number().integer(),
-    })
 }
 
 const cli = new Cli({
@@ -78,238 +65,53 @@ const cli = new Cli({
     binaryVersion: `1.0.0`,
 });
 
+cli.register(Command.Entries.Help);
+cli.register(Command.Entries.Version);
+
 cli.register(GreetCommand);
-cli.register(FibonacciCommand);
+cli.register(AddCommand);
 
 cli.runExit(process.argv.slice(2), {
     ...Cli.defaultContext,
 });
 ```
 
-## Fallback Usage
-
-In case the primary syntax isn't available (for example because you want to avoid any kind of transpilation), a fallback syntax is available:
-
-```js
-class GreetCommand extends Command {
-    async execute() {
-        // ...
-    }
-}
-
-GreetCommand.addPath(`greet`);
-
-GreetCommand.addOption(`boolean`, Command.Boolean(`-v,--verbose`));
-GreetCommand.addOption(`name`, Command.String(`--name`));
-```
-
-Note that in this case the option variables never get assigned default values, so they may be undefined within the `execute` block.
-
-## Decorators
+## Declarators
 
 The `optionNames` parameters all indicate that you should put there a comma-separated list of option names (along with their leading `-`). For example, `-v,--verbose` is a valid parameter.
 
-#### `@Command.Path(segment1?: string, segment2?: string, ...)`
+#### `static paths: string[][]`
 
-Specifies through which CLI path should trigger the command.
-
-**This decorator can only be set on the `execute` function itself**, as it isn't linked to specific options.
+Specifies the CLI paths that should trigger the command.
 
 ```ts
-class RunCommand extends Command {
-    @Command.Path(segment1, segment2, segment3)
-    async execute() {
-        // ...
-    }
+class WorkspaceCommand extends Command {
+    static paths = [[`workspaces`, `foreach`]];
+    // ...
 }
 ```
 
-Generates:
-
-```bash
-run segment1 segment2 segment3
-```
-
-Note that you can add as many paths as you want to a single command. By default it will be connected on the main entry point (empty path), but if you add even one explicit path this behavior will be disabled. If you still want the command to be available on both a named path and as a default entry point (for example `yarn` which is an alias for `yarn install`), simply call the decorator without segments:
+Generates a command that will be called by running `yarn workspaces foreach` on the command line (assuming the binary name is `yarn`). You can add as many paths as you want to a single command, for example here the command would be callable via either `yarn install` or `yarn i`:
 
 ```ts
-class YarnCommand extends Command {
-    @Command.Path(`install`)
-    @Command.Path()
-    async execute() {
-        // ...
-    }
+class InstallCommand extends Command {
+    static paths = [[`install`], [`i`]];
+    // ...
 }
 ```
 
-Generates:
-
-```bash
-yarn install
-# or
-yarn
-```
-
-#### `@Command.String(opts: {...})`
-
-| Option | type | Description |
-| --- | --- | --- |
-| `required` | `boolean` | Whether the positional argument is required or not |
-
-Specifies that the command accepts a positional argument. By default it will be required, but this can be toggled off using `required`.
+By default commands are connected on the main entry point (as if they had an empty path), but if you add even one explicit path this behavior will be disabled. If you still want the command to be available on both a named path and as a default entry point (for example like the classic `yarn` command, which is an alias for `yarn install`), simply use `Command.Default`:
 
 ```ts
-class RunCommand extends Command {
-    @Command.String()
-    public foo?: string;
+class InstallCommand extends Command {
+    static paths = [[`install`], Command.Default];
+    // ...
 }
 ```
 
-Generates:
+Runing any of `yarn` or `yarn install` will then trigger the function, as expected.
 
-```bash
-run <ARG>
-# => foo = ARG
-```
-
-Note that Clipanion supports required positional arguments both at the beginning and the end of the positional argument list (which allows you to build CLI for things like `cp`).
-
-```ts
-class RunCommand extends Command {
-    @Command.String({required: false})
-    public foo?: string;
-
-    @Command.String()
-    public bar!: string;
-}
-```
-
-Generates:
-
-```bash
-run value1 value2
-# => foo = value1
-# => bar = value2
-
-run value
-# => foo = undefined
-# => bar = value
-
-run
-# invalid
-```
-
-#### `@Command.String(optionNames: string, opts: {...})`
-
-| Option | type | Description |
-| --- | --- | --- |
-| `arity` | `number` | Number of arguments for the option |
-| `description` | `string`| Short description for the help message |
-| `hidden` | `boolean` | Hide the option from any usage list |
-| `tolerateBoolean` | `boolean` | Accept the option even if no argument is provided |
-
-Specifies that the command accepts an option that takes arguments (by default one, unless overriden via `arity`). Arguments can be specified on the command line using either `--foo=ARG` or `--foo ARG`.
-
-```ts
-class RunCommand extends Command {
-    @Command.String(`-a,--arg`)
-    arg?: string;
-}
-```
-
-Generates:
-
-```bash
-run --arg <ARG>
-run --arg=<ARG>
-run -a <ARG>
-run -a=<ARG>
-# => arg = ARG
-```
-
-Be careful, by default, options that accept an argument must receive one on the CLI (ie `--foo --bar` wouldn't be valid if `--foo` accepts an argument).
-
-This behaviour can be toggled off if the `tolerateBoolean` option is set. In this case, the option will act like a boolean flag if it doesn't have a value. Note that with this option on, arguments values can only be specified using the `--foo=ARG` syntax, which makes this option incompatible with arities higher than one.
-
-```ts
-class RunCommand extends Command {
-    @Command.String(`--inspect`, {tolerateBoolean: true})
-    public debug: boolean | string = false;
-}
-```
-
-Generates:
-
-```bash
-run --inspect
-# => debug = true
-
-run --inspect=1234
-# => debug = "1234"
-
-run --inspect 1234
-# invalid
-```
-
-#### `@Command.Boolean(optionNames: string, opts: {...})`
-
-| Option | type | Description |
-| --- | --- | --- |
-| `description` | `string`| Short description for the help message |
-| `hidden` | `boolean` | Hide the option from any usage list |
-
-Specifies that the command accepts a boolean flag as an option.
-
-```ts
-class RunCommand extends Command {
-    @Command.Boolean(`--flag`)
-    public flag: boolean;
-}
-```
-
-Generates:
-
-```bash
-run --flag
-# => flag = true
-```
-
-#### `@Command.Counter(optionNames: string, {...})`
-
-| Option | type | Description |
-| --- | --- | --- |
-| `description` | `string`| Short description for the help message |
-| `hidden` | `boolean` | Hide the option from any usage list |
-
-Specifies that the command accepts a boolean flag as an option, which will increment a counter for each detected occurrence. Each time the argument is negated, the counter will be reset to `0`. The counter won't be set unless the option is found, so you must remember to set it to an appropriate default value.
-
-```ts
-class RunCommand extends Command {
-    @Command.Counter('-v,--verbose')
-    public verbose: number = 0;
-}
-```
-
-Generates:
-
-```bash
-run
-# => verbose = 0
-
-run -v
-# => verbose = 1
-
-run -vv
-# => verbose = 2
-
-run --verbose -v --verbose -v
-# => verbose = 4
-
-run --verbose -v --verbose -v --no-verbose
-# => verbose = 0
-```
-
-#### `@Command.Array(optionNames: string, opts: {...})`
+#### `Command.Array(optionNames: string, default?: string[], opts?: {...})`
 
 | Option | type | Description |
 | --- | --- | --- |
@@ -317,15 +119,13 @@ run --verbose -v --verbose -v --no-verbose
 | `description` | `string`| Short description for the help message |
 | `hidden` | `boolean` | Hide the option from any usage list |
 
-Specifies that the command accepts a set of string arguments. The `arity` parameter defines how many values need to be accepted for each item.
+Specifies that the command accepts a set of string arguments. The `arity` parameter defines how many values need to be accepted for each item. If no default value is provided, the option will start as `undefined`.
 
 ```ts
 class RunCommand extends Command {
-    @Command.Array('--arg')
-    public args: string[];
-
-    @Command.Array('--point', {arity: 3})
-    public points: [string, string, string][];
+    args = Command.Array('--arg');
+    points = Command.Array('--point', {arity: 3});
+    // ...
 }
 ```
 
@@ -333,13 +133,107 @@ Generates:
 
 ```bash
 run --arg value1 --arg value2
-# => args = [value1, value2]
+# => TestCommand {"args": ["value1", "value2"]}
 
 run --point x y z --point a b c
-# => points = [['x', 'y', 'z'], ['a', 'b', 'c']]
+# => TestCommand {"points": [["x", "y", "z"], ["a", "b", "c"]]}
 ```
 
-#### `@Command.Rest(opts: {...})`
+#### `Command.Boolean(optionNames: string, default?: boolean, opts?: {...})`
+
+| Option | type | Description |
+| --- | --- | --- |
+| `description` | `string`| Short description for the help message |
+| `hidden` | `boolean` | Hide the option from any usage list |
+
+Specifies that the command accepts a boolean flag as an option. If no default value is provided, the option will start as `undefined`.
+
+```ts
+class TestCommand extends Command {
+    flag = Command.Boolean(`--flag`);
+    // ...
+}
+```
+
+Generates:
+
+```bash
+run --flag
+# => TestCommand {"flag": true}
+```
+
+#### `Command.Counter(optionNames: string, default?: number, opts?: {...})`
+
+| Option | type | Description |
+| --- | --- | --- |
+| `description` | `string`| Short description for the help message |
+| `hidden` | `boolean` | Hide the option from any usage list |
+
+Specifies that the command accepts a boolean flag as an option. Contrary to classic boolean options, each detected occurence will cause the counter to be incremented. Each time the argument is negated (`--no-<name>`), the counter will be reset to `0`. If no default value is provided, the option will start as `undefined`.
+
+```ts
+class TestCommand extends Command {
+    verbose = Command.Counter(`-v,--verbose`);
+    // ...
+}
+```
+
+Generates:
+
+```bash
+run -v
+# => TestCommand {"verbose": 1}
+
+run -vv
+# => TestCommand {"verbose": 2}
+
+run --verbose -v --verbose -v
+# => TestCommand {"verbose": 4}
+
+run --verbose -v --verbose -v --no-verbose
+# => TestCommand {"verbose": 0}
+```
+
+#### `Command.Proxy(opts?: {...})`
+
+| Option | type | Description |
+| --- | --- | --- |
+| `required` | `number` | Number of required trailing arguments |
+
+Specifies that the command accepts an infinite set of positional arguments that will not be consumed by the options of the `Command` instance. Use this decorator instead of `Command.Rest` when you wish to forward arguments to another command parsing them in any way. By default no arguments are required, but this can be changed by setting the `required` option.
+
+```ts
+class RunCommand extends Command {
+    args = Command.Proxy();
+    // ...
+}
+```
+
+Generates:
+
+```bash
+run
+# => TestCommand {"values": []}
+
+run value1 value2
+# => TestCommand {"values": ["value1", "value2"]}
+
+run value1 --foo
+# => TestCommand {"values": ["value1", "--foo"]}
+
+run --bar=baz
+# => TestCommand {"values": ["--bar=baz"]}
+```
+
+**Note:** Proxying can only happen once per command. Once triggered, a command can't get out of "proxy mode", all remaining arguments being proxied into a list. "Proxy mode" can be triggered in the following ways:
+
+- By passing a positional or an option that doesn't have any listeners attached to it. This happens when the listeners don't exist in the first place.
+
+- By passing a positional that doesn't have any *remaining* listeners attached to it. This happens when the listeners have already consumed a positional.
+
+- By passing the `--` separator before an option that has a listener attached to it. This will cause Clipanion to activate "proxy mode" for all arguments after the separator, *without* proxying the separator itself. In all other cases, the separator *will* be proxied and *not* consumed by Clipanion.
+
+#### `Command.Rest(opts?: {...})`
 
 | Option | type | Description |
 | --- | --- | --- |
@@ -349,8 +243,7 @@ Specifies that the command accepts an unlimited number of positional arguments. 
 
 ```ts
 class RunCommand extends Command {
-    @Command.Rest()
-    public values: string[];
+    values = Command.Rest();
     // ...
 }
 ```
@@ -358,14 +251,17 @@ class RunCommand extends Command {
 Generates:
 
 ```bash
+run
+# => TestCommand {"values": []}
+
 run value1 value2
-# => values = [value1, value2]
+# => TestCommand {"values": ["value1", "value2"]}
 
 run value1
-# => values = [value1]
+# => TestCommand {"values": ["value1"]}
 
 run
-# => values = []
+# => TestCommand {"values": []}
 ```
 
 **Note:** Rest arguments are strictly positionals. All options found between rest arguments will be consumed as options of the `Command` instance. If you wish to forward a list of option to another command without having to parse them yourself, use `Command.Proxy` instead.
@@ -376,18 +272,10 @@ run
 
 ```ts
 class CopyCommand extends Command {
-    @Command.Rest({required: 1})
-    sources: string[] = [];
-
-    @Command.String()
-    destination!: string;
-
-    @Command.Boolean(`-f,--force`)
-    force: boolean = false;
-
-    @Command.String(`--reflink`, {tolerateBoolean: true})
-    reflink: string | boolean = false;
-
+    sources = Command.Rest({required: 1});
+    destination = Command.String();
+    force = Command.Boolean(`-f,--force`);
+    reflink = Command.String(`--reflink`, {tolerateBoolean: true});
     // ...
 }
 ```
@@ -396,36 +284,110 @@ Generates:
 
 ```bash
 run src dest
-# => sources = [src]; destination = dest
+# => CopyCommand {"sources": ["src"], "destination": "dest"}
 
 run src1 src2 dest
-# => sources = [src1, src2]; destination = dest
+# => CopyCommand {"sources": ["src1", "src2"], "destination": "dest"}
 
 run src1 --force src2 dest
-# => sources = [src1, src2]; destination = dest; force = true
+# => CopyCommand {"sources": ["src1", "src2"], "destination": "dest", "force": true}
 
 run src1 src2 --reflink=always dest
-# => sources = [src1, src2]; destination = dest; reflink = always
+# => CopyCommand {"sources": ["src1", "src2"], "destination": "dest", "reflink": "always"}
 
 run src
-# => Error - Not enough positional arguments.
+# => Invalid! - Not enough positional arguments.
 
 run dest
-# => Error - Not enough positional arguments.
+# => Invalid! - Not enough positional arguments.
 ```
 
-#### `@Command.Proxy(opts: {...})`
+#### `Command.String(optionNames: string, default?: string, opts?: {...})`
 
 | Option | type | Description |
 | --- | --- | --- |
-| `required` | `number` | Number of required trailing arguments |
+| `arity` | `number` | Number of arguments for the option |
+| `description` | `string`| Short description for the help message |
+| `hidden` | `boolean` | Hide the option from any usage list |
+| `tolerateBoolean` | `boolean` | Accept the option even if no argument is provided |
 
-Specifies that the command accepts an infinite set of positional arguments that will not be consumed by the options of the `Command` instance. Use this decorator instead of `Command.Rest` when you wish to forward arguments to another command parsing them in any way. By default no arguments are required, but this can be changed by setting the `required` option.
+Specifies that the command accepts an option that takes arguments (by default one, unless overriden via `arity`). If no default value is provided, the option will start as `undefined`.
 
 ```ts
-class RunCommand extends Command {
-    @Command.Proxy()
-    public args: string[];
+class TestCommand extends Command {
+    arg = Command.String(`-a,--arg`);
+    // ...
+}
+```
+
+Generates:
+
+```bash
+run --arg value
+run --arg=value
+run -a value
+run -a=value
+# => TestCommand {"arg": "value"}
+
+run --arg=-42
+# => TestCommand {"arg": "-42"}
+
+run --arg -42
+# => Invalid! Option `-42` doesn't exist.
+```
+
+Be careful, by default, options that accept an argument must receive one on the CLI (ie `--foo --bar` wouldn't be valid if `--foo` accepts an argument).
+
+This behaviour can be toggled off if the `tolerateBoolean` option is set. In this case, the option will act like a boolean flag if it doesn't have a value. Note that with this option on, arguments values can only be specified using the `--foo=ARG` syntax, which makes this option incompatible with arities higher than one.
+
+```ts
+class TestCommand extends Command {
+    debug = Command.String(`--inspect`, {tolerateBoolean: true});
+    // ...
+}
+```
+
+Generates:
+
+```bash
+run --inspect
+# => TestCommand {"debug": true}
+
+run --inspect=1234
+# => TestCommand {"debug": "1234"}
+
+run --inspect 1234
+# Invalid!
+```
+
+#### `Command.String(opts: {...})`
+
+| Option | type | Description |
+| --- | --- | --- |
+| `required` | `boolean` | Whether the positional argument is required or not |
+
+Specifies that the command accepts a positional argument. By default it will be required, but this can be toggled off using `required`.
+
+```ts
+class TestCommand extends Command {
+    foo = Command.String();
+    // ...
+}
+```
+
+Generates:
+
+```bash
+run value
+# => TestCommand {"foo": "value"}
+```
+
+Note that Clipanion supports required positional arguments both at the beginning and the end of the positional argument list (which allows you to build CLI for things like `cp`). For that to work, make sure to list your arguments in the right order:
+
+```ts
+class TestCommand extends Command {
+    foo = Command.String({required: false});
+    bar = Command.String();
     // ...
 }
 ```
@@ -434,22 +396,14 @@ Generates:
 
 ```bash
 run value1 value2
-# => values = [value1, value2]
+# => TestCommand {"foo": "value1", "bar": "value2"}
 
-run value1 --foo
-# => values = [value1, --foo]
+run value
+# => TestCommand {"foo": undefined, "bar": "value"}
 
-run --bar=baz
-# => values = [--bar=baz]
+run
+# Invalid!
 ```
-
-**Note:** Proxying can only happen once per command. Once triggered, a command can't get out of "proxy mode", all remaining arguments being proxied into a list. "Proxy mode" can be triggered in the following ways:
-
-- By passing a positional or an option that doesn't have any listeners attached to it. This happens when the listeners don't exist in the first place.
-
-- By passing a positional that doesn't have any *remaining* listeners attached to it. This happens when the listeners have already consumed a positional.
-
-- By passing the `--` separator before an option that has a listener attached to it. This will cause Clipanion to activate "proxy mode" for all arguments after the separator, *without* proxying the separator itself. In all other cases, the separator *will* be proxied and *not* consumed by Clipanion.
 
 ## Command Help Pages
 
@@ -509,14 +463,14 @@ Commands can call each other by making use of their `cli` internal property:
 
 ```ts
 class FooCommand extends Command {
-    @Command.Path(`foo`)
+    static paths = [[`foo`]];
     async execute() {
         this.context.stdout.write(`Hello World\n`);
     }
 }
 
 class BarCommand extends Command {
-    @Command.Path(`bar`)
+    static paths = [[`bar`]];
     async execute() {
         this.cli.run([`foo`]);
     }
@@ -529,15 +483,13 @@ Commands can extend each other and inherit options from each other:
 
 ```ts
 abstract class BaseCommand extends Command {
-    @Command.String(`--cwd`, {hidden: true})
-    cwd?: string;
+    cwd = Command.String(`--cwd`, {hidden: true});
 
     abstract execute(): Promise<number | void>;
 }
 
 class FooCommand extends BaseCommand {
-    @Command.String('--foo,-f')
-    public foo?: string;
+    foo = Command.String(`-f,--foo`);
 
     async execute() {
         this.context.stdout.write(`Hello from ${this.cwd ?? process.cwd()}!\n`);
@@ -546,7 +498,7 @@ class FooCommand extends BaseCommand {
 }
 ```
 
-**Note:** Because of the decorator evaluation order, positional arguments of a subclass will be consumed before positional arguments of a superclass. Because of this, it is not recommended to inherit anything other than options and handlers.
+**Note:** Because of the class initialization order, positional arguments of a subclass will be consumed before positional arguments of a superclass. Because of this, it is not recommended to inherit anything other than named options and regular methods.
 
 ## Lazy evaluation
 

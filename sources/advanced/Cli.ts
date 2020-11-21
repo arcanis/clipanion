@@ -1,11 +1,13 @@
 import {Readable, Writable}                from 'stream';
 
 import {HELP_COMMAND_INDEX}                from '../constants';
-import {CliBuilder}                        from '../core';
+import {CliBuilder, CommandBuilder}                        from '../core';
 import {formatMarkdownish, ColorFormat, richFormat, textFormat}                 from '../format';
 
-import {CommandClass, Command, Definition} from './Command';
+import {CommandClass, Command, Definition, CommandOption} from './Command';
 import {HelpCommand}                       from './HelpCommand';
+
+const errorCommandSymbol = Symbol(`clipanion/errorCommand`);
 
 /**
  * The base context of the CLI.
@@ -145,7 +147,11 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
 
     private readonly builder: CliBuilder<CliContext<Context>>;
 
-    private readonly registrations: Map<CommandClass<Context>, number> = new Map();
+    private readonly registrations: Map<CommandClass<Context>, {
+        index: number,
+        builder: CommandBuilder<CliContext<Context>>,
+        specs: Map<string, CommandOption<unknown>>,
+    }> = new Map();
 
     public readonly binaryLabel?: string;
     public readonly binaryName: string;
@@ -182,14 +188,26 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
      * Registers a command inside the CLI.
      */
     register(commandClass: CommandClass<Context>) {
-        const commandBuilder = this.builder.command();
-        this.registrations.set(commandClass, commandBuilder.cliIndex);
+        const specs = new Map<string, CommandOption<any>>();
 
-        const {definitions} = commandClass.resolveMeta(commandClass.prototype);
-        for (const definition of definitions)
-            definition(commandBuilder);
+        const builder = this.builder.command();
+        const index = builder.cliIndex;
 
-        commandBuilder.setContext({
+        if (typeof commandClass.paths !== `undefined`)
+            for (const path of commandClass.paths)
+                builder.addPath(path);
+
+        const command = new commandClass();
+        for (const [key, value] of Object.entries(command))
+            if (typeof value === `object` && value !== null && value[Command.isOption])
+                specs.set(key, value);
+
+        this.registrations.set(commandClass, {specs, builder, index});
+
+        for (const [key, {definition}] of specs.entries())
+            definition(builder, key);
+
+        builder.setContext({
             commandClass,
         });
     }
@@ -206,20 +224,22 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
             default: {
                 const {commandClass} = contexts[state.selectedIndex!];
 
-                const index = this.registrations.get(commandClass);
-                if (typeof index === `undefined`)
+                const record = this.registrations.get(commandClass);
+                if (typeof record === `undefined`)
                     throw new Error(`Assertion failed: Expected the command class to have been registered.`);
-
-                const commandBuilder = this.builder.getBuilderByIndex(index);
 
                 const command = new commandClass();
                 command.path = state.path;
 
-                const {transformers} = commandClass.resolveMeta(commandClass.prototype);
-                for (const transformer of transformers)
-                    transformer(state, command, commandBuilder);
+                try {
+                    for (const [key, {transformer}] of record.specs.entries())
+                        (command as any)[key] = transformer(record.builder, key, state);
 
-                return command;
+                    return command;
+                } catch (error) {
+                    error[errorCommandSymbol] = command;
+                    throw error;
+                }
             } break;
         }
     }
@@ -287,12 +307,12 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
     definitions({colored = false}: {colored?: boolean} = {}): Definition[] {
         const data: Definition[] = [];
 
-        for (const [commandClass, number] of this.registrations) {
+        for (const [commandClass, {index}] of this.registrations) {
             if (typeof commandClass.usage === `undefined`)
                 continue;
 
-            const {usage: path} = this.getUsageByIndex(number, {detailed: false});
-            const {usage, options} = this.getUsageByIndex(number, {detailed: true, inlineOptions: false});
+            const {usage: path} = this.getUsageByIndex(index, {detailed: false});
+            const {usage, options} = this.getUsageByIndex(index, {detailed: true, inlineOptions: false});
 
             const category = typeof commandClass.usage.category !== `undefined`
                 ? formatMarkdownish(commandClass.usage.category, {format: this.format(colored), paragraphs: false})
@@ -318,7 +338,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
 
     usage(command: CommandClass<Context> | Command<Context> | null = null, {colored, detailed = false, prefix = `$ `}: {colored?: boolean, detailed?: boolean, prefix?: string} = {}) {
         // @ts-ignore
-        const commandClass = command !== null && typeof command.getMeta === `undefined`
+        const commandClass = command !== null && command instanceof Command
             ? command.constructor as CommandClass<Context>
             : command as CommandClass<Context> | null;
 
@@ -330,7 +350,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
                 usage: string;
             }[]>();
 
-            for (const [commandClass, number] of this.registrations.entries()) {
+            for (const [commandClass, {index}] of this.registrations.entries()) {
                 if (typeof commandClass.usage === `undefined`)
                     continue;
 
@@ -342,7 +362,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
                 if (typeof categoryCommands === `undefined`)
                     commandsByCategories.set(category, categoryCommands = []);
 
-                const {usage} = this.getUsageByIndex(number);
+                const {usage} = this.getUsageByIndex(index);
                 categoryCommands.push({commandClass, usage});
             }
 
@@ -458,7 +478,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
         return result;
     }
 
-    error(error: Error | any, {colored, command = null}: {colored?: boolean, command?: Command<Context> | null} = {}) {
+    error(error: Error | any, {colored, command = error[errorCommandSymbol] ?? null}: {colored?: boolean, command?: Command<Context> | null} = {}) {
         if (!(error instanceof Error))
             error = new Error(`Execution failed with a non-error rejection (rejected value: ${JSON.stringify(error)})`);
 
@@ -488,11 +508,11 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
     }
 
     private getUsageByRegistration(klass: CommandClass<Context>, opts?: {detailed?: boolean; inlineOptions?: boolean}) {
-        const index = this.registrations.get(klass);
-        if (typeof index === `undefined`)
+        const record = this.registrations.get(klass);
+        if (typeof record === `undefined`)
             throw new Error(`Assertion failed: Unregistered command`);
 
-        return this.getUsageByIndex(index, opts);
+        return this.getUsageByIndex(record.index, opts);
     }
 
     private getUsageByIndex(n: number, opts?: {detailed?: boolean; inlineOptions?: boolean}) {
