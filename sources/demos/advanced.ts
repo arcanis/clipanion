@@ -1,7 +1,7 @@
 import {Readable, Writable} from 'stream';
 import * as t               from 'typanion';
 
-import {Arguments, Cli, Command, Entries}       from '../advanced';
+import {Argument, Cli, Command, Entries}       from '../advanced';
 
 type Context = {
     cwd: string;
@@ -17,8 +17,8 @@ declare module 'yup' {
 }
 
 class YarnDefaultRun extends Command<Context> {
-    scriptName = Arguments.String();
-    rest = Arguments.Proxy();
+    scriptName = Argument.String();
+    rest = Argument.Proxy();
 
     async execute() {
         return await this.cli.run([`run`, this.scriptName, ...this.rest], {});
@@ -31,8 +31,8 @@ const isPositiveInteger = t.applyCascade(t.isNumber(), [
 ]);
 
 class YarnInstall extends Command<Context> {
-    frozenLockfile = Arguments.Boolean(`--frozen-lockfile`, false);
-    maxRetries = Arguments.String(`--max-retries`, `0`, {validator: isPositiveInteger});
+    frozenLockfile = Argument.Boolean(`--frozen-lockfile`, false);
+    maxRetries = Argument.String(`--max-retries`, `0`, {validator: isPositiveInteger});
 
     static paths = [Command.Default, [`install`]];
     async execute() {
@@ -41,7 +41,7 @@ class YarnInstall extends Command<Context> {
 }
 
 class YarnRunListing extends Command<Context> {
-    json = Arguments.Boolean(`--json`, false);
+    json = Argument.Boolean(`--json`, false);
 
     static paths = [[`run`]];
     async execute() {
@@ -50,8 +50,8 @@ class YarnRunListing extends Command<Context> {
 }
 
 class YarnRunExec extends Command<Context> {
-    scriptName = Arguments.String();
-    rest = Arguments.Proxy();
+    scriptName = Argument.String();
+    rest = Argument.Proxy();
 
     static usage = Command.Usage({
         category: `Script-related commands`,
@@ -64,14 +64,14 @@ class YarnRunExec extends Command<Context> {
 }
 
 export default class YarnAdd extends Command<Context> {
-    dev = Arguments.Boolean(`-D,--dev`, false, {description: `Use dev mode`});
-    peer = Arguments.Boolean(`-P,--peer`, false, {description: `Use peer mode`});
+    dev = Argument.Boolean(`-D,--dev`, false, {description: `Use dev mode`});
+    peer = Argument.Boolean(`-P,--peer`, false, {description: `Use peer mode`});
 
-    exact = Arguments.Boolean(`-E,--exact`, false, {description: `Don't add ^ nor ~`});
-    tilde = Arguments.Boolean(`-T,--tilde`, false, {description: `Use ~`});
-    caret = Arguments.Boolean(`-C,--caret`, false, {description: `Use ^`});
+    exact = Argument.Boolean(`-E,--exact`, false, {description: `Don't add ^ nor ~`});
+    tilde = Argument.Boolean(`-T,--tilde`, false, {description: `Use ~`});
+    caret = Argument.Boolean(`-C,--caret`, false, {description: `Use ^`});
 
-    pkgs = Arguments.Rest({required: 1});
+    pkgs = Argument.Rest({required: 1});
 
     static schema = [
         t.hasMutuallyExclusiveKeys([`dev`, `peer`]),
@@ -117,7 +117,7 @@ export default class YarnAdd extends Command<Context> {
 }
 
 class YarnRemove extends Command<Context> {
-    packages = Arguments.Rest();
+    packages = Argument.Rest();
 
     static usage = Command.Usage({
         description: `remove dependencies from the project`,
