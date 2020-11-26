@@ -1,6 +1,6 @@
 import {RunState}                     from '../core';
 
-import {BaseContext, CliContext, Cli} from './Cli';
+import {BaseContext, CliContext}      from './Cli';
 import {Command}                      from './Command';
 
 export class HelpCommand<Context extends BaseContext> extends Command<Context> {

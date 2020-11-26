@@ -3,7 +3,7 @@ import {Readable, Writable}                from 'stream';
 import {HELP_COMMAND_INDEX}                from '../constants';
 import {CliBuilder, CommandBuilder}                        from '../core';
 import {formatMarkdownish, ColorFormat, richFormat, textFormat}                 from '../format';
-import { CommandOption } from './arguments/utils';
+import { CommandOption } from './options/utils';
 
 import {CommandClass, Command, Definition} from './Command';
 import {HelpCommand}                       from './HelpCommand';

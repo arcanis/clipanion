@@ -1,5 +1,5 @@
 import {Coercion, LooseTest, } from 'typanion';
-import { formatError, isOptionSymbol } from './arguments/utils';
+import { formatError, isOptionSymbol } from './options/utils';
 import {BaseContext, MiniCli}   from './Cli';
 
 /**

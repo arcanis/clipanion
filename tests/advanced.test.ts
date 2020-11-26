@@ -3,7 +3,7 @@ import chai, {expect}               from 'chai';
 import getStream                    from 'get-stream';
 import {PassThrough}                from 'stream';
 
-import { Cli, CommandClass, Command, CliOptions, Argument, Builtins } from '../sources/advanced';
+import { Cli, CommandClass, Command, CliOptions, Option, Builtins } from '../sources/advanced';
 
 chai.use(chaiAsPromised);
 
@@ -140,7 +140,7 @@ describe(`Advanced`, () => {
     it(`should print the help message when using --help`, async () => {
         const output = await runCli(() => {
             class CommandA extends Command {
-                foo = Argument.Boolean(`--foo`);
+                foo = Option.Boolean(`--foo`);
                 async execute() {log(this)}
             }
 
@@ -157,7 +157,7 @@ describe(`Advanced`, () => {
     it(`shouldn't detect --help past the -- separator`, async () => {
         const output = await runCli(() => {
             class CommandA extends Command {
-                arg = Argument.String();
+                arg = Option.String();
                 async execute() {log(this)}
             }
             return [
@@ -174,7 +174,7 @@ describe(`Advanced`, () => {
     it(`shouldn't detect --help on proxies`, async () => {
         const output = await runCli(() => {
             class CommandA extends Command {
-                args = Argument.Proxy();
+                args = Option.Proxy();
                 async execute() {log(this, [`args`])}
             }
             return [
@@ -257,7 +257,7 @@ describe(`Advanced`, () => {
     it(`should support inheritance`, async () => {
         const output = await runCli(() => {
             abstract class CommandA extends Command {
-                foo = Argument.String(`--foo`);
+                foo = Option.String(`--foo`);
                 abstract execute(): Promise<number | void>;
             }
 
@@ -277,9 +277,9 @@ describe(`Advanced`, () => {
 
     it(`derives positional argument names from the property name`, async () => {
         class CommandA extends Command {
-            workspaceName = Argument.String();
-            extra = Argument.String({required: false});
-            scriptName = Argument.String();
+            workspaceName = Option.String();
+            extra = Option.String({required: false});
+            scriptName = Option.String();
 
             static paths = [[`workspace`]];
             async execute() {
@@ -294,7 +294,7 @@ describe(`Advanced`, () => {
 
     it(`derives rest argument names from the property name`, async () => {
         class CommandA extends Command {
-            workspaceNames = Argument.Rest({required: 2});
+            workspaceNames = Option.Rest({required: 2});
 
             static paths = [[`clean`]];
             async execute() {
@@ -309,7 +309,7 @@ describe(`Advanced`, () => {
 
     it(`supports strings that act like booleans if not bound to a value`, async () => {
         class CommandA extends Command {
-            enableDebugger = Argument.String(`--break`, false, {tolerateBoolean: true});
+            enableDebugger = Option.String(`--break`, false, {tolerateBoolean: true});
 
             async execute() {
                 log(this, [`enableDebugger`]);
@@ -317,7 +317,7 @@ describe(`Advanced`, () => {
         }
 
         class InvertedCommandA extends Command {
-            enableDebugger = Argument.String(`--break`, true, {tolerateBoolean: true});
+            enableDebugger = Option.String(`--break`, true, {tolerateBoolean: true});
 
             async execute() {
                 log(this, [`enableDebugger`]);
@@ -354,7 +354,7 @@ describe(`Advanced`, () => {
 
     it(`shouldn't crash when throwing non-error exceptions`, async () => {
         class CommandA extends Command {
-            thisNameIsntUsed = Argument.String({name: 'prettyName'});
+            thisNameIsntUsed = Option.String({name: 'prettyName'});
             async execute() {throw 42}
         }
 
@@ -456,7 +456,7 @@ describe(`Advanced`, () => {
 
     it(`should extract counter options from complex options`, async () => {
         class CommandA extends Command {
-            verbose = Argument.Counter(`-v,--verbose`, 0);
+            verbose = Option.Counter(`-v,--verbose`, 0);
             async execute() {}
         }
 
@@ -479,9 +479,9 @@ describe(`Advanced`, () => {
 
     it(`should print flags with a description separately`, async () => {
         class CommandA extends Command {
-            verbose = Argument.Boolean('--verbose', {description: 'Log output'});
-            output = Argument.String('--output', {description: 'The output directory'});
-            message = Argument.String('--message');
+            verbose = Option.Boolean('--verbose', {description: 'Log output'});
+            output = Option.String('--output', {description: 'The output directory'});
+            message = Option.String('--message');
 
             static paths = [[`greet`]];
             async execute() {
@@ -496,7 +496,7 @@ describe(`Advanced`, () => {
 
     it(`should support tuples`, async () => {
         class PointCommand extends Command {
-            point = Argument.String(`--point`, {arity: 3});
+            point = Option.String(`--point`, {arity: 3});
             async execute() {}
         }
 
@@ -507,8 +507,8 @@ describe(`Advanced`, () => {
 
     it(`should extract tuples from complex options surrounded by rest arguments`, async () => {
         class PointCommand extends Command {
-            point = Argument.String(`--point`, {arity: 3});
-            rest = Argument.Rest();
+            point = Option.String(`--point`, {arity: 3});
+            rest = Option.Rest();
             async execute() {}
         }
 
@@ -524,7 +524,7 @@ describe(`Advanced`, () => {
 
     it(`should throw acceptable errors when tuple length is not finite`, async () => {
         class PointCommand extends Command {
-            point = Argument.String(`--point`, {arity: Infinity});
+            point = Option.String(`--point`, {arity: Infinity});
             async execute() {}
         }
 
@@ -535,7 +535,7 @@ describe(`Advanced`, () => {
 
     it(`should throw acceptable errors when tuple length is not an integer`, async () => {
         class PointCommand extends Command {
-            point = Argument.String(`--point`, {arity: 1.5});
+            point = Option.String(`--point`, {arity: 1.5});
             async execute() {}
         }
 
@@ -546,7 +546,7 @@ describe(`Advanced`, () => {
 
     it(`should throw acceptable errors when tuple length is not positive`, async () => {
         class PointCommand extends Command {
-            point = Argument.String(`--point`, {arity: -1});
+            point = Option.String(`--point`, {arity: -1});
             async execute() {}
         }
 
@@ -557,7 +557,7 @@ describe(`Advanced`, () => {
 
     it(`should throw acceptable errors when not enough arguments are passed to a tuple`, async () => {
         class PointCommand extends Command {
-            point = Argument.String(`--point`, {arity: 3});
+            point = Option.String(`--point`, {arity: 3});
             async execute() {}
         }
 
@@ -579,7 +579,7 @@ describe(`Advanced`, () => {
 
     it(`should extract string arrays from complex options`, async () => {
         class IncludeCommand extends Command {
-            include = Argument.Array(`--include`, []);
+            include = Option.Array(`--include`, []);
             async execute() {}
         }
 
@@ -592,7 +592,7 @@ describe(`Advanced`, () => {
 
     it(`should extract tuple arrays from complex options`, async () => {
         class IncludeCommand extends Command {
-            position = Argument.Array(`--position`, [], {arity: 3});
+            position = Option.Array(`--position`, [], {arity: 3});
             async execute() {}
         }
 
@@ -618,7 +618,7 @@ describe(`Advanced`, () => {
 
     it(`should support optional string positionals`, async () => {
         class ThingCommand extends Command {
-            thing = Argument.String({required: false});
+            thing = Option.String({required: false});
             async execute() {}
         }
 
@@ -630,8 +630,8 @@ describe(`Advanced`, () => {
 
     it(`should support optional string positionals after required string positionals`, async () => {
         class CopyCommand extends Command {
-            requiredThing = Argument.String();
-            optionalThing = Argument.String({required: false});
+            requiredThing = Option.String();
+            optionalThing = Option.String({required: false});
             async execute() {}
         }
 
@@ -643,8 +643,8 @@ describe(`Advanced`, () => {
 
     it(`should support optional string positionals before required string positionals`, async () => {
         class CopyCommand extends Command {
-            optionalThing = Argument.String({required: false});
-            requiredThing = Argument.String();
+            optionalThing = Option.String({required: false});
+            requiredThing = Option.String();
             async execute() {}
         }
 
@@ -656,8 +656,8 @@ describe(`Advanced`, () => {
 
     it(`should support required positionals after rest arguments`, async () => {
         class CopyCommand extends Command {
-            sources = Argument.Rest();
-            destination = Argument.String();
+            sources = Option.Rest();
+            destination = Option.String();
             async execute() {}
         }
 
@@ -681,7 +681,7 @@ describe(`Advanced`, () => {
 
     it(`should support rest arguments with a minimum required length`, async () => {
         class CopyCommand extends Command {
-            sources = Argument.Rest({required: 1});
+            sources = Option.Rest({required: 1});
             async execute() {}
         }
 
@@ -695,8 +695,8 @@ describe(`Advanced`, () => {
 
     it(`should support required positionals after rest arguments with a minimum required length`, async () => {
         class CopyCommand extends Command {
-            sources = Argument.Rest({required: 1});
-            destination = Argument.String();
+            sources = Option.Rest({required: 1});
+            destination = Option.String();
             async execute() {}
         }
 
@@ -720,10 +720,10 @@ describe(`Advanced`, () => {
     // We have this in the README, that's why we're testing it
     it(`should support implementing a cp-like command`, async () => {
         class CopyCommand extends Command {
-            sources = Argument.Rest({required: 1});
-            destination = Argument.String();
-            force = Argument.Boolean(`-f,--force`, false);
-            reflink = Argument.String(`--reflink`, false, {tolerateBoolean: true});
+            sources = Option.Rest({required: 1});
+            destination = Option.String();
+            force = Option.Boolean(`-f,--force`, false);
+            reflink = Option.String(`--reflink`, false, {tolerateBoolean: true});
             async execute() {}
         }
 
@@ -776,7 +776,7 @@ describe(`Advanced`, () => {
 
     it(`should support proxies`, async () => {
         class CopyCommand extends Command {
-            args = Argument.Proxy();
+            args = Option.Proxy();
             async execute() {}
         }
 
@@ -790,7 +790,7 @@ describe(`Advanced`, () => {
 
     it(`should support proxies with a minimum required length`, async () => {
         class CopyCommand extends Command {
-            args = Argument.Proxy({required: 1})
+            args = Option.Proxy({required: 1})
             async execute() {}
         }
 
@@ -804,7 +804,7 @@ describe(`Advanced`, () => {
 
     it(`should not allow negating options with arity 1 that already start with "--no-"`, async () => {
         class FooCommand extends Command {
-            noRedacted = Argument.Boolean(`--no-redacted`);
+            noRedacted = Option.Boolean(`--no-redacted`);
             async execute() {}
         }
 
