@@ -184,4 +184,390 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
      * }
      */
     static Default = [];
+<<<<<<< HEAD
+=======
+
+    /**
+     * Used to annotate array options. Such options will be strings unless they
+     * are provided a schema, which will then be used for coercion.
+     * 
+     * @example
+     * --foo hello --foo bar
+     *     ► {"foo": ["hello", "world"]}
+     */
+    static Array(descriptor: string, opts?: ArrayFlags): CommandOptionReturn<string[] | undefined>;
+    static Array(descriptor: string, initialValue: string[], opts?: ArrayFlags): CommandOptionReturn<string[]>;
+    static Array(descriptor: string, initialValueBase: ArrayFlags | string[] | undefined, optsBase?: ArrayFlags) {
+        const [initialValue, opts] = rerouteArguments(initialValueBase, optsBase ?? {});
+        const {arity = 1} = opts;
+
+        const optNames = descriptor.split(`,`);
+        const nameSet = new Set(optNames);
+
+        return makeCommandOption({
+            definition(builder) {
+                builder.addOption({
+                    names: optNames,
+                    
+                    arity,
+                    
+                    hidden: opts?.hidden,
+                    description: opts?.description,
+                });
+            },
+
+            transformer(builder, key, state) {
+                let currentValue = typeof initialValue !== `undefined`
+                    ? [...initialValue]
+                    : undefined;
+
+                for (const {name, value} of state.options) {
+                    if (!nameSet.has(name))
+                        continue;
+
+                    currentValue = currentValue ?? [];
+                    currentValue.push(value);
+                }
+
+                return currentValue;
+            }
+        });
+    }
+
+    /**
+     * Used to annotate boolean options.
+     * 
+     * @example
+     * --foo --no-bar
+     *     ► {"foo": true, "bar": false}
+     */
+    static Boolean(descriptor: string, opts?: BooleanFlags): CommandOptionReturn<boolean | undefined>;
+    static Boolean(descriptor: string, initialValue: boolean, opts?: BooleanFlags): CommandOptionReturn<boolean>;
+    static Boolean(descriptor: string, initialValueBase: BooleanFlags | boolean | undefined, optsBase?: BooleanFlags) {
+        const [initialValue, opts] = rerouteArguments(initialValueBase, optsBase ?? {});
+
+        const optNames = descriptor.split(`,`);
+        const nameSet = new Set(optNames);
+
+        return makeCommandOption({
+            definition(builder) {
+                builder.addOption({
+                    names: optNames,
+
+                    allowBinding: false,
+                    arity: 0,
+
+                    hidden: opts.hidden,
+                    description: opts.description,
+                });
+            },
+
+            transformer(builer, key, state) {
+                let currentValue = initialValue;
+
+                for (const {name, value} of state.options) {
+                    if (!nameSet.has(name))
+                        continue;
+
+                    currentValue = value;
+                }
+
+                return currentValue;
+            }
+        });
+    }
+
+    /**
+     * Used to annotate options whose repeated values are aggregated into a
+     * single number.
+     * 
+     * @example
+     * -vvvvv
+     *     ► {"v": 5}
+     */
+    static Counter(descriptor: string, opts?: CounterFlags): CommandOptionReturn<number | undefined>;
+    static Counter(descriptor: string, initialValue: number, opts?: CounterFlags): CommandOptionReturn<number>;
+    static Counter(descriptor: string, initialValueBase: CounterFlags | number | undefined, optsBase?: CounterFlags) {
+        const [initialValue, opts] = rerouteArguments(initialValueBase, optsBase ?? {});
+
+        const optNames = descriptor.split(`,`);
+        const nameSet = new Set(optNames);
+
+        return makeCommandOption({
+            definition(builder) {
+                builder.addOption({
+                    names: optNames,
+
+                    allowBinding: false,
+                    arity: 0,
+
+                    hidden: opts.hidden,
+                    description: opts.description,
+                });
+            },
+
+            transformer(builder, key, state) {
+                let currentValue = initialValue;
+
+                for (const {name, value} of state.options) {
+                    if (!nameSet.has(name))
+                        continue;
+
+                    currentValue ??= 0;
+
+                    // Negated options reset the counter
+                    if (!value) {
+                        currentValue = 0;
+                    } else {
+                        currentValue += 1;
+                    }
+                }
+
+                return currentValue;
+            }
+        });
+    }
+
+    /**
+     * Used to annotate positional options. Such options will be strings
+     * unless they are provided a schema, which will then be used for coercion.
+     * 
+     * Be careful: this function is order-dependent! Make sure to define your
+     * positional options in the same order you expect to find them on the
+     * command line.
+     */
+    static String(): CommandOptionReturn<string>;
+    static String<T = string>(opts: Omit<StringPositionalFlags<T>, 'required'>): CommandOptionReturn<T>;
+    static String<T = string>(opts: StringPositionalFlags<T> & {required: false}): CommandOptionReturn<T | undefined>;
+    static String<T = string>(opts: StringPositionalFlags<T>): CommandOptionReturn<T | undefined>;
+
+    /**
+     * Used to annotate string options. Such options will be typed as strings
+     * unless they are provided a schema, which will then be used for coercion.
+     * 
+     * @example
+     * --foo=hello --bar world
+     *     ► {"foo": "hello", "bar": "world"}
+     */
+    static String<T = string>(descriptor: string, opts?: StringOptionNoBoolean<T>): CommandOptionReturn<T | undefined>;
+    static String<T = string>(descriptor: string, initialValue: string, opts?: StringOptionNoBoolean<T>): CommandOptionReturn<T>;
+    static String<T = string>(descriptor: string, opts?: StringOptionTolerateBoolean<T>): CommandOptionReturn<T | boolean | undefined>;
+    static String<T = string>(descriptor: string, initialValue: string | boolean, opts?: StringOptionTolerateBoolean<T>): CommandOptionReturn<T | boolean>;
+
+    // This function is badly typed, but it doesn't matter because the overloads provide the true public typings
+    static String(descriptor?: unknown, ...args: any[]) {
+        if (typeof descriptor === `string`) {
+            return Command.StringOption(descriptor, ...args);
+        } else {
+            return Command.StringPositional(descriptor as any);
+        }
+    }
+
+    /**
+     * @internal
+     */
+    static StringOption<T = string>(descriptor: string, opts?: StringOptionNoBoolean<T>): CommandOptionReturn<T | undefined>;
+    static StringOption<T = string>(descriptor: string, initialValue: string, opts?: StringOptionNoBoolean<T>): CommandOptionReturn<T>;
+    static StringOption<T = string>(descriptor: string, opts?: StringOptionTolerateBoolean<T>): CommandOptionReturn<T | boolean | undefined>;
+    static StringOption<T = string>(descriptor: string, initialValue: string | boolean, opts?: StringOptionTolerateBoolean<T>): CommandOptionReturn<T | boolean>;
+    static StringOption<T = string>(descriptor: string, initialValueBase: StringOption<T> | string | boolean | undefined, optsBase?: StringOption<T>) {
+        const [initialValue, opts] = rerouteArguments(initialValueBase, optsBase ?? {});
+        const {arity = 1} = opts;
+
+        const optNames = descriptor.split(`,`);
+        const nameSet = new Set(optNames);
+
+        return makeCommandOption({
+            definition(builder) {
+                builder.addOption({
+                    names: optNames,
+
+                    arity: opts.tolerateBoolean ? 0 : arity,
+
+                    hidden: opts.hidden,
+                    description: opts.description,
+                });
+            },
+
+            transformer(builder, key, state) {
+                let currentValue = initialValue;
+
+                for (const {name, value} of state.options) {
+                    if (!nameSet.has(name))
+                        continue;
+
+                    currentValue = value;
+                }
+
+                return applyValidator(key, currentValue, opts.validator);
+            }
+        });
+    }
+
+    /**
+     * @internal
+     */
+    static StringPositional(): CommandOptionReturn<string>;
+    static StringPositional<T = string>(opts: Omit<StringPositionalFlags<T>, 'required'>): CommandOptionReturn<T>;
+    static StringPositional<T = string>(opts: StringPositionalFlags<T> & {required: false}): CommandOptionReturn<T | undefined>;
+    static StringPositional<T = string>(opts: StringPositionalFlags<T>): CommandOptionReturn<T | undefined>;
+    static StringPositional<T = string>(opts: StringPositionalFlags<T> = {}) {
+        const {required = true} = opts;
+
+        return makeCommandOption({
+            definition(builder, key) {
+                builder.addPositional({
+                    name: opts.name ?? key,
+                    required: opts.required,
+                });
+            },
+
+            transformer(builder, key, state) {
+                for (let i = 0; i < state.positionals.length; ++i) {
+                    // We skip NoLimits extras. We only care about
+                    // required and optional finite positionals.
+                    if (state.positionals[i].extra === NoLimits)
+                        continue;
+
+                    // We skip optional positionals when we only
+                    // care about required positionals.
+                    if (required && state.positionals[i].extra === true)
+                        continue;
+
+                    // We skip required positionals when we only
+                    // care about optional positionals.
+                    if (!required && state.positionals[i].extra === false)
+                        continue;
+
+                    // We remove the positional from the list
+                    const [positional] = state.positionals.splice(i, 1);
+
+                    return positional.value;
+                }
+            }
+        });
+    }
+
+    /**
+     * Used to annotate that the command wants to retrieve all trailing
+     * arguments that cannot be tied to a declared option.
+     * 
+     * Be careful: this function is order-dependent! Make sure to define it
+     * after any positional argument you want to declare.
+     * 
+     * This function is mutually exclusive with Command.Rest.
+     *
+     * @example
+     * yarn run foo hello --foo=bar world
+     *     ► proxy = ["hello", "--foo=bar", "world"]
+     */
+    static Proxy(opts: ProxyFlags = {}) {
+        return makeCommandOption({
+            definition(builder, key) {
+                builder.addProxy({
+                    name: opts.name ?? key,
+                    required: opts.required,
+                });
+            },
+
+            transformer(builder, key, state) {
+                return state.positionals.map(({value}) => value);
+            }
+        });
+    }
+
+    /**
+     * Used to annotate that the command supports any number of positional
+     * arguments.
+     * 
+     * Be careful: this function is order-dependent! Make sure to define it
+     * after any positional argument you want to declare.
+     * 
+     * This function is mutually exclusive with Command.Proxy.
+     * 
+     * @example
+     * yarn add hello world
+     *     ► rest = ["hello", "world"]
+     */
+    static Rest(opts: RestFlags = {}) {
+        return makeCommandOption({
+            definition(builder, key) {
+                builder.addRest({
+                    name: opts.name ?? key,
+                    required: opts.required,
+                });
+            },
+
+            transformer(builder, key, state) {
+                // The builder's arity.extra will always be NoLimits,
+                // because it is set when we call registerDefinition
+
+                const isRestPositional = (index: number) => {
+                    const positional = state.positionals[index];
+
+                    // A NoLimits extra (i.e. an optional rest argument)
+                    if (positional.extra === NoLimits)
+                        return true;
+
+                    // A leading positional (i.e. a required rest argument)
+                    if (positional.extra === false && index < builder.arity.leading.length)
+                        return true;
+
+                    return false;
+                };
+
+                let count = 0;
+                while (count < state.positionals.length && isRestPositional(count))
+                    count += 1;
+
+                return state.positionals.splice(0, count).map(({value}) => value);
+            }
+        });
+    }
+
+    /**
+     * A list of useful semi-opinionated command entries that have to be registered manually.
+     *
+     * They cover the basic needs of most CLIs (e.g. help command, version command).
+     *
+     * @example
+     * cli.register(Command.Entries.Help);
+     * cli.register(Command.Entries.Version);
+     */
+    static Entries = {
+        /**
+         * A command that prints the clipanion definitions.
+         */
+        Definitions: class DefinitionsCommand extends Command<any> {
+            static path = [[`--clipanion=definitions`]];
+            async execute() {
+                this.context.stdout.write(`${JSON.stringify(this.cli.definitions(), null, 2)}\n`);
+            }
+        },
+
+        /**
+         * A command that prints the usage of all commands.
+         *
+         * Paths: `-h`, `--help`
+         */
+        Help: class HelpCommand extends Command<any> {
+            static paths = [[`-h`], [`--help`]];
+            async execute() {
+                this.context.stdout.write(this.cli.usage(null));
+            }
+        },
+
+        /**
+         * A command that prints the version of the binary (`cli.binaryVersion`).
+         *
+         * Paths: `-v`, `--version`
+         */
+        Version: class VersionCommand extends Command<any> {
+            static paths = [[`-v`], [`--version`]];
+            async execute() {
+                this.context.stdout.write(`${this.cli.binaryVersion ?? `<unknown>`}\n`);
+            }
+        },
+    };
+>>>>>>> 1486194... Fixes String option overload order
 }

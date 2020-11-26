@@ -24,10 +24,10 @@ export type StringPositionalFlags<T> = {
   required?: boolean,
 };
 
-function StringOption<T = string>(descriptor: string, opts?: StringOptionTolerateBoolean<T>): CommandOptionReturn<T | boolean | undefined>;
-function StringOption<T = string>(descriptor: string, initialValue: string | boolean, opts?: StringOptionTolerateBoolean<T>): CommandOptionReturn<T | boolean>;
 function StringOption<T = string>(descriptor: string, opts?: StringOptionNoBoolean<T>): CommandOptionReturn<T | undefined>;
 function StringOption<T = string>(descriptor: string, initialValue: string, opts?: StringOptionNoBoolean<T>): CommandOptionReturn<T>;
+function StringOption<T = string>(descriptor: string, opts?: StringOptionTolerateBoolean<T>): CommandOptionReturn<T | boolean | undefined>;
+function StringOption<T = string>(descriptor: string, initialValue: string | boolean, opts?: StringOptionTolerateBoolean<T>): CommandOptionReturn<T | boolean>;
 function StringOption<T = string>(descriptor: string, initialValueBase: StringOption<T> | string | boolean | undefined, optsBase?: StringOption<T>) {
     const [initialValue, opts] = rerouteArguments(initialValueBase, optsBase ?? {});
     const {arity = 1} = opts;
@@ -125,10 +125,10 @@ export function String<T = string>(opts: StringPositionalFlags<T>): CommandOptio
  * --foo=hello --bar world
  *     ► {"foo": "hello", "bar": "world"}
  */
-export function String<T = string>(descriptor: string, opts?: StringOptionTolerateBoolean<T>): CommandOptionReturn<T | boolean | undefined>;
-export function String<T = string>(descriptor: string, initialValue: string | boolean, opts?: StringOptionTolerateBoolean<T>): CommandOptionReturn<T | boolean>;
 export function String<T = string>(descriptor: string, opts?: StringOptionNoBoolean<T>): CommandOptionReturn<T | undefined>;
 export function String<T = string>(descriptor: string, initialValue: string, opts?: StringOptionNoBoolean<T>): CommandOptionReturn<T>;
+export function String<T = string>(descriptor: string, opts?: StringOptionTolerateBoolean<T>): CommandOptionReturn<T | boolean | undefined>;
+export function String<T = string>(descriptor: string, initialValue: string | boolean, opts?: StringOptionTolerateBoolean<T>): CommandOptionReturn<T | boolean>;
 
 // This function is badly typed, but it doesn't matter because the overloads provide the true public typings
 export function String(descriptor?: unknown, ...args: any[]) {
