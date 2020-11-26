@@ -1,9 +1,14 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    "rootDir": "sources",
+    "outDir": "lib",
     "types": [
       "node",
       "yup"
     ]
-  }
+  },
+  "include": [
+    "sources/**/*"
+  ]
 }
