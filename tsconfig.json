@@ -7,12 +7,8 @@
       "ES2018"
     ],
     "module": "commonjs",
-    "rootDir": "sources",
-    "outDir": "lib",
     "strict": true,
-    "target": "ES2018"
+    "target": "ES2018",
+    "newLine": "lf"
   },
-  "include": [
-    "sources/**/*"
-  ]
 }

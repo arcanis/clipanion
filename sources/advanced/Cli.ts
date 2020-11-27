@@ -3,8 +3,9 @@ import {Readable, Writable}                from 'stream';
 import {HELP_COMMAND_INDEX}                from '../constants';
 import {CliBuilder, CommandBuilder}                        from '../core';
 import {formatMarkdownish, ColorFormat, richFormat, textFormat}                 from '../format';
+import { CommandOption } from './options/utils';
 
-import {CommandClass, Command, Definition, CommandOption} from './Command';
+import {CommandClass, Command, Definition} from './Command';
 import {HelpCommand}                       from './HelpCommand';
 
 const errorCommandSymbol = Symbol(`clipanion/errorCommand`);
