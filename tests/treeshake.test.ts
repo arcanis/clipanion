@@ -15,30 +15,38 @@ describe(`Tree shaking`, () => {
     this.timeout(20000);
 
     await xfs.mktempPromise(async (tempDir) => {
-      await xfs.writeFilePromise(
-        `${tempDir}/index.js` as PortablePath,
-        `import { Option } from 'clipanion';\nOption.Array()`
-      );
-      await xfs.writeJsonPromise(`${tempDir}/package.json` as PortablePath, { name: 'test-treeshake' });
-      await xfs.writeFilePromise(`${tempDir}/yarn.lock` as PortablePath, ``);
-
       const packed = await execUtils.execvp(`yarn`, [`pack`, `--out`, npath.fromPortablePath(`${tempDir}/dist.tgz`)], {
         cwd: npath.toPortablePath(__dirname),
       });
+
       expect(packed.code).to.eq(0);
+
+      await xfs.writeJsonPromise(`${tempDir}/package.json` as PortablePath, { name: 'test-treeshake' });
+      await xfs.writeFilePromise(`${tempDir}/yarn.lock` as PortablePath, ``);
+
 
       const added = await execUtils.execvp(`yarn`, [`add`, `./dist.tgz`], { cwd: tempDir });
       expect(added.code).to.eq(0);
 
-      const result = await rollup({
-        input: npath.fromPortablePath(`${tempDir}/index.js`),
-        plugins: [nodeResolve()],
-      });
+      const buildCode = async (code: string) => {
+        await xfs.writeFilePromise(`${tempDir}/index.js` as PortablePath, code);
 
-      const code = await result.generate({ format: 'esm' });
+        const result = await rollup({
+          input: npath.fromPortablePath(`${tempDir}/index.js`),
+          plugins: [nodeResolve()],
+        });
 
-      // @ts-expect-error - matchSnapshot is added by a plugin
-      expect(code.output[0].code.replace(/\r\n?/g, '\n')).to.matchSnapshot(this);
+        const {output} = await result.generate({ format: 'esm' });
+        return output[0].code;
+      };
+
+      const singleCode = await buildCode(`import { Option } from 'clipanion';\nOption.Array();\n`);
+      const multiCode = await buildCode(`import { Counter, Option } from 'clipanion';\nOption.Counter();\nOption.Array();\n`);
+
+      // We expect the output when referencing multiple symbols to be quite a
+      // bit more than the number of extra characters (with some buffer to
+      // account with the transpilation overhead)
+      expect(multiCode.length).to.be.greaterThan(singleCode.length + 20);
     });
   });
 });
