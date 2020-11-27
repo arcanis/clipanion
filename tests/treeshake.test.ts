@@ -1,14 +1,9 @@
 import { rollup } from 'rollup';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
-import { use, expect } from 'chai';
-
-// @ts-expect-error - No types
-import chaiSnapshot from 'mocha-chai-snapshot';
+import { expect } from 'chai';
 
 import { xfs, PortablePath, npath } from '@yarnpkg/fslib';
 import { execUtils } from '@yarnpkg/core';
-
-use(chaiSnapshot);
 
 describe(`Tree shaking`, () => {
   it(`should only keep the command Options used in the bundle`, async function () {

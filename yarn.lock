@@ -765,7 +765,6 @@ __metadata:
     chai-as-promised: ^7.1.1
     get-stream: ^5.1.0
     mocha: ^8.0.1
-    mocha-chai-snapshot: ^1.0.0
     rollup: ^2.16.1
     ts-node: ^8.10.2
     tslib: ^2.0.0
@@ -1953,13 +1952,6 @@ fsevents@~2.1.2:
   bin:
     mkdirp: bin/cmd.js
   checksum: 1aa3a6a2d7514f094a91329ec09994f5d32d2955a4985ecbb3d86f2aaeafc4aa11521f98d606144c1d49cd9835004d9a73342709b8c692c92e59eacf37412468
-  languageName: node
-  linkType: hard
-
-"mocha-chai-snapshot@npm:^1.0.0":
-  version: 1.0.0
-  resolution: "mocha-chai-snapshot@npm:1.0.0"
-  checksum: bf2849454d06cf633aa1957223283a6910a2d23ca70d6d2e3f81884cc432b743d212ee0165ee0891734c54e8be3d21ab97599e6ef47afa4f56f626d2cf33096a
   languageName: node
   linkType: hard
 
