@@ -30,13 +30,13 @@ In essence you just need to declare a class that extends the `Command` abstract 
 Options and command paths are set using the `Command` option declarators. Because you're in a regular class, you can easily create command that extend others! If you use TypeScript, all property types will be properly inferred with no extra work required - even your validators support coercion (cf [Typanion](https://github.com/arcanis/typanion)'s documentation for more details).
 
 ```ts
-import {Cli, Command} from 'clipanion';
+import {Cli, Command, Argument, Builtins} from 'clipanion';
 import * as yup from 'yup';
 
 // greet [-v,--verbose] [--name ARG]
 class GreetCommand extends Command {
-    verbose = Command.Boolean(`-v,--verbose`, false);
-    name = Command.String(`--name`);
+    verbose = Option.Boolean(`-v,--verbose`, false);
+    name = Option.String(`--name`);
 
     static paths = [[`greet`]];
     async execute() {
@@ -50,8 +50,8 @@ class GreetCommand extends Command {
 
 // add <a> <b>
 class AddCommand extends Command {
-    a = Command.String({required: true, validator: t.isNumber()});
-    b = Command.String({required: true, validator: t.isNumber()});
+    a = Option.String({required: true, validator: t.isNumber()});
+    b = Option.String({required: true, validator: t.isNumber()});
 
     static paths = [[`fibo`]];
     async execute() {
@@ -65,8 +65,8 @@ const cli = new Cli({
     binaryVersion: `1.0.0`,
 });
 
-cli.register(Command.Entries.Help);
-cli.register(Command.Entries.Version);
+cli.register(Builtins.HelpCommand);
+cli.register(Builtins.VersionCommand);
 
 cli.register(GreetCommand);
 cli.register(AddCommand);
@@ -111,7 +111,7 @@ class InstallCommand extends Command {
 
 Runing any of `yarn` or `yarn install` will then trigger the function, as expected.
 
-#### `Command.Array(optionNames: string, default?: string[], opts?: {...})`
+#### `Option.Array(optionNames: string, default?: string[], opts?: {...})`
 
 | Option | type | Description |
 | --- | --- | --- |
@@ -123,8 +123,8 @@ Specifies that the command accepts a set of string arguments. The `arity` parame
 
 ```ts
 class RunCommand extends Command {
-    args = Command.Array('--arg');
-    points = Command.Array('--point', {arity: 3});
+    args = Option.Array('--arg');
+    points = Option.Array('--point', {arity: 3});
     // ...
 }
 ```
@@ -139,7 +139,7 @@ run --point x y z --point a b c
 # => TestCommand {"points": [["x", "y", "z"], ["a", "b", "c"]]}
 ```
 
-#### `Command.Boolean(optionNames: string, default?: boolean, opts?: {...})`
+#### `Option.Boolean(optionNames: string, default?: boolean, opts?: {...})`
 
 | Option | type | Description |
 | --- | --- | --- |
@@ -150,7 +150,7 @@ Specifies that the command accepts a boolean flag as an option. If no default va
 
 ```ts
 class TestCommand extends Command {
-    flag = Command.Boolean(`--flag`);
+    flag = Option.Boolean(`--flag`);
     // ...
 }
 ```
@@ -162,7 +162,7 @@ run --flag
 # => TestCommand {"flag": true}
 ```
 
-#### `Command.Counter(optionNames: string, default?: number, opts?: {...})`
+#### `Option.Counter(optionNames: string, default?: number, opts?: {...})`
 
 | Option | type | Description |
 | --- | --- | --- |
@@ -173,7 +173,7 @@ Specifies that the command accepts a boolean flag as an option. Contrary to clas
 
 ```ts
 class TestCommand extends Command {
-    verbose = Command.Counter(`-v,--verbose`);
+    verbose = Option.Counter(`-v,--verbose`);
     // ...
 }
 ```
@@ -194,7 +194,7 @@ run --verbose -v --verbose -v --no-verbose
 # => TestCommand {"verbose": 0}
 ```
 
-#### `Command.Proxy(opts?: {...})`
+#### `Option.Proxy(opts?: {...})`
 
 | Option | type | Description |
 | --- | --- | --- |
@@ -204,7 +204,7 @@ Specifies that the command accepts an infinite set of positional arguments that 
 
 ```ts
 class RunCommand extends Command {
-    args = Command.Proxy();
+    args = Option.Proxy();
     // ...
 }
 ```
@@ -233,7 +233,7 @@ run --bar=baz
 
 - By passing the `--` separator before an option that has a listener attached to it. This will cause Clipanion to activate "proxy mode" for all arguments after the separator, *without* proxying the separator itself. In all other cases, the separator *will* be proxied and *not* consumed by Clipanion.
 
-#### `Command.Rest(opts?: {...})`
+#### `Option.Rest(opts?: {...})`
 
 | Option | type | Description |
 | --- | --- | --- |
@@ -243,7 +243,7 @@ Specifies that the command accepts an unlimited number of positional arguments. 
 
 ```ts
 class RunCommand extends Command {
-    values = Command.Rest();
+    values = Option.Rest();
     // ...
 }
 ```
@@ -266,16 +266,16 @@ run
 
 **Note:** Rest arguments are strictly positionals. All options found between rest arguments will be consumed as options of the `Command` instance. If you wish to forward a list of option to another command without having to parse them yourself, use `Command.Proxy` instead.
 
-**Note:** Rest arguments can be surrounded by other *finite* *non-optional* positionals such as `Command.String({required: true})`. Having multiple rest arguments in the same command is however invalid.
+**Note:** Rest arguments can be surrounded by other *finite* *non-optional* positionals such as `Option.String({required: true})`. Having multiple rest arguments in the same command is however invalid.
 
 **Advanced Example:**
 
 ```ts
 class CopyCommand extends Command {
-    sources = Command.Rest({required: 1});
-    destination = Command.String();
-    force = Command.Boolean(`-f,--force`);
-    reflink = Command.String(`--reflink`, {tolerateBoolean: true});
+    sources = Option.Rest({required: 1});
+    destination = Option.String();
+    force = Option.Boolean(`-f,--force`);
+    reflink = Option.String(`--reflink`, {tolerateBoolean: true});
     // ...
 }
 ```
@@ -302,7 +302,7 @@ run dest
 # => Invalid! - Not enough positional arguments.
 ```
 
-#### `Command.String(optionNames: string, default?: string, opts?: {...})`
+#### `Option.String(optionNames: string, default?: string, opts?: {...})`
 
 | Option | type | Description |
 | --- | --- | --- |
@@ -315,7 +315,7 @@ Specifies that the command accepts an option that takes arguments (by default on
 
 ```ts
 class TestCommand extends Command {
-    arg = Command.String(`-a,--arg`);
+    arg = Option.String(`-a,--arg`);
     // ...
 }
 ```
@@ -342,7 +342,7 @@ This behaviour can be toggled off if the `tolerateBoolean` option is set. In thi
 
 ```ts
 class TestCommand extends Command {
-    debug = Command.String(`--inspect`, {tolerateBoolean: true});
+    debug = Option.String(`--inspect`, {tolerateBoolean: true});
     // ...
 }
 ```
@@ -360,7 +360,7 @@ run --inspect 1234
 # Invalid!
 ```
 
-#### `Command.String(opts: {...})`
+#### `Option.String(opts: {...})`
 
 | Option | type | Description |
 | --- | --- | --- |
@@ -370,7 +370,7 @@ Specifies that the command accepts a positional argument. By default it will be 
 
 ```ts
 class TestCommand extends Command {
-    foo = Command.String();
+    foo = Option.String();
     // ...
 }
 ```
@@ -386,8 +386,8 @@ Note that Clipanion supports required positional arguments both at the beginning
 
 ```ts
 class TestCommand extends Command {
-    foo = Command.String({required: false});
-    bar = Command.String();
+    foo = Option.String({required: false});
+    bar = Option.String();
     // ...
 }
 ```
@@ -435,19 +435,19 @@ Note that the inline code blocks will be automatically highlighted.
 
 ## Optional Built-in Command Entries
 
-Clipanion offers common optional command entries out-of-the-box, under the `Command.Entries` namespace.
+Clipanion offers common optional command entries out-of-the-box, under the `Builtins` namespace.
 
 They have to be manually registered:
 ```ts
-cli.register(Command.Entries.Help);
-cli.register(Command.Entries.Version);
+cli.register(Builtins.HelpCommand);
+cli.register(Builtins.VersionCommand);
 ```
 
 ### Help Command - General Help Page
 
 > Paths: `-h`, `--help`
 
-The `Command.Entries.Help` command displays the list of commands available to the application, printing a block similar to the following.
+The `Builtins.HelpCommand` command displays the list of commands available to the application, printing a block similar to the following.
 
 ![](assets/example-general-help.png)
 
@@ -455,7 +455,7 @@ The `Command.Entries.Help` command displays the list of commands available to th
 
 > Paths: `-v`, `--version`
 
-The `Command.Entries.Version` command displays the version of the binary provided under `binaryVersion` when creating the CLI.
+The `Builtins.Version` command displays the version of the binary provided under `binaryVersion` when creating the CLI.
 
 ## Composition
 
@@ -483,13 +483,13 @@ Commands can extend each other and inherit options from each other:
 
 ```ts
 abstract class BaseCommand extends Command {
-    cwd = Command.String(`--cwd`, {hidden: true});
+    cwd = Option.String(`--cwd`, {hidden: true});
 
     abstract execute(): Promise<number | void>;
 }
 
 class FooCommand extends BaseCommand {
-    foo = Command.String(`-f,--foo`);
+    foo = Option.String(`-f,--foo`);
 
     async execute() {
         this.context.stdout.write(`Hello from ${this.cwd ?? process.cwd()}!\n`);

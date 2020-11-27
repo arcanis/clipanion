@@ -3,6 +3,7 @@
   "version": "2.6.2",
   "main": "sources/advanced/index.ts",
   "license": "MIT",
+  "sideEffects": false,
   "repository": {
     "url": "https://github.com/arcanis/clipanion",
     "type": "git"
@@ -14,12 +15,15 @@
     "typanion": "^3.1.0"
   },
   "devDependencies": {
+    "@rollup/plugin-node-resolve": "^10.0.0",
+    "@rollup/plugin-typescript": "^6.1.0",
     "@types/chai": "^4.2.11",
     "@types/chai-as-promised": "^7.1.2",
     "@types/mocha": "^7.0.2",
     "@types/node": "^14.0.13",
     "@types/yup": "^0.29.3",
-    "@wessberg/rollup-plugin-ts": "^1.2.25",
+    "@yarnpkg/core": "^2.3.1",
+    "@yarnpkg/fslib": "^2.3.0",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
     "get-stream": "^5.1.0",
@@ -37,7 +41,7 @@
     "demo": "node --require ts-node/register sources/demos/advanced.ts"
   },
   "publishConfig": {
-    "main": "lib/index"
+    "main": "lib/advanced/index"
   },
   "files": [
     "lib"
