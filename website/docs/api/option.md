@@ -116,7 +116,7 @@ Option.Proxy(opts?: {...})
 | --- | --- | --- |
 | `required` | `number` | Number of required trailing arguments |
 
-Specifies that the command accepts an infinite set of positional arguments that will not be consumed by the options of the `Command` instance. Use this decorator instead of `Command.Rest` when you wish to forward arguments to another command parsing them in any way. By default no arguments are required, but this can be changed by setting the `required` option.
+Specifies that the command accepts an infinite set of positional arguments that will not be consumed by the options of the `Command` instance. Use this decorator instead of `Option.Rest` when you wish to forward arguments to another command parsing them in any way. By default no arguments are required, but this can be changed by setting the `required` option.
 
 ```ts
 class RunCommand extends Command {
@@ -184,7 +184,7 @@ run
 # => TestCommand {"values": []}
 ```
 
-**Note:** Rest arguments are strictly positionals. All options found between rest arguments will be consumed as options of the `Command` instance. If you wish to forward a list of option to another command without having to parse them yourself, use `Command.Proxy` instead.
+**Note:** Rest arguments are strictly positionals. All options found between rest arguments will be consumed as options of the `Command` instance. If you wish to forward a list of option to another command without having to parse them yourself, use `Option.Proxy` instead.
 
 **Note:** Rest arguments can be surrounded by other *finite* *non-optional* positionals such as `Option.String({required: true})`. Having multiple rest arguments in the same command is however invalid.
 
