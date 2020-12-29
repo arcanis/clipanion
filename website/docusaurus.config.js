@@ -1,52 +1,52 @@
 module.exports = {
-  title: 'Clipanion',
-  tagline: 'Type-safe CLI library with no runtime dependencies',
-  url: 'https://mael.dev/clipanion/',
-  baseUrl: process.env.CONTEXT === 'production' ? '/clipanion/' : '/',
-  onBrokenLinks: 'throw',
-  onBrokenMarkdownLinks: 'warn',
-  favicon: 'logo.svg',
-  organizationName: 'arcanis',
-  projectName: 'clipanion',
+  title: `Clipanion`,
+  tagline: `Type-safe CLI library with no runtime dependencies`,
+  url: `https://mael.dev/clipanion/`,
+  baseUrl: process.env.CONTEXT === `production` ? `/clipanion/` : `/`,
+  onBrokenLinks: `throw`,
+  onBrokenMarkdownLinks: `warn`,
+  favicon: `logo.svg`,
+  organizationName: `arcanis`,
+  projectName: `clipanion`,
   themeConfig: {
     navbar: {
-      title: 'Clipanion',
+      title: `Clipanion`,
       logo: {
-        alt: 'Clipanion Logo',
-        src: 'logo.svg',
+        alt: `Clipanion Logo`,
+        src: `logo.svg`,
       },
       items: [
         {
-          to: 'docs/',
-          activeBasePath: 'docs',
-          label: 'Docs',
-          position: 'left',
+          to: `docs/`,
+          activeBasePath: `docs`,
+          label: `Docs`,
+          position: `left`,
         },
         {
-          href: 'https://github.com/arcanis/clipanion',
-          label: 'GitHub',
-          position: 'right',
+          href: `https://github.com/arcanis/clipanion`,
+          label: `GitHub`,
+          position: `right`,
         },
       ],
     },
     footer: {
-      style: 'dark',
+      style: `dark`,
       links: [
         {
-          title: 'Community',
+          title: `Community`,
           items: [
             {
-              label: 'Discord',
-              href: 'https://discordapp.com/invite/yarnpkg',
+              label: `Discord`,
+              href: `https://discordapp.com/invite/yarnpkg`,
             },
           ],
         },
         {
-          title: 'More',
+          title: `More`,
           items: [
             {
-              label: 'GitHub',
-              href: 'https://github.com/arcanis/clipanion',
+              label: `GitHub`,
+              href: `https://github.com/arcanis/clipanion`,
             },
           ],
         },
@@ -59,18 +59,18 @@ module.exports = {
   },
   presets: [
     [
-      '@docusaurus/preset-classic',
+      `@docusaurus/preset-classic`,
       {
         docs: {
-          sidebarPath: require.resolve('./sidebars.js'),
-          editUrl: 'https://github.com/arcanis/clipanion/edit/master/website/',
+          sidebarPath: require.resolve(`./sidebars.js`),
+          editUrl: `https://github.com/arcanis/clipanion/edit/master/website/`,
         },
         blog: {
           showReadingTime: true,
-          editUrl: 'https://github.com/arcanis/clipanion/edit/master/website/blog/',
+          editUrl: `https://github.com/arcanis/clipanion/edit/master/website/blog/`,
         },
         theme: {
-          customCss: require.resolve('./src/css/custom.css'),
+          customCss: require.resolve(`./src/css/custom.css`),
         },
       },
     ],

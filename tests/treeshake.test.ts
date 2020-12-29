@@ -1,26 +1,25 @@
-import { rollup } from 'rollup';
-import { nodeResolve } from '@rollup/plugin-node-resolve';
-import { expect } from 'chai';
-
-import { xfs, PortablePath, npath } from '@yarnpkg/fslib';
-import { execUtils } from '@yarnpkg/core';
+import {nodeResolve}              from '@rollup/plugin-node-resolve';
+import {execUtils}                from '@yarnpkg/core';
+import {xfs, PortablePath, npath} from '@yarnpkg/fslib';
+import {expect}                   from 'chai';
+import {rollup}                   from 'rollup';
 
 describe(`Tree shaking`, () => {
   it(`should only keep the command Options used in the bundle`, async function () {
     this.timeout(20000);
 
-    await xfs.mktempPromise(async (tempDir) => {
+    await xfs.mktempPromise(async tempDir => {
       const packed = await execUtils.execvp(`yarn`, [`pack`, `--out`, npath.fromPortablePath(`${tempDir}/dist.tgz`)], {
         cwd: npath.toPortablePath(__dirname),
       });
 
       expect(packed.code).to.eq(0);
 
-      await xfs.writeJsonPromise(`${tempDir}/package.json` as PortablePath, { name: 'test-treeshake' });
+      await xfs.writeJsonPromise(`${tempDir}/package.json` as PortablePath, {name: `test-treeshake`});
       await xfs.writeFilePromise(`${tempDir}/yarn.lock` as PortablePath, ``);
 
 
-      const added = await execUtils.execvp(`yarn`, [`add`, `./dist.tgz`], { cwd: tempDir });
+      const added = await execUtils.execvp(`yarn`, [`add`, `./dist.tgz`], {cwd: tempDir});
       expect(added.code).to.eq(0);
 
       const buildCode = async (code: string) => {
@@ -31,7 +30,7 @@ describe(`Tree shaking`, () => {
           plugins: [nodeResolve()],
         });
 
-        const {output} = await result.generate({ format: 'esm' });
+        const {output} = await result.generate({format: `esm`});
         return output[0].code;
       };
 

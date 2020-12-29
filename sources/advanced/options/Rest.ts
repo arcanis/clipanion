@@ -1,5 +1,6 @@
-import { makeCommandOption } from "./utils";
-import { NoLimits, } from '../../core';
+import {NoLimits}          from '../../core';
+
+import {makeCommandOption} from "./utils";
 
 export type RestFlags = {
   name?: string,
@@ -20,37 +21,37 @@ export type RestFlags = {
  *     ► rest = ["hello", "world"]
  */
 export function Rest(opts: RestFlags = {}) {
-    return makeCommandOption({
-        definition(builder, key) {
-            builder.addRest({
-                name: opts.name ?? key,
-                required: opts.required,
-            });
-        },
+  return makeCommandOption({
+    definition(builder, key) {
+      builder.addRest({
+        name: opts.name ?? key,
+        required: opts.required,
+      });
+    },
 
-        transformer(builder, key, state) {
-            // The builder's arity.extra will always be NoLimits,
-            // because it is set when we call registerDefinition
+    transformer(builder, key, state) {
+      // The builder's arity.extra will always be NoLimits,
+      // because it is set when we call registerDefinition
 
-            const isRestPositional = (index: number) => {
-                const positional = state.positionals[index];
+      const isRestPositional = (index: number) => {
+        const positional = state.positionals[index];
 
-                // A NoLimits extra (i.e. an optional rest argument)
-                if (positional.extra === NoLimits)
-                    return true;
+        // A NoLimits extra (i.e. an optional rest argument)
+        if (positional.extra === NoLimits)
+          return true;
 
-                // A leading positional (i.e. a required rest argument)
-                if (positional.extra === false && index < builder.arity.leading.length)
-                    return true;
+        // A leading positional (i.e. a required rest argument)
+        if (positional.extra === false && index < builder.arity.leading.length)
+          return true;
 
-                return false;
-            };
+        return false;
+      };
 
-            let count = 0;
-            while (count < state.positionals.length && isRestPositional(count))
-                count += 1;
+      let count = 0;
+      while (count < state.positionals.length && isRestPositional(count))
+        count += 1;
 
-            return state.positionals.splice(0, count).map(({value}) => value);
-        }
-    });
+      return state.positionals.splice(0, count).map(({value}) => value);
+    },
+  });
 }

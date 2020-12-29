@@ -1,10 +1,11 @@
-import React from 'react';
-import clsx from 'clsx';
-import Layout from '@theme/Layout';
-import Link from '@docusaurus/Link';
+import Link                 from '@docusaurus/Link';
+import useBaseUrl           from '@docusaurus/useBaseUrl';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
-import useBaseUrl from '@docusaurus/useBaseUrl';
-import styles from './styles.module.css';
+import Layout               from '@theme/Layout';
+import clsx                 from 'clsx';
+import React                from 'react';
+
+import styles               from './styles.module.css';
 
 const features = [{
   title: `Type Safe`,
@@ -29,7 +30,7 @@ const features = [{
 function Feature({imageUrl, title, description}) {
   const imgUrl = useBaseUrl(imageUrl);
   return (
-    <div className={clsx('col col--4', styles.feature)}>
+    <div className={clsx(`col col--4`, styles.feature)}>
       {imgUrl && (
         <div className="text--center">
           <img className={styles.featureImage} src={imgUrl} alt={title} />
@@ -52,7 +53,7 @@ function Home() {
           <h1 className={`hero__title`}>{siteConfig.title}</h1>
           <p className={`hero__subtitle`}>{siteConfig.tagline}</p>
           <div className={styles.buttons}>
-            <Link className={clsx('button button--outline button--secondary button--lg', styles.getStarted)} to={useBaseUrl('docs/')}>
+            <Link className={clsx(`button button--outline button--secondary button--lg`, styles.getStarted)} to={useBaseUrl(`docs/`)}>
               Get Started
             </Link>
           </div>
@@ -75,4 +76,5 @@ function Home() {
   );
 }
 
+// eslint-disable-next-line arca/no-default-export
 export default Home;
