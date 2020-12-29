@@ -3,13 +3,17 @@ id: getting-started
 title: Getting Started
 ---
 
-First, add Clipanion to your project:
+## Installation
+
+Add Clipanion to your project using Yarn:
 
 ```bash
 yarn add clipanion
 ```
 
-Then create a command file, let's say `AdditionCommand.ts` (we'll be using TypeScript here, but it's mostly the same if you use regular JavaScript, with the exception of the import style):
+## Your first command
+
+Create a command file, let's say `HelloCommand.ts` (we'll be using TypeScript here, but it's mostly the same if you use regular JavaScript, with the exception of the import style):
 
 ```ts
 import {Command, Option} from 'clipanion';
@@ -29,7 +33,9 @@ That's it for your first command. You just have declare a class, extend from the
 Note that `execute` is using `this.context.stdout.write` rather than `console.log`. While optional, keeping this convention is a good practice as commands may want to call each other with different types of streams (for example to buffer the output of another command).
 :::
 
-Now that your command is ready, all you have to do is setup the CLI engine that will "serve" this command. To do that, import it from Clipanion and register your command into it:
+## Execute your CLI
+
+Now that your command is ready, all you have to do is setup the CLI engine that will "serve" this command. To do that, instantiate a new CLI, register your command into it, then apply it on the process arguments:
 
 ```ts
 import {Cli} from 'clipanion';

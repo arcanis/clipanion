@@ -1,11 +1,11 @@
 module.exports = {
   title: 'Clipanion',
   tagline: 'Type-safe CLI library with no runtime dependencies',
-  url: 'https://mael.dev/clipanion',
+  url: 'https://mael.dev/clipanion/',
   baseUrl: process.env.CONTEXT === 'production' ? '/clipanion/' : '/',
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
-  favicon: 'img/favicon.ico',
+  favicon: 'logo.svg',
   organizationName: 'arcanis',
   projectName: 'clipanion',
   themeConfig: {
@@ -13,7 +13,7 @@ module.exports = {
       title: 'Clipanion',
       logo: {
         alt: 'Clipanion Logo',
-        src: 'img/logo.svg',
+        src: 'logo.svg',
       },
       items: [
         {
@@ -52,6 +52,9 @@ module.exports = {
         },
       ],
       copyright: `Copyright © ${new Date().getFullYear()} Clipanion, Inc. Built with Docusaurus.`,
+    },
+    prism: {
+      theme: require(`prism-react-renderer/themes/vsDark`),
     },
   },
   presets: [

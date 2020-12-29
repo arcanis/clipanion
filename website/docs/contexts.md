@@ -3,7 +3,7 @@ id: contexts
 title: Execution Contexts
 ---
 
-In Clipanion commands have what we call a *context*. Under this fancy word is simply an user object that we forward to the commands during their execution. The default context is fairly simple:
+In Clipanion commands have what we call a *context*. Under this fancy word is simply an arbitrary object that we provide to all commands via `this.context` during their execution. The default context is fairly simple:
 
 ```ts
 interface BaseContext {
@@ -14,6 +14,10 @@ interface BaseContext {
 ```
 
 You can define your own contexts (that extend the default one) to pass more complex environment options such as the `cwd`, or the user auth token, or the configuration, or ...
+
+:::info
+You may wonder why we keep streams in the context in the first place, rather than just use the classic `console.log` family of functions. This is because this way commands can easily intercept the output of other commands (for instance to capture their result in a buffer), which allows for better composition.
+:::
 
 ## Context Switches
 

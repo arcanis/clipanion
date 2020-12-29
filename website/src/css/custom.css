@@ -14,7 +14,14 @@
   --ifm-color-primary-light: #8b86bb;
   --ifm-color-primary-lighter: #a8a3d4;
   --ifm-color-primary-lightest: #bdb9e6;
+
   --ifm-code-font-size: 95%;
+}
+
+.alert {
+  --ra-admonition-color: var(--ifm-alert-border-color);
+  --ifm-alert-background-color: transparent;
+  --ifm-alert-color: var(--ifm-alert-border-color);
 }
 
 .docusaurus-highlight-code-line {
