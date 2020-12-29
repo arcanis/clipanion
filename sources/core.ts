@@ -1,10 +1,11 @@
+import * as errors from './errors';
+
 import {
   BATCH_REGEX, BINDING_REGEX, END_OF_INPUT,
   HELP_COMMAND_INDEX, HELP_REGEX, NODE_ERRORED,
   NODE_INITIAL, NODE_SUCCESS, OPTION_REGEX,
   START_OF_INPUT, DEBUG,
 } from './constants';
-import * as errors from './errors';
 
 declare const console: any;
 

@@ -2962,9 +2962,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@yarnpkg/eslint-config@npm:^0.2.0":
+"@yarnpkg/eslint-config@yarnpkg/berry#workspace=@yarnpkg/eslint-config":
   version: 0.2.0
-  resolution: "@yarnpkg/eslint-config@npm:0.2.0"
+  resolution: "@yarnpkg/eslint-config@https://github.com/yarnpkg/berry.git#workspace=%40yarnpkg%2Feslint-config&commit=f737f7c5ff633d078552f8e9f60cb845e594558f"
   peerDependencies:
     "@typescript-eslint/eslint-plugin": "*"
     "@typescript-eslint/parser": "*"
@@ -2977,7 +2977,7 @@ __metadata:
       optional: true
     typescript:
       optional: true
-  checksum: 076ca386eb1720237081a852f5b4547c594a8a817d82a7515ccfd4689b1eaa852042514c7139b5cae7c3596bdf5271961b8ec8dc2cb8ef38b844636680c66940
+  checksum: 5a36c60a3905e868ce7b9533a3887336b7e5cf6fb1faf54ac987926d17a4d9acded0865477f8f065d968a2949cba45adf32e0a9190324a88aa428efd99001191
   languageName: node
   linkType: hard
 
@@ -4614,7 +4614,7 @@ __metadata:
     "@typescript-eslint/eslint-plugin": ^4.11.1
     "@typescript-eslint/parser": ^4.11.1
     "@yarnpkg/core": ^2.3.1
-    "@yarnpkg/eslint-config": ^0.2.0
+    "@yarnpkg/eslint-config": "yarnpkg/berry#workspace=@yarnpkg/eslint-config"
     "@yarnpkg/fslib": ^2.3.0
     chai: ^4.2.0
     chai-as-promised: ^7.1.1
