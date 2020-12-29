@@ -254,7 +254,7 @@ describe(`Advanced`, () => {
         expect(output).to.equal(`Running CommandA\nRunning CommandB\n`);
     });
 
-    it(`should support inheritance`, async () => {
+    it(`should support inheritance of options`, async () => {
         const output = await runCli(() => {
             abstract class CommandA extends Command {
                 foo = Option.String(`--foo`);
@@ -273,6 +273,28 @@ describe(`Advanced`, () => {
         }, [`--foo`, `hello`]);
 
         expect(output).to.equal(`Running CommandB\n"hello"\n`);
+    });
+
+    it(`should support inheritance of positionals (consumed starting from the superclass)`, async () => {
+        const output = await runCli(() => {
+            abstract class CommandA extends Command {
+                foo = Option.String();
+                abstract execute(): Promise<number | void>;
+            }
+
+            class CommandB extends CommandA {
+                bar = Option.String();
+                async execute() {
+                    log(this, [`foo`, `bar`]);
+                }
+            }
+
+            return [
+                CommandB,
+            ];
+        }, [`hello`, `world`]);
+
+        expect(output).to.equal(`Running CommandB\n"hello"\n"world"\n`);
     });
 
     it(`derives positional argument names from the property name`, async () => {

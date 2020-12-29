@@ -24,7 +24,7 @@ class FooCommand extends BaseCommand {
 }
 ```
 
-**Note:** Because of the class initialization order, positional arguments of a subclass will be consumed before positional arguments of a superclass. Because of this, it is not recommended to inherit anything other than named options and regular methods.
+**Note:** Positionals can also be inherited. They will be consumed in order starting from the superclass.
 
 ## Lazy evaluation
 
