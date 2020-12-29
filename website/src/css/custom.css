@@ -18,7 +18,8 @@
   --ifm-code-font-size: 95%;
 }
 
-.alert {
+/* Higher specificity than the default one */
+.alert.alert {
   --ra-admonition-color: var(--ifm-alert-border-color);
   --ifm-alert-background-color: transparent;
   --ifm-alert-color: var(--ifm-alert-border-color);
