@@ -32,8 +32,8 @@ While option-level validation is typically enough, in some cases you need to als
 import * as t from 'typanion';
 
 class MyCommand extends Command {
-    foo = Command.Boolean(`--foo`, false);
-    bar = Command.Boolean(`--bar`, false);
+    foo = Option.Boolean(`--foo`, false);
+    bar = Option.Boolean(`--bar`, false);
 
     static schema = [
         t.hasMutuallyExclusiveKeys([`foo`, `bar`], t.isLiteral(true)),

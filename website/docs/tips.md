@@ -9,13 +9,13 @@ Because they're just plain old ES6 classes, commands can easily extend each othe
 
 ```ts
 abstract class BaseCommand extends Command {
-    cwd = Command.String(`--cwd`, {hidden: true});
+    cwd = Option.String(`--cwd`, {hidden: true});
 
     abstract execute(): Promise<number | void>;
 }
 
 class FooCommand extends BaseCommand {
-    foo = Command.String(`-f,--foo`);
+    foo = Option.String(`-f,--foo`);
 
     async execute() {
         this.context.stdout.write(`Hello from ${this.cwd ?? process.cwd()}!\n`);
@@ -28,13 +28,13 @@ Positionals can also be inherited. They will be consumed in order starting from 
 
 ```ts
 abstract class BaseCommand extends Command {
-    foo = Command.String();
+    foo = Option.String();
 
     abstract execute(): Promise<number | void>;
 }
 
 class FooCommand extends BaseCommand {
-    bar = Command.String();
+    bar = Option.String();
 
     async execute() {
         this.context.stdout.write(`This is foo: ${this.foo}.\n`);
