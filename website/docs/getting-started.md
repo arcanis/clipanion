@@ -50,6 +50,6 @@ const cli = new Cli({
     binaryVersion: `1.0.0`,
 })
 
-cli.registerCommand(HelloCommand);
+cli.register(HelloCommand);
 cli.runExit(args, Cli.defaultContext);
 ```

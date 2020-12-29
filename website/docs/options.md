@@ -47,7 +47,7 @@ Counters are boolean options that keep track of how many times they have been en
 
 ## Positionals
 
-Positional options don't require any particular tagging, but relying on a strict ordering. They can be made required or not. To accept an arbitrary number of positional arguments, see [Rests](#Rests).
+Positional options don't require any particular tagging, but relying on a strict ordering. They can be made required or not. To accept an arbitrary number of positional arguments, see [Rests](#rests).
 
 ## Proxies
 
@@ -93,5 +93,7 @@ By default this argument is mandatory, but it can be made optional by using the 
 --inspect
     => Command {"inspect": true}
 --inspect=9009
-    => Command {"inspect": 9009}
+    => Command {"inspect": "9009"}
 ```
+
+Note that Clipanion won't automatically try to deduce the variable types - for instance, in the example above, `--inspect=9009` yields `"9009"` (a string), and not `9009` (a number). To explicitly coerce values, check the page about [validators](validation.md).

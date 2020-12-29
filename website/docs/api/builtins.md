@@ -6,7 +6,7 @@ title: Builtins
 The following commands may be useful in some contexts, but not necessarily all of them. For this reason you must explicitly register them into your cli:
 
 ```ts
-cli.registerCommand(Builtins.Help);
+cli.register(Builtins.Help);
 ```
 
 ## `Builtins.Definitions`
