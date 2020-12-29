@@ -170,7 +170,7 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
     static isOption: typeof isOptionSymbol = isOptionSymbol;
 
     /**
-     * Just an helper to use along with the `path` / paths` fields, to make it
+     * Just an helper to use along with the `paths` fields, to make it
      * clearer that a command is the default one.
      *
      * @example
