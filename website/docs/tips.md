@@ -24,7 +24,29 @@ class FooCommand extends BaseCommand {
 }
 ```
 
-**Note:** Because of the class initialization order, positional arguments of a subclass will be consumed before positional arguments of a superclass. Because of this, it is not recommended to inherit anything other than named options and regular methods.
+Positionals can also be inherited. They will be consumed in order starting from the superclass:
+
+```ts
+abstract class BaseCommand extends Command {
+    foo = Command.String();
+
+    abstract execute(): Promise<number | void>;
+}
+
+class FooCommand extends BaseCommand {
+    bar = Command.String();
+
+    async execute() {
+        this.context.stdout.write(`This is foo: ${this.foo}.\n`);
+        this.context.stdout.write(`This is bar: ${this.bar}.\n`);
+    }
+}
+```
+
+```
+hello world
+    => Command {"foo": "hello", "bar": "world"}
+```
 
 ## Lazy evaluation
 
