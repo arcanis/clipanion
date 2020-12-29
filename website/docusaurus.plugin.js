@@ -8,5 +8,5 @@ module.exports = (context, options) => ({
             loader.options.plugins = [require(`tailwindcss`), loader.options.plugins];
 
     return {};
-  }
+  },
 });

@@ -1,4 +1,4 @@
-import { makeCommandOption } from "./utils";
+import {makeCommandOption} from "./utils";
 
 export type ProxyFlags = {
   name?: string,
@@ -19,16 +19,16 @@ export type ProxyFlags = {
  *     ► proxy = ["hello", "--foo=bar", "world"]
  */
 export function Proxy(opts: ProxyFlags = {}) {
-    return makeCommandOption({
-        definition(builder, key) {
-            builder.addProxy({
-                name: opts.name ?? key,
-                required: opts.required,
-            });
-        },
+  return makeCommandOption({
+    definition(builder, key) {
+      builder.addProxy({
+        name: opts.name ?? key,
+        required: opts.required,
+      });
+    },
 
-        transformer(builder, key, state) {
-            return state.positionals.map(({value}) => value);
-        }
-    });
+    transformer(builder, key, state) {
+      return state.positionals.map(({value}) => value);
+    },
+  });
 }
