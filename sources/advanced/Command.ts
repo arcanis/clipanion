@@ -59,6 +59,7 @@ export type Definition = Usage & {
   options: Array<{
     definition: string;
     description?: string;
+    required: boolean;
   }>;
 };
 

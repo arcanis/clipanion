@@ -6,9 +6,10 @@ import {BaseContext, CliContext}   from '../Cli';
 
 export const isOptionSymbol = Symbol(`clipanion/isOption`);
 
-export type GeneralFlags = {
+export type GeneralOptionFlags = {
   description?: string,
   hidden?: boolean,
+  required?: boolean;
 };
 
 export type CommandOption<T> = {

@@ -133,6 +133,14 @@ class YarnRemove extends Command<Context> {
   }
 }
 
+class YarnWorkspacesForeachCommand extends Command<Context> {
+  include = Option.Array(`--include`);
+
+  static paths = [[`workspaces`, `foreach`]];
+  async execute() {
+  }
+}
+
 const cli = new Cli<Context>({
   binaryLabel: `Yarn Project Manager`,
   binaryName: `yarn`,
@@ -149,6 +157,7 @@ cli.register(YarnRemove);
 cli.register(YarnRunListing);
 cli.register(YarnRunExec);
 cli.register(YarnAdd);
+cli.register(YarnWorkspacesForeachCommand);
 
 cli.runExit(process.argv.slice(2), {
   cwd: process.cwd(),

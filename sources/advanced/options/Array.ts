@@ -1,6 +1,6 @@
-import {GeneralFlags, CommandOptionReturn, rerouteArguments, makeCommandOption} from "./utils";
+import {GeneralOptionFlags, CommandOptionReturn, rerouteArguments, makeCommandOption} from "./utils";
 
-export type ArrayFlags = GeneralFlags & {
+export type ArrayFlags = GeneralOptionFlags & {
   arity?: number,
 };
 
@@ -12,8 +12,9 @@ export type ArrayFlags = GeneralFlags & {
  * --foo hello --foo bar
  *     ► {"foo": ["hello", "world"]}
  */
+export function Array(descriptor: string, opts: ArrayFlags & {required: true}): CommandOptionReturn<Array<string>>;
 export function Array(descriptor: string, opts?: ArrayFlags): CommandOptionReturn<Array<string> | undefined>;
-export function Array(descriptor: string, initialValue: Array<string>, opts?: ArrayFlags): CommandOptionReturn<Array<string>>;
+export function Array(descriptor: string, initialValue: Array<string>, opts?: Omit<ArrayFlags, 'required'>): CommandOptionReturn<Array<string>>;
 export function Array(descriptor: string, initialValueBase: ArrayFlags | Array<string> | undefined, optsBase?: ArrayFlags) {
   const [initialValue, opts] = rerouteArguments(initialValueBase, optsBase ?? {});
   const {arity = 1} = opts;
@@ -30,6 +31,7 @@ export function Array(descriptor: string, initialValueBase: ArrayFlags | Array<s
 
         hidden: opts?.hidden,
         description: opts?.description,
+        required: opts.required,
       });
     },
 

@@ -25,6 +25,7 @@ export type StateMachine = {
 
 export type RunState = {
   candidateUsage: string | null;
+  requiredOptions: Array<Array<string>>;
   errorMessage: string | null;
   ignoreOptions: boolean;
   options: Array<{name: string, value: any}>;
@@ -36,6 +37,7 @@ export type RunState = {
 
 const basicHelpState: RunState = {
   candidateUsage: null,
+  requiredOptions: [],
   errorMessage: null,
   ignoreOptions: false,
   path: [],
@@ -142,6 +144,7 @@ export function runMachineInternal(machine: StateMachine, input: Array<string>, 
   debug(`Running a vm on ${JSON.stringify(input)}`);
   let branches: Array<{node: number, state: RunState}> = [{node: NODE_INITIAL, state: {
     candidateUsage: null,
+    requiredOptions: [],
     errorMessage: null,
     ignoreOptions: false,
     options: [],
@@ -240,7 +243,8 @@ export function runMachineInternal(machine: StateMachine, input: Array<string>, 
     if (nextBranches.every(({node}) => node === NODE_ERRORED)) {
       throw new errors.UnknownSyntaxError(input, nextBranches.map(({state}) => {
         return {usage: state.candidateUsage!, reason: state.errorMessage};
-      }));        }
+      }));
+    }
 
     branches = trimSmallerBranches(nextBranches);
   }
@@ -379,12 +383,27 @@ export function selectBestState(input: Array<string>, states: Array<RunState>) {
   if (terminalStates.length === 0)
     throw new Error();
 
+  const requiredOptionsSetStates = terminalStates.filter(state =>
+    state.requiredOptions.every(names =>
+      names.some(name =>
+        state.options.find(opt => opt.name === name)
+      )
+    )
+  );
+
+  if (requiredOptionsSetStates.length === 0) {
+    throw new errors.UnknownSyntaxError(input, states.map(state => ({
+      usage: state.candidateUsage!,
+      reason: null,
+    })));
+  }
+
   let maxPathSize = 0;
-  for (const state of terminalStates)
+  for (const state of requiredOptionsSetStates)
     if (state.path.length > maxPathSize)
       maxPathSize = state.path.length;
 
-  const bestPathBranches = terminalStates.filter(state => {
+  const bestPathBranches = requiredOptionsSetStates.filter(state => {
     return state.path.length === maxPathSize;
   });
 
@@ -600,8 +619,8 @@ tests.isOption.suggest = (state: RunState, name: string, hidden: boolean = true)
 };
 
 export const reducers = {
-  setCandidateUsage: (state: RunState, segment: string, usage: string) => {
-    return {...state, candidateUsage: usage};
+  setCandidateState: (state: RunState, segment: string, candidateState: Partial<RunState>) => {
+    return {...state, ...candidateState};
   },
   setSelectedIndex: (state: RunState, segment: string, index: number) => {
     return {...state, selectedIndex: index};
@@ -686,6 +705,7 @@ export type OptDefinition = {
   description?: string;
   arity: number;
   hidden: boolean;
+  required: boolean;
   allowBinding: boolean;
 };
 
@@ -745,7 +765,7 @@ export class CommandBuilder<Context> {
     this.arity.proxy = true;
   }
 
-  addOption({names, description, arity = 0, hidden = false, allowBinding = true}: Partial<OptDefinition> & {names: Array<string>}) {
+  addOption({names, description, arity = 0, hidden = false, required = false, allowBinding = true}: Partial<OptDefinition> & {names: Array<string>}) {
     if (!allowBinding && arity > 1)
       throw new Error(`The arity cannot be higher than 1 when the option only supports the --arg=value syntax`);
     if (!Number.isInteger(arity))
@@ -754,7 +774,7 @@ export class CommandBuilder<Context> {
       throw new Error(`The arity must be positive, got ${arity}`);
 
     this.allOptionNames.push(...names);
-    this.options.push({names, description, arity, hidden, allowBinding});
+    this.options.push({names, description, arity, hidden, required, allowBinding});
   }
 
   setContext(context: Context) {
@@ -767,13 +787,14 @@ export class CommandBuilder<Context> {
     const detailedOptionList: Array<{
       definition: string;
       description: string;
+      required: boolean;
     }> = [];
 
     if (this.paths.length > 0)
       segments.push(...this.paths[0]);
 
     if (detailed) {
-      for (const {names, arity, hidden, description} of this.options) {
+      for (const {names, arity, hidden, description, required} of this.options) {
         if (hidden)
           continue;
 
@@ -784,9 +805,9 @@ export class CommandBuilder<Context> {
         const definition = `${names.join(`,`)}${args.join(``)}`;
 
         if (!inlineOptions && description) {
-          detailedOptionList.push({definition, description});
+          detailedOptionList.push({definition, description, required});
         } else {
-          segments.push(`[${definition}]`);
+          segments.push(required ? `<${definition}>` : `[${definition}]`);
         }
       }
 
@@ -812,8 +833,13 @@ export class CommandBuilder<Context> {
     const machine = makeStateMachine();
     let firstNode = NODE_INITIAL;
 
+    const candidateUsage = this.usage().usage;
+    const requiredOptions = this.options
+      .filter(opt => opt.required)
+      .map(opt => opt.names);
+
     firstNode = injectNode(machine, makeNode());
-    registerStatic(machine, NODE_INITIAL, START_OF_INPUT, firstNode, [`setCandidateUsage`, this.usage().usage]);
+    registerStatic(machine, NODE_INITIAL, START_OF_INPUT, firstNode, [`setCandidateState`, {candidateUsage, requiredOptions}]);
 
     const positionalArgument = this.arity.proxy
       ? `always`
