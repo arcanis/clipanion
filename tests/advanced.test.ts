@@ -956,4 +956,35 @@ describe(`Advanced`, () => {
     await expect(runCli(cli, [`--bar`])).to.be.rejectedWith(`Command not found; did you mean one of:`);
     expect(await runCli(cli, [`--foo`, `--bar`])).to.equal(`Running FooBarCommand\n`);
   });
+
+  it(`should show the reason if the single branch errors`, async () => {
+    class BaseCommand extends Command {
+      name = Option.String();
+
+      async execute() {
+        log(this);
+      }
+    }
+
+    const cli = Cli.from([BaseCommand]);
+
+    await expect(runCli(cli, [])).to.be.rejectedWith(`Not enough positional arguments.`);
+  });
+
+  it(`should show the common reason if all branches error with the same reason`, async () => {
+    class BaseCommand extends Command {
+      name = Option.String();
+
+      async execute() {
+        log(this);
+      }
+    }
+    class FooCommand extends BaseCommand {
+      foo = Option.Boolean(`--foo`, {required: true});
+    }
+
+    const cli = Cli.from([BaseCommand, FooCommand]);
+
+    await expect(runCli(cli, [])).to.be.rejectedWith(`Not enough positional arguments.`);
+  });
 });
