@@ -934,4 +934,26 @@ describe(`Advanced`, () => {
     expect(await runCli(cli, [`--bar`])).to.equal(`Running BarCommand\n`);
     expect(await runCli(cli, [`--foo`, `--bar`])).to.equal(`Running FooBarCommand\n`);
   });
+
+  it(`should disambiguate an inheriting command from the parent by required options`, async () => {
+    class BaseCommand extends Command {
+      async execute() {
+        log(this);
+      }
+    }
+    class FooCommand extends BaseCommand {
+      foo = Option.Boolean(`--foo`, {required: true});
+    }
+
+    class FooBarCommand extends FooCommand {
+      bar = Option.Boolean(`--bar`, {required: true});
+    }
+
+    const cli = Cli.from([FooCommand, FooBarCommand]);
+
+    await expect(runCli(cli, [])).to.be.rejectedWith(`Command not found; did you mean one of:`);
+    expect(await runCli(cli, [`--foo`])).to.equal(`Running FooCommand\n`);
+    await expect(runCli(cli, [`--bar`])).to.be.rejectedWith(`Command not found; did you mean one of:`);
+    expect(await runCli(cli, [`--foo`, `--bar`])).to.equal(`Running FooBarCommand\n`);
+  });
 });
