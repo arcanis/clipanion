@@ -4628,6 +4628,8 @@ __metadata:
     tslib: ^2.0.0
     typanion: ^3.1.0
     typescript: ^4.1.2
+  peerDependencies:
+    typanion: ^3.1.0
   languageName: unknown
   linkType: soft
 
