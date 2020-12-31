@@ -23,7 +23,6 @@ class MyCommand extends Command {
   stringWithDefault = Option.String(`--foo`, false);
   stringWithValidator = Option.String(`--foo`, {validator: t.isNumber()});
   stringWithValidatorAndDefault = Option.String(`--foo`, `0`, {validator: t.isNumber()});
-  stringWithValidatorAndCoercedDefault = Option.String(`--foo`, 0, {validator: t.isNumber()});
   stringWithValidatorAndRequired = Option.String(`--foo`, {validator: t.isNumber(), required: true});
   stringWithRequired = Option.String(`--foo`, {required: true});
   // @ts-expect-error: Overload prevents this
@@ -37,7 +36,6 @@ class MyCommand extends Command {
   stringWithArity3AndWrongDefault = Option.String(`--foo`, `bar`, {arity: 3});
   stringWithArity3AndValidator = Option.String(`--foo`, {arity: 3, validator: t.isNumber()});
   stringWithArity3AndValidatorAndDefault = Option.String(`--foo`, [`1`, `2`, `3`], {arity: 3, validator: t.isNumber()});
-  stringWithArity3AndValidatorAndCoercedDefault = Option.String(`--foo`, [1, `2`, 3], {arity: 3, validator: t.isNumber()});
   stringWithArity3AndValidatorAndRequired = Option.String(`--foo`, {arity: 3, validator: t.isNumber(), required: true});
   stringWithArity3AndRequired = Option.String(`--foo`, {arity: 3, required: true});
   // @ts-expect-error: Overload prevents this
@@ -86,7 +84,6 @@ class MyCommand extends Command {
     assertEqual<number | undefined>()(this.stringWithValidator, true);
     assertEqual<number>()(this.stringWithValidatorAndRequired, true);
     assertEqual<number>()(this.stringWithValidatorAndDefault, true);
-    assertEqual<number>()(this.stringWithValidatorAndCoercedDefault, true);
     assertEqual<string>()(this.stringWithRequired, true);
     assertEqual<boolean | undefined>()(this.stringWithArity0, true);
     assertEqual<string | undefined>()(this.stringWithArity1, true);
@@ -96,7 +93,6 @@ class MyCommand extends Command {
     assertEqual<[string, string, string]>()(this.stringWithArity3AndRequired, true);
     assertEqual<[number, number, number] | undefined>()(this.stringWithArity3AndValidator, true);
     assertEqual<[number, number, number]>()(this.stringWithArity3AndValidatorAndDefault, true);
-    assertEqual<[number, number, number]>()(this.stringWithArity3AndValidatorAndCoercedDefault, true);
     assertEqual<[number, number, number]>()(this.stringWithArity3AndValidatorAndRequired, true);
 
     assertEqual<string | boolean | undefined>()(this.stringWithTolerateBoolean, true);
