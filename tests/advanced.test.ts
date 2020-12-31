@@ -555,6 +555,7 @@ describe(`Advanced`, () => {
 
   it(`should throw acceptable errors when tuple length is not an integer`, async () => {
     class PointCommand extends Command {
+      // @ts-expect-error: Even TS realizes that the arity is wrong
       point = Option.String(`--point`, {arity: 1.5});
       async execute() {}
     }
@@ -566,6 +567,7 @@ describe(`Advanced`, () => {
 
   it(`should throw acceptable errors when tuple length is not positive`, async () => {
     class PointCommand extends Command {
+      // @ts-expect-error: Even TS realizes that the arity is wrong
       point = Option.String(`--point`, {arity: -1});
       async execute() {}
     }
@@ -986,5 +988,20 @@ describe(`Advanced`, () => {
     const cli = Cli.from([BaseCommand, FooCommand]);
 
     await expect(runCli(cli, [])).to.be.rejectedWith(`Not enough positional arguments.`);
+  });
+
+  it(`should treat arity 0 as booleans`, async () => {
+    class PointCommand extends Command {
+      point = Option.String(`--point`, {arity: 0});
+
+      thing = Option.Array(`--thing`, {arity: 0})
+
+      async execute() {}
+    }
+
+    const cli = Cli.from([PointCommand]);
+
+    expect(cli.process([`--point`])).to.deep.contain({point: true});
+    expect(cli.process([`--thing`, `--thing`, `--no-thing`, `--thing`])).to.deep.contain({thing: [true, true, false, true]});
   });
 });

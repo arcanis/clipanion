@@ -12,6 +12,26 @@ export type GeneralOptionFlags = {
   required?: boolean;
 };
 
+// https://stackoverflow.com/a/52490977
+
+export type TupleOf<Type, Arity extends number, Accumulator extends Array<Type>> = Accumulator['length'] extends Arity
+  ? Accumulator
+  : TupleOf<Type, Arity, [Type, ...Accumulator]>;
+
+export type Tuple<Type, Arity extends number> = Arity extends Arity
+  ? number extends Arity
+    ? Array<Type>
+    : TupleOf<Type, Arity, []>
+  : never;
+
+export type WithArity<Type, Arity extends number> = Arity extends 0
+  ? boolean
+  : Arity extends 1
+    ? Type
+    : number extends Arity
+      ? boolean | Type | Tuple<Type, Arity>
+      : Tuple<Type, Arity>;
+
 export type CommandOption<T> = {
   [isOptionSymbol]: true,
   definition: <Context extends BaseContext>(builder: CommandBuilder<CliContext<Context>>, key: string) => void,
