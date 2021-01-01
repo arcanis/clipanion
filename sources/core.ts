@@ -392,7 +392,7 @@ export function selectBestState(input: Array<string>, states: Array<RunState>) {
   );
 
   if (requiredOptionsSetStates.length === 0) {
-    throw new errors.UnknownSyntaxError(input, states.map(state => ({
+    throw new errors.UnknownSyntaxError(input, terminalStates.map(state => ({
       usage: state.candidateUsage!,
       reason: null,
     })));

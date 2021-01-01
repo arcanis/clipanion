@@ -955,7 +955,7 @@ describe(`Advanced`, () => {
 
     await expect(runCli(cli, [])).to.be.rejectedWith(`Command not found; did you mean one of:`);
     expect(await runCli(cli, [`--foo`])).to.equal(`Running FooCommand\n`);
-    await expect(runCli(cli, [`--bar`])).to.be.rejectedWith(`Command not found; did you mean one of:`);
+    await expect(runCli(cli, [`--bar`])).to.be.rejectedWith(`Command not found; did you mean:`);
     expect(await runCli(cli, [`--foo`, `--bar`])).to.equal(`Running FooBarCommand\n`);
   });
 
