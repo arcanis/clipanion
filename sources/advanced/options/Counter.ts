@@ -1,6 +1,6 @@
-import {CommandOptionReturn, GeneralFlags, makeCommandOption, rerouteArguments} from "./utils";
+import {CommandOptionReturn, GeneralOptionFlags, makeCommandOption, rerouteArguments} from "./utils";
 
-export type CounterFlags = GeneralFlags;
+export type CounterFlags = GeneralOptionFlags;
 
 /**
  * Used to annotate options whose repeated values are aggregated into a
@@ -10,8 +10,9 @@ export type CounterFlags = GeneralFlags;
  * -vvvvv
  *     ► {"v": 5}
  */
+export function Counter(descriptor: string, opts: CounterFlags & {required: true}): CommandOptionReturn<number>;
 export function Counter(descriptor: string, opts?: CounterFlags): CommandOptionReturn<number | undefined>;
-export function Counter(descriptor: string, initialValue: number, opts?: CounterFlags): CommandOptionReturn<number>;
+export function Counter(descriptor: string, initialValue: number, opts?: Omit<CounterFlags, 'required'>): CommandOptionReturn<number>;
 export function Counter(descriptor: string, initialValueBase: CounterFlags | number | undefined, optsBase?: CounterFlags) {
   const [initialValue, opts] = rerouteArguments(initialValueBase, optsBase ?? {});
 
@@ -28,6 +29,7 @@ export function Counter(descriptor: string, initialValueBase: CounterFlags | num
 
         hidden: opts.hidden,
         description: opts.description,
+        required: opts.required,
       });
     },
 

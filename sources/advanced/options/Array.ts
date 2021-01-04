@@ -1,7 +1,7 @@
-import {GeneralFlags, CommandOptionReturn, rerouteArguments, makeCommandOption} from "./utils";
+import {GeneralOptionFlags, CommandOptionReturn, rerouteArguments, makeCommandOption, WithArity} from "./utils";
 
-export type ArrayFlags = GeneralFlags & {
-  arity?: number,
+export type ArrayFlags<Arity extends number = 1> = GeneralOptionFlags & {
+  arity?: Arity,
 };
 
 /**
@@ -12,9 +12,10 @@ export type ArrayFlags = GeneralFlags & {
  * --foo hello --foo bar
  *     ► {"foo": ["hello", "world"]}
  */
-export function Array(descriptor: string, opts?: ArrayFlags): CommandOptionReturn<Array<string> | undefined>;
-export function Array(descriptor: string, initialValue: Array<string>, opts?: ArrayFlags): CommandOptionReturn<Array<string>>;
-export function Array(descriptor: string, initialValueBase: ArrayFlags | Array<string> | undefined, optsBase?: ArrayFlags) {
+export function Array<Arity extends number = 1>(descriptor: string, opts: ArrayFlags<Arity> & {required: true}): CommandOptionReturn<Array<WithArity<string, Arity>>>;
+export function Array<Arity extends number = 1>(descriptor: string, opts?: ArrayFlags<Arity>): CommandOptionReturn<Array<WithArity<string, Arity>> | undefined>;
+export function Array<Arity extends number = 1>(descriptor: string, initialValue: Array<WithArity<string, Arity>>, opts?: Omit<ArrayFlags<Arity>, 'required'>): CommandOptionReturn<Array<WithArity<string, Arity>>>;
+export function Array<Arity extends number = 1>(descriptor: string, initialValueBase: ArrayFlags<Arity> | Array<WithArity<string, Arity>> | undefined, optsBase?: ArrayFlags<Arity>) {
   const [initialValue, opts] = rerouteArguments(initialValueBase, optsBase ?? {});
   const {arity = 1} = opts;
 
@@ -30,6 +31,7 @@ export function Array(descriptor: string, initialValueBase: ArrayFlags | Array<s
 
         hidden: opts?.hidden,
         description: opts?.description,
+        required: opts.required,
       });
     },
 

@@ -22,6 +22,7 @@ Option.Array(optionNames: string, default?: string[], opts?: {...})
 | `arity` | `number` | Number of arguments for the option |
 | `description` | `string`| Short description for the help message |
 | `hidden` | `boolean` | Hide the option from any usage list |
+| `required` | `boolean` | Whether at least a single occurrence of the option is required or not |
 
 Specifies that the command accepts a set of string arguments. The `arity` parameter defines how many values need to be accepted for each item. If no default value is provided, the option will start as `undefined`.
 
@@ -53,6 +54,7 @@ Option.Boolean(optionNames: string, default?: boolean, opts?: {...})
 | --- | --- | --- |
 | `description` | `string`| Short description for the help message |
 | `hidden` | `boolean` | Hide the option from any usage list |
+| `required` | `boolean` | Whether at least a single occurrence of the option is required or not |
 
 Specifies that the command accepts a boolean flag as an option. If no default value is provided, the option will start as `undefined`.
 
@@ -80,6 +82,7 @@ Option.Counter(optionNames: string, default?: number, opts?: {...})
 | --- | --- | --- |
 | `description` | `string`| Short description for the help message |
 | `hidden` | `boolean` | Hide the option from any usage list |
+| `required` | `boolean` | Whether at least a single occurrence of the option is required or not |
 
 Specifies that the command accepts a boolean flag as an option. Contrary to classic boolean options, each detected occurence will cause the counter to be incremented. Each time the argument is negated (`--no-<name>`), the counter will be reset to `0`. If no default value is provided, the option will start as `undefined`.
 
@@ -234,6 +237,7 @@ Option.String(optionNames: string, default?: string, opts?: {...})
 | `description` | `string`| Short description for the help message |
 | `hidden` | `boolean` | Hide the option from any usage list |
 | `tolerateBoolean` | `boolean` | Accept the option even if no argument is provided |
+| `required` | `boolean` | Whether at least a single occurrence of the option is required or not |
 
 Specifies that the command accepts an option that takes arguments (by default one, unless overriden via `arity`). If no default value is provided, the option will start as `undefined`.
 

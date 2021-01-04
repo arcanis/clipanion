@@ -555,6 +555,7 @@ describe(`Advanced`, () => {
 
   it(`should throw acceptable errors when tuple length is not an integer`, async () => {
     class PointCommand extends Command {
+      // @ts-expect-error: Even TS realizes that the arity is wrong
       point = Option.String(`--point`, {arity: 1.5});
       async execute() {}
     }
@@ -566,6 +567,7 @@ describe(`Advanced`, () => {
 
   it(`should throw acceptable errors when tuple length is not positive`, async () => {
     class PointCommand extends Command {
+      // @ts-expect-error: Even TS realizes that the arity is wrong
       point = Option.String(`--point`, {arity: -1});
       async execute() {}
     }
@@ -834,5 +836,172 @@ describe(`Advanced`, () => {
     expect(() => cli.process([`--redacted`])).to.throw(`Unsupported option name ("--redacted")`);
     expect(() => cli.process([`--no-no-redacted`])).to.throw(`Unsupported option name ("--no-no-redacted")`);
     expect(() => cli.process([`--no-no-no-redacted`])).to.throw(`Unsupported option name ("--no-no-no-redacted")`);
+  });
+
+  it(`should extract required string options from complex options`, async () => {
+    class IncludeCommand extends Command {
+      foo = Option.String(`--foo`, {required: true});
+      async execute() {}
+    }
+
+    const cli = Cli.from([IncludeCommand]);
+
+    expect(() => cli.process([])).to.throw(`Command not found; did you mean:`);
+    expect(cli.process([`--foo`, `bar`])).to.deep.contain({foo: `bar`});
+    expect(cli.process([`--foo`, `bar`, `--foo`, `baz`])).to.deep.contain({foo: `baz`});
+  });
+
+  it(`should extract required array options from complex options`, async () => {
+    class IncludeCommand extends Command {
+      foo = Option.Array(`--foo`, {required: true});
+      async execute() {}
+    }
+
+    const cli = Cli.from([IncludeCommand]);
+
+    expect(() => cli.process([])).to.throw(`Command not found; did you mean:`);
+    expect(cli.process([`--foo`, `bar`])).to.deep.contain({foo: [`bar`]});
+    expect(cli.process([`--foo`, `bar`, `--foo`, `baz`])).to.deep.contain({foo: [`bar`, `baz`]});
+  });
+
+  it(`should extract required boolean options from complex options`, async () => {
+    class IncludeCommand extends Command {
+      foo = Option.Boolean(`--foo`, {required: true});
+      async execute() {}
+    }
+
+    const cli = Cli.from([IncludeCommand]);
+
+    expect(() => cli.process([])).to.throw(`Command not found; did you mean:`);
+    expect(cli.process([`--foo`])).to.deep.contain({foo: true});
+    expect(cli.process([`--foo`, `--foo`])).to.deep.contain({foo: true});
+    expect(cli.process([`--no-foo`])).to.deep.contain({foo: false});
+  });
+
+  it(`should extract required boolean options from complex options (multiple names)`, async () => {
+    class IncludeCommand extends Command {
+      foo = Option.Boolean(`-f,--foo`, {required: true});
+      async execute() {}
+    }
+
+    const cli = Cli.from([IncludeCommand]);
+
+    expect(() => cli.process([])).to.throw(`Command not found; did you mean:`);
+    expect(cli.process([`--foo`])).to.deep.contain({foo: true});
+    expect(cli.process([`-f`])).to.deep.contain({foo: true});
+    expect(cli.process([`--foo`, `-f`])).to.deep.contain({foo: true});
+    expect(cli.process([`--no-foo`])).to.deep.contain({foo: false});
+  });
+
+  it(`should extract required counter options from complex options`, async () => {
+    class IncludeCommand extends Command {
+      foo = Option.Counter(`--foo`, {required: true});
+      async execute() {}
+    }
+
+    const cli = Cli.from([IncludeCommand]);
+
+    expect(() => cli.process([])).to.throw(`Command not found; did you mean:`);
+    expect(cli.process([`--foo`])).to.deep.contain({foo: 1});
+    expect(cli.process([`--foo`, `--foo`])).to.deep.contain({foo: 2});
+    expect(cli.process([`--no-foo`])).to.deep.contain({foo: 0});
+  });
+
+  it(`should disambiguate commands by required options`, async () => {
+    class BaseCommand extends Command {
+      async execute() {
+        log(this);
+      }
+    }
+
+    class RootCommand extends BaseCommand {
+    }
+    class FooCommand extends BaseCommand {
+      foo = Option.Boolean(`--foo`, {required: true});
+    }
+
+    class BarCommand extends BaseCommand {
+      bar = Option.Boolean(`--bar`, {required: true});
+    }
+
+    class FooBarCommand extends BaseCommand {
+      foo = Option.Boolean(`--foo`, {required: true});
+      bar = Option.Boolean(`--bar`, {required: true});
+    }
+
+    const cli = Cli.from([RootCommand, FooCommand, BarCommand, FooBarCommand]);
+
+    expect(await runCli(cli, [])).to.equal(`Running RootCommand\n`);
+    expect(await runCli(cli, [`--foo`])).to.equal(`Running FooCommand\n`);
+    expect(await runCli(cli, [`--bar`])).to.equal(`Running BarCommand\n`);
+    expect(await runCli(cli, [`--foo`, `--bar`])).to.equal(`Running FooBarCommand\n`);
+  });
+
+  it(`should disambiguate an inheriting command from the parent by required options`, async () => {
+    class BaseCommand extends Command {
+      async execute() {
+        log(this);
+      }
+    }
+    class FooCommand extends BaseCommand {
+      foo = Option.Boolean(`--foo`, {required: true});
+    }
+
+    class FooBarCommand extends FooCommand {
+      bar = Option.Boolean(`--bar`, {required: true});
+    }
+
+    const cli = Cli.from([FooCommand, FooBarCommand]);
+
+    await expect(runCli(cli, [])).to.be.rejectedWith(`Command not found; did you mean one of:`);
+    expect(await runCli(cli, [`--foo`])).to.equal(`Running FooCommand\n`);
+    await expect(runCli(cli, [`--bar`])).to.be.rejectedWith(`Command not found; did you mean:`);
+    expect(await runCli(cli, [`--foo`, `--bar`])).to.equal(`Running FooBarCommand\n`);
+  });
+
+  it(`should show the reason if the single branch errors`, async () => {
+    class BaseCommand extends Command {
+      name = Option.String();
+
+      async execute() {
+        log(this);
+      }
+    }
+
+    const cli = Cli.from([BaseCommand]);
+
+    await expect(runCli(cli, [])).to.be.rejectedWith(`Not enough positional arguments.`);
+  });
+
+  it(`should show the common reason if all branches error with the same reason`, async () => {
+    class BaseCommand extends Command {
+      name = Option.String();
+
+      async execute() {
+        log(this);
+      }
+    }
+    class FooCommand extends BaseCommand {
+      foo = Option.Boolean(`--foo`, {required: true});
+    }
+
+    const cli = Cli.from([BaseCommand, FooCommand]);
+
+    await expect(runCli(cli, [])).to.be.rejectedWith(`Not enough positional arguments.`);
+  });
+
+  it(`should treat arity 0 as booleans`, async () => {
+    class PointCommand extends Command {
+      point = Option.String(`--point`, {arity: 0});
+
+      thing = Option.Array(`--thing`, {arity: 0})
+
+      async execute() {}
+    }
+
+    const cli = Cli.from([PointCommand]);
+
+    expect(cli.process([`--point`])).to.deep.contain({point: true});
+    expect(cli.process([`--thing`, `--thing`, `--no-thing`, `--thing`])).to.deep.contain({thing: [true, true, false, true]});
   });
 });

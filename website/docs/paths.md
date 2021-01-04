@@ -54,5 +54,5 @@ class FooBarCommand extends Command {
 Clipanion will property execute `FooBarCommand` when running `foo bar`, and `FooCommand` when running just `foo`. You can even declare positional arguments on `FooCommand` if you want, which will get picked up as long as they don't match `bar`!
 
 :::tip
-You can even have multiple commands that have identical paths but different options, as long as the user specifies an option unique to one of them when invoking the command! The only caveat is that if they don't Clipanion won't know which version to use and will throw a `AmbiguousSyntaxError`.
+You can even have multiple commands that have identical paths but different options, as long as the user specifies an option unique to one of them (or doesn't if the option is required) when invoking the command! The only caveat is that if they don't Clipanion won't know which version to use and will throw a `AmbiguousSyntaxError`.
 :::

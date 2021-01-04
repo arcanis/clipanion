@@ -48,6 +48,49 @@ hello world
     => Command {"foo": "hello", "bar": "world"}
 ```
 
+## Adding options to existing commands
+
+Adding options to existing commands can be achieved via inheritance and required options:
+
+```ts
+class GreetCommand extends Command {
+  name = Option.String();
+
+  greeting = Option.String(`--greeting`, `Hello`);
+
+  static paths = [[`greet`]];
+  async execute(): Promise<number | void> {
+    this.context.stdout.write(`${this.greeting} ${this.name}!\n`);
+  }
+}
+
+class GreetWithReverseCommand extends GreetCommand {
+  reverse = Option.Boolean(`--reverse`, {required: true});
+
+  async execute() {
+    return await this.cli.run([`greet`, this.reverse ? this.name.split(``).reverse().join(``) : this.name, `--greeting`, this.greeting]);
+  }
+}
+```
+
+```
+greet john
+    => "Hello john!\n"
+
+greet john --greeting hey
+    => "hey john!\n"
+
+greet john --reverse
+    => "Hello nhoj!\n"
+
+greet john --greeting hey --reverse
+    => "hey nhoj!\n"
+```
+
+:::danger
+To add an option to an existing command, you need to know its `Command` class. This means that if you want to add 2 options by using 2 different commands (e.g. if your application uses different plugins that can register their own commands), you need one of the `Command` classes to extend the other one and not the base.
+:::
+
 ## Lazy evaluation
 
 Many commands have the following form:

@@ -1,6 +1,6 @@
-import {CommandOptionReturn, GeneralFlags, makeCommandOption, rerouteArguments} from "./utils";
+import {CommandOptionReturn, GeneralOptionFlags, makeCommandOption, rerouteArguments} from "./utils";
 
-export type BooleanFlags = GeneralFlags;
+export type BooleanFlags = GeneralOptionFlags;
 
 /**
  * Used to annotate boolean options.
@@ -9,8 +9,9 @@ export type BooleanFlags = GeneralFlags;
  * --foo --no-bar
  *     ► {"foo": true, "bar": false}
  */
+export function Boolean(descriptor: string, opts: BooleanFlags & {required: true}): CommandOptionReturn<boolean>;
 export function Boolean(descriptor: string, opts?: BooleanFlags): CommandOptionReturn<boolean | undefined>;
-export function Boolean(descriptor: string, initialValue: boolean, opts?: BooleanFlags): CommandOptionReturn<boolean>;
+export function Boolean(descriptor: string, initialValue: boolean, opts?: Omit<BooleanFlags, 'required'>): CommandOptionReturn<boolean>;
 export function Boolean(descriptor: string, initialValueBase: BooleanFlags | boolean | undefined, optsBase?: BooleanFlags) {
   const [initialValue, opts] = rerouteArguments(initialValueBase, optsBase ?? {});
 
@@ -27,6 +28,7 @@ export function Boolean(descriptor: string, initialValueBase: BooleanFlags | boo
 
         hidden: opts.hidden,
         description: opts.description,
+        required: opts.required,
       });
     },
 
