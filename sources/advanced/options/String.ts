@@ -53,19 +53,21 @@ function StringOption<T = string, Arity extends number = 1>(descriptor: string, 
     },
 
     transformer(builder, key, state) {
+      let usedName;
       let currentValue = initialValue;
 
       for (const {name, value} of state.options) {
         if (!nameSet.has(name))
           continue;
 
+        usedName = name;
         currentValue = value;
       }
 
       if (typeof initialValue === `undefined` && typeof currentValue === `undefined`)
         return undefined;
 
-      return applyValidator(key, currentValue, opts.validator);
+      return applyValidator(usedName ?? key, currentValue, opts.validator);
     },
   });
 }
