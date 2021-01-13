@@ -84,7 +84,7 @@ export function applyValidator<U, V>(name: string, value: U, validator?: StrictV
 
   const check = validator(value, {errors, coercions, coercion: v => { value = v; }});
   if (!check)
-    throw formatError(`Invalid option validation for ${name}`, errors);
+    throw formatError(`Invalid value for ${name}`, errors);
 
   for (const [, op] of coercions)
     op();
