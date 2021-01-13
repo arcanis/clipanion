@@ -4601,7 +4601,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"clipanion@^2.6.2, clipanion@workspace:.":
+"clipanion@npm:^2.6.2":
+  version: 2.6.2
+  resolution: "clipanion@npm:2.6.2"
+  checksum: d162deedd0bd297f0881ef2814cf00409d2c67383589345cf8ae0ae6d9eee2e7235313b392dd3ec9df85490e4875dd52c085997e4161a6c8aa4ec0a2c78f8f36
+  languageName: node
+  linkType: hard
+
+"clipanion@workspace:.":
   version: 0.0.0-use.local
   resolution: "clipanion@workspace:."
   dependencies:
