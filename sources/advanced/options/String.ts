@@ -62,7 +62,7 @@ function StringOption<T = string, Arity extends number = 1>(descriptor: string, 
         currentValue = value;
       }
 
-      if (typeof initialValue === `undefined` && typeof value === `undefined`)
+      if (typeof initialValue === `undefined` && typeof currentValue === `undefined`)
         return undefined;
 
       return applyValidator(key, currentValue, opts.validator);
