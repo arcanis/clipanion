@@ -35,7 +35,7 @@ describe(`Tree shaking`, () => {
       };
 
       const singleCode = await buildCode(`import { Option } from 'clipanion';\nOption.Array();\n`);
-      const multiCode = await buildCode(`import { Counter, Option } from 'clipanion';\nOption.Counter();\nOption.Array();\n`);
+      const multiCode = await buildCode(`import { Option } from 'clipanion';\nOption.Counter();\nOption.Array();\n`);
 
       // We expect the output when referencing multiple symbols to be quite a
       // bit more than the number of extra characters (with some buffer to
