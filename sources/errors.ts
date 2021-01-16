@@ -7,6 +7,27 @@ export type ErrorMeta = {
 };
 
 /**
+ * An error with metadata telling clipanion how to print it
+ *
+ * Errors with this metadata property will have their name and message printed, but not the
+ * stacktrace.
+ *
+ * This should be used for errors where the message is the part that's important but the stacktrace is useless.
+ * Some examples of where this might be useful are:
+ *
+ * - Invalid input by the user (see `UsageError`)
+ * - A HTTP connection fails, the user is shown "Failed To Fetch Data: Could not ocnnect to server example.com" without stacktrace
+ * - A command in which the user enters credentials doesn't want to show a stacktract when the user enters invalid credentials
+ * - ...
+ */
+export interface ErrorWithMeta extends Error {
+  /**
+   * Metadata detailing how clipanion should print this error
+   */
+  readonly clipanion: ErrorMeta;
+}
+
+/**
  * A generic usage error with the name `UsageError`.
  *
  * It should be used over `Error` only when it's the user's fault.
