@@ -411,7 +411,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
       }
 
       result += `\n`;
-      result += formatMarkdownish(`You can also print more details about any of these commands by calling them after adding the \`-h,--help\` flag right after the command name.`, {format: this.format(colored), paragraphs: true});
+      result += formatMarkdownish(`You can also print more details about any of these commands by calling them with the \`-h,--help\` flag right after the command name.`, {format: this.format(colored), paragraphs: true});
     } else {
       if (!detailed) {
         const {usage} = this.getUsageByRegistration(commandClass);

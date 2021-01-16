@@ -51,7 +51,7 @@ export class AmbiguousSyntaxError extends Error {
     super();
     this.name = `AmbiguousSyntaxError`;
 
-    this.message = `Cannot find who to pick amongst the following alternatives:\n\n${this.usages.map((usage, index) => {
+    this.message = `Cannot find which to pick amongst the following alternatives:\n\n${this.usages.map((usage, index) => {
       return `${`${index}.`.padStart(4)} ${usage}`;
     }).join(`\n`)}\n\n${whileRunning(input)}`;
   }
