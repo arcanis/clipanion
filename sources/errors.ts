@@ -16,7 +16,7 @@ export type ErrorMeta = {
  * Some examples of where this might be useful are:
  *
  * - Invalid input by the user (see `UsageError`)
- * - A HTTP connection fails, the user is shown "Failed To Fetch Data: Could not ocnnect to server example.com" without stacktrace
+ * - A HTTP connection fails, the user is shown "Failed To Fetch Data: Could not connect to server example.com" without stacktrace
  * - A command in which the user enters credentials doesn't want to show a stacktract when the user enters invalid credentials
  * - ...
  */
