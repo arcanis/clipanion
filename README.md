@@ -6,10 +6,8 @@
 
 ## Installation
 
-**⚠️ Important:** This documentation is about Clipanion 3, which is still in development and hasn't been published to the npm registry yet. For Clipanion 2, please check the [following document](https://github.com/arcanis/clipanion/blob/efd1ff592ace914e7a8120ad1d5f0cc539907f24/README.md), which shows the decorator syntax you might have seen before.
-
 ```
-yarn add clipanion@arcanis/clipanion
+yarn add clipanion
 ```
 
 ## Why
