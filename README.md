@@ -27,6 +27,10 @@ Clipanion is used in [Yarn](https://github.com/yarnpkg/berry) with great success
 
 Check the website for our documentation: [mael.dev/clipanion](https://mael.dev/clipanion/).
 
+## Migration
+
+You can use [`clipanion-v3-codemod`](https://github.com/paul-soporan/clipanion-v3-codemod) to migrate a Clipanion v2 codebase to v3.
+
 ## Overview
 
 Commands are declared by extending from the `Command` abstract base class, and more specifically by implementing its `execute` method which will then be called by Clipanion. Whatever exit code it returns will then be set as the exit code for the process:
