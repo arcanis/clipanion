@@ -1,4 +1,4 @@
-import {Coercion, StrictValidator} from 'typanion';
+import {Coercion, CoercionFn, StrictValidator} from 'typanion';
 
 import {CommandBuilder,  RunState} from '../../core';
 import {UsageError}                from '../../errors';
@@ -82,7 +82,13 @@ export function applyValidator<U, V>(name: string, value: U, validator?: StrictV
   const errors: Array<string> = [];
   const coercions: Array<Coercion> = [];
 
-  const check = validator(value, {errors, coercions, coercion: v => { value = v; }});
+  const coercion: CoercionFn = (v: any) => {
+    const orig = value;
+    value = v;
+    return coercion.bind(null, orig);
+  };
+
+  const check = validator(value, {errors, coercions, coercion});
   if (!check)
     throw formatError(`Invalid value for ${name}`, errors);
 

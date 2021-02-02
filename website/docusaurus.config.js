@@ -9,6 +9,7 @@ module.exports = {
   organizationName: `arcanis`,
   projectName: `clipanion`,
   themeConfig: {
+    sidebarCollapsible: false,
     navbar: {
       title: `Clipanion`,
       logo: {

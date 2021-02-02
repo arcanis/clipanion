@@ -36,7 +36,7 @@ class MyCommand extends Command {
     bar = Option.Boolean(`--bar`, false);
 
     static schema = [
-        t.hasMutuallyExclusiveKeys([`foo`, `bar`], t.isLiteral(true)),
+        t.hasMutuallyExclusiveKeys([`foo`, `bar`]),
     ];
 }
 ```

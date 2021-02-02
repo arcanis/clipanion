@@ -1,6 +1,6 @@
 {
   "name": "clipanion",
-  "version": "3.0.0-rc.4",
+  "version": "3.0.0-rc.6",
   "main": "sources/advanced/index.ts",
   "license": "MIT",
   "sideEffects": false,
@@ -12,7 +12,7 @@
     "website"
   ],
   "dependencies": {
-    "typanion": "^3.2.1"
+    "typanion": "^3.3.0"
   },
   "peerDependencies": {
     "typanion": "*"

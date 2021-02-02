@@ -2,6 +2,7 @@ import chaiAsPromised                                             from 'chai-as-
 import chai, {expect}                                             from 'chai';
 import getStream                                                  from 'get-stream';
 import {PassThrough}                                              from 'stream';
+import * as t                                                     from 'typanion';
 
 import {Cli, CommandClass, Command, CliOptions, Option, Builtins} from '../sources/advanced';
 
@@ -981,6 +982,7 @@ describe(`Advanced`, () => {
         log(this);
       }
     }
+
     class FooCommand extends BaseCommand {
       foo = Option.Boolean(`--foo`, {required: true});
     }
@@ -1003,5 +1005,28 @@ describe(`Advanced`, () => {
 
     expect(cli.process([`--point`])).to.deep.contain({point: true});
     expect(cli.process([`--thing`, `--thing`, `--no-thing`, `--thing`])).to.deep.contain({thing: [true, true, false, true]});
+  });
+
+  it.only(`should validate the command when it has a schema`, async () => {
+    class FooCommand extends Command {
+      foo = Option.Boolean(`--foo`);
+      bar = Option.Boolean(`--bar`);
+
+      static schema = [
+        t.hasKeyRelationship(`foo`, t.KeyRelationship.Forbids, [`bar`]),
+        t.hasKeyRelationship(`bar`, t.KeyRelationship.Forbids, [`foo`]),
+      ];
+
+      async execute() {}
+    }
+
+    const cli = Cli.from([FooCommand]);
+
+    expect(cli.process([`--foo`])).to.deep.contain({foo: true});
+    expect(cli.process([`--bar`])).to.deep.contain({bar: true});
+
+    console.log(`test`)
+
+    expect(() => cli.process([`--foo`, `--bar`])).to.throw(Error);
   });
 });
