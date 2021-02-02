@@ -1007,14 +1007,14 @@ describe(`Advanced`, () => {
     expect(cli.process([`--thing`, `--thing`, `--no-thing`, `--thing`])).to.deep.contain({thing: [true, true, false, true]});
   });
 
-  it.only(`should validate the command when it has a schema`, async () => {
+  it(`should validate the command when it has a schema`, async () => {
     class FooCommand extends Command {
-      foo = Option.Boolean(`--foo`);
-      bar = Option.Boolean(`--bar`);
+      foo = Option.Boolean(`--foo`, false);
+      bar = Option.Boolean(`--bar`, false);
 
       static schema = [
-        t.hasKeyRelationship(`foo`, t.KeyRelationship.Forbids, [`bar`]),
-        t.hasKeyRelationship(`bar`, t.KeyRelationship.Forbids, [`foo`]),
+        t.hasKeyRelationship(`foo`, t.KeyRelationship.Forbids, [`bar`], {ignore: [false]}),
+        t.hasKeyRelationship(`bar`, t.KeyRelationship.Forbids, [`foo`], {ignore: [false]}),
       ];
 
       async execute() {}
@@ -1022,11 +1022,9 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([FooCommand]);
 
-    expect(cli.process([`--foo`])).to.deep.contain({foo: true});
-    expect(cli.process([`--bar`])).to.deep.contain({bar: true});
+    await expect(runCli(cli, [`--foo`])).to.eventually.equal(``);
+    await expect(runCli(cli, [`--bar`])).to.eventually.equal(``);
 
-    console.log(`test`)
-
-    expect(() => cli.process([`--foo`, `--bar`])).to.throw(Error);
+    await expect(runCli(cli, [`--foo`, `--bar`])).to.be.rejectedWith(`property "foo" forbids using property "bar"`);
   });
 });
