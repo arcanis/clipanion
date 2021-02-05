@@ -2,7 +2,7 @@
 
 > Type-safe CLI library with no runtime dependencies
 
-[![npm version](https://img.shields.io/npm/v/clipanion.svg)](https://www.npmjs.com/package/clipanion) [![Licence](https://img.shields.io/npm/l/clipanion.svg)](https://github.com/arcanis/clipanion#license-mit) [![Yarn](https://img.shields.io/badge/developed%20with-Yarn%202-blue)](https://github.com/yarnpkg/berry)
+[![npm version](https://img.shields.io/npm/v/clipanion.svg)](https://yarnpkg.com/package/clipanion) [![Licence](https://img.shields.io/npm/l/clipanion.svg)](https://github.com/arcanis/clipanion#license-mit) [![Yarn](https://img.shields.io/badge/developed%20with-Yarn%202-blue)](https://github.com/yarnpkg/berry)
 
 ## Installation
 
