@@ -2,24 +2,24 @@
 
 > Type-safe CLI library with no runtime dependencies
 
-[![](https://img.shields.io/npm/v/clipanion.svg)]() [![](https://img.shields.io/npm/l/clipanion.svg)]() [![](https://img.shields.io/badge/developed%20with-Yarn%202-blue)](https://github.com/yarnpkg/berry)
+[![npm version](https://img.shields.io/npm/v/clipanion.svg)](https://yarnpkg.com/package/clipanion) [![Licence](https://img.shields.io/npm/l/clipanion.svg)](https://github.com/arcanis/clipanion#license-mit) [![Yarn](https://img.shields.io/badge/developed%20with-Yarn%202-blue)](https://github.com/yarnpkg/berry)
 
 ## Installation
 
-```
+```sh
 yarn add clipanion
 ```
 
 ## Why
 
-  - Clipanion supports advanced typing mechanisms
-  - Clipanion supports nested commands (`yarn workspaces list`)
-  - Clipanion supports transparent option proxying without `--` (for example `yarn dlx eslint --fix`)
-  - Clipanion supports all option types you could think of (including negations, batches, ...)
-  - Clipanion offers a [Typanion](https://github.com/arcanis/typanion) integration for increased validation capabilities
-  - Clipanion generates an optimized state machine out of your commands
-  - Clipanion generates good-looking help pages out of the box
-  - Clipanion offers common optional command entries out-of-the-box (e.g. version command, help command)
+- Clipanion supports advanced typing mechanisms
+- Clipanion supports nested commands (`yarn workspaces list`)
+- Clipanion supports transparent option proxying without `--` (for example `yarn dlx eslint --fix`)
+- Clipanion supports all option types you could think of (including negations, batches, ...)
+- Clipanion offers a [Typanion](https://github.com/arcanis/typanion) integration for increased validation capabilities
+- Clipanion generates an optimized state machine out of your commands
+- Clipanion generates good-looking help pages out of the box
+- Clipanion offers common optional command entries out-of-the-box (e.g. version command, help command)
 
 Clipanion is used in [Yarn](https://github.com/yarnpkg/berry) with great success.
 
