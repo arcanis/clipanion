@@ -2,6 +2,7 @@ import {Readable, Writable}                                     from 'stream';
 
 import {HELP_COMMAND_INDEX}                                     from '../constants';
 import {CliBuilder, CommandBuilder}                             from '../core';
+import {ErrorMeta}                                              from '../errors';
 import {formatMarkdownish, ColorFormat, richFormat, textFormat} from '../format';
 
 import {CommandClass, Command, Definition}                      from './Command';
@@ -411,7 +412,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
       }
 
       result += `\n`;
-      result += formatMarkdownish(`You can also print more details about any of these commands by calling them after adding the \`-h,--help\` flag right after the command name.`, {format: this.format(colored), paragraphs: true});
+      result += formatMarkdownish(`You can also print more details about any of these commands by calling them with the \`-h,--help\` flag right after the command name.`, {format: this.format(colored), paragraphs: true});
     } else {
       if (!detailed) {
         const {usage} = this.getUsageByRegistration(commandClass);
@@ -491,8 +492,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
 
     result += `${this.format(colored).error(name)}: ${error.message}\n`;
 
-    // @ts-ignore
-    const meta = error.clipanion as core.ErrorMeta | undefined;
+    const meta = error.clipanion as ErrorMeta | undefined;
 
     if (typeof meta !== `undefined`) {
       if (meta.type === `usage`) {
