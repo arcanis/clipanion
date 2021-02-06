@@ -1041,7 +1041,7 @@ describe(`Advanced`, () => {
     await expect(runCli(cli, [`--foo`, `ab`])).to.be.rejectedWith(`Invalid value for --foo: expected a number`);
   });
 
-  it.only(`should skip coercion for booleans`, async () => {
+  it(`should skip coercion for booleans`, async () => {
     class FooCommand extends Command {
       foo = Option.String(`--foo`, {validator: t.isNumber(), tolerateBoolean: true});
       bar = Option.String(`--bar`, false, {validator: t.isNumber(), tolerateBoolean: true});
