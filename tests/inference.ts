@@ -20,7 +20,7 @@ class MyCommand extends Command {
   booleanWithRequiredAndDefault = Option.Boolean(`--foo`, false, {required: true});
 
   string = Option.String(`--foo`);
-  stringWithDefault = Option.String(`--foo`, false);
+  stringWithDefault = Option.String(`--foo`, `foo`);
   stringWithValidator = Option.String(`--foo`, {validator: t.isNumber()});
   stringWithValidatorAndDefault = Option.String(`--foo`, `0`, {validator: t.isNumber()});
   stringWithValidatorAndRequired = Option.String(`--foo`, {validator: t.isNumber(), required: true});
@@ -44,6 +44,7 @@ class MyCommand extends Command {
   stringWithTolerateBoolean = Option.String(`--foo`, {tolerateBoolean: true});
   stringWithTolerateBooleanAndRequired = Option.String(`--foo`, {tolerateBoolean: true, required: true});
   stringWithTolerateBooleanAndDefault = Option.String(`--foo`, false, {tolerateBoolean: true});
+  stringWithTolerateBooleanAndValidator = Option.String(`--foo`, false, {tolerateBoolean: true, validator: t.isNumber()});
   // @ts-expect-error: Overload prevents this
   stringWithTolerateBooleanAndRequiredAndDefault = Option.String(`--foo`, false, {tolerateBoolean: true, required: true});
 
@@ -79,8 +80,7 @@ class MyCommand extends Command {
     assertEqual<boolean>()(this.booleanWithRequired, true);
 
     assertEqual<string | undefined>()(this.string, true);
-    assertEqual<string | boolean>()(this.stringWithDefault, true);
-    assertEqual<string | boolean>()(this.stringWithDefault, true);
+    assertEqual<string>()(this.stringWithDefault, true);
     assertEqual<number | undefined>()(this.stringWithValidator, true);
     assertEqual<number>()(this.stringWithValidatorAndRequired, true);
     assertEqual<number>()(this.stringWithValidatorAndDefault, true);
