@@ -44,6 +44,7 @@ class MyCommand extends Command {
   stringWithTolerateBoolean = Option.String(`--foo`, {tolerateBoolean: true});
   stringWithTolerateBooleanAndRequired = Option.String(`--foo`, {tolerateBoolean: true, required: true});
   stringWithTolerateBooleanAndDefault = Option.String(`--foo`, false, {tolerateBoolean: true});
+  stringWithTolerateBooleanAndValidator = Option.String(`--foo`, false, {tolerateBoolean: true, validator: t.isNumber()});
   // @ts-expect-error: Overload prevents this
   stringWithTolerateBooleanAndRequiredAndDefault = Option.String(`--foo`, false, {tolerateBoolean: true, required: true});
 

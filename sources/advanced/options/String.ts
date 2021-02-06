@@ -64,10 +64,11 @@ function StringOption<T = string, Arity extends number = 1>(descriptor: string, 
         currentValue = value;
       }
 
-      if (typeof initialValue === `undefined` && typeof currentValue === `undefined`)
-        return undefined;
-
-      return applyValidator(usedName ?? key, currentValue, opts.validator);
+      if (typeof currentValue === `string`) {
+        return applyValidator(usedName ?? key, currentValue, opts.validator);
+      } else {
+        return currentValue;
+      }
     },
   });
 }

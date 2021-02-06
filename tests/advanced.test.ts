@@ -1027,4 +1027,33 @@ describe(`Advanced`, () => {
 
     await expect(runCli(cli, [`--foo`, `--bar`])).to.be.rejectedWith(`property "foo" forbids using property "bar"`);
   });
+
+  it(`should coerce options when requested`, async () => {
+    class FooCommand extends Command {
+      foo = Option.String(`--foo`, {validator: t.isNumber()});
+
+      async execute() {}
+    }
+
+    const cli = Cli.from([FooCommand]);
+
+    await expect(runCli(cli, [`--foo`, `42`])).to.eventually.equal(``);
+    await expect(runCli(cli, [`--foo`, `ab`])).to.be.rejectedWith(`Invalid value for --foo: expected a number`);
+  });
+
+  it.only(`should skip coercion for booleans`, async () => {
+    class FooCommand extends Command {
+      foo = Option.String(`--foo`, {validator: t.isNumber(), tolerateBoolean: true});
+      bar = Option.String(`--bar`, false, {validator: t.isNumber(), tolerateBoolean: true});
+
+      async execute() {
+        log(this, [`foo`, `bar`]);
+      }
+    }
+
+    const cli = Cli.from([FooCommand]);
+
+    await expect(runCli(cli, [`--foo=42`])).to.eventually.equal(`Running FooCommand\n42\nfalse\n`);
+    await expect(runCli(cli, [`--foo`])).to.eventually.equal(`Running FooCommand\ntrue\nfalse\n`);
+  });
 });
