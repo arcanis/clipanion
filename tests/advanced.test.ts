@@ -512,7 +512,7 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([CommandA]);
 
-    expect(cli.usage(CommandA, {detailed: true})).to.equal(`\u001b[1m$ \u001b[22m... greet [--message #0]\n\n\u001b[1mOptions:\u001b[22m\n\n  --verbose      Log output\n  --output #0    The output directory\n`);
+    expect(cli.usage(CommandA, {detailed: true})).to.equal(`\u001b[1m$ \u001b[22m... greet [--message #0]\n\n\u001b[1mOptions ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[22m\n\n  --verbose      Log output\n  --output #0    The output directory\n`);
   });
 
   it(`should support tuples`, async () => {

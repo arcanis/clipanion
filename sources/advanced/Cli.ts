@@ -192,17 +192,18 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
   register(commandClass: CommandClass<Context>) {
     const specs = new Map<string, CommandOption<any>>();
 
-    const builder = this.builder.command();
-    const index = builder.cliIndex;
-
-    if (typeof commandClass.paths !== `undefined`)
-      for (const path of commandClass.paths)
-        builder.addPath(path);
-
     const command = new commandClass();
     for (const [key, value] of Object.entries(command))
       if (typeof value === `object` && value !== null && value[Command.isOption])
         specs.set(key, value);
+
+    const builder = this.builder.command();
+    const index = builder.cliIndex;
+
+    const paths = commandClass.paths ?? command.paths;
+    if (typeof paths !== `undefined`)
+      for (const path of paths)
+        builder.addPath(path);
 
     this.registrations.set(commandClass, {specs, builder, index});
 
@@ -379,11 +380,11 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
 
       if (hasLabel || hasVersion) {
         if (hasLabel && hasVersion)
-          result += `${this.format(colored).bold(`${this.binaryLabel} - ${this.binaryVersion}`)}\n\n`;
+          result += `${this.format(colored).header(`${this.binaryLabel} - ${this.binaryVersion}`)}\n\n`;
         else if (hasLabel)
-          result += `${this.format(colored).bold(`${this.binaryLabel}`)}\n`;
+          result += `${this.format(colored).header(`${this.binaryLabel}`)}\n`;
         else
-          result += `${this.format(colored).bold(`${this.binaryVersion}`)}\n`;
+          result += `${this.format(colored).header(`${this.binaryVersion}`)}\n`;
 
         result += `  ${this.format(colored).bold(prefix)}${this.binaryName} <command>\n`;
       } else {
@@ -397,10 +398,10 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
 
         const header = categoryName !== null
           ? categoryName.trim()
-          : `Where <command> is one of`;
+          : `General commands`;
 
         result += `\n`;
-        result += `${this.format(colored).bold(`${header}:`)}\n`;
+        result += `${this.format(colored).header(`${header}`)}\n`;
 
         for (const {commandClass, usage} of commands) {
           const doc = commandClass.usage!.description || `undocumented`;
@@ -430,7 +431,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
         }
 
         if (details !== `` || examples.length > 0) {
-          result += `${this.format(colored).bold(`Usage:`)}\n`;
+          result += `${this.format(colored).header(`Usage`)}\n`;
           result += `\n`;
         }
 
@@ -440,7 +441,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
 
         if (options.length > 0) {
           result += `\n`;
-          result += `${richFormat.bold(`Options:`)}\n`;
+          result += `${richFormat.header(`Options`)}\n`;
 
           const maxDefinitionLength = options.reduce((length, option) => {
             return Math.max(length, option.definition.length);
@@ -455,7 +456,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
 
         if (details !== ``) {
           result += `\n`;
-          result += `${this.format(colored).bold(`Details:`)}\n`;
+          result += `${this.format(colored).header(`Details`)}\n`;
           result += `\n`;
 
           result += formatMarkdownish(details, {format: this.format(colored), paragraphs: true});
@@ -463,7 +464,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
 
         if (examples.length > 0) {
           result += `\n`;
-          result += `${this.format(colored).bold(`Examples:`)}\n`;
+          result += `${this.format(colored).header(`Examples`)}\n`;
 
           for (const [description, example] of examples) {
             result += `\n`;

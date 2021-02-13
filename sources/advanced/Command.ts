@@ -72,6 +72,11 @@ export type CommandClass<Context extends BaseContext = BaseContext> = {
 
 export abstract class Command<Context extends BaseContext = BaseContext> {
   /**
+   * @deprecated Do not use this; prefer the static `paths` property instead.
+   */
+  paths?: undefined;
+
+  /**
    * Paths under which the command should be exposed.
    */
   static paths?: Array<Array<string>>;

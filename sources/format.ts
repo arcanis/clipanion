@@ -1,16 +1,19 @@
 export interface ColorFormat {
+  header(str: string): string;
   bold(str: string): string;
   error(str: string): string;
   code(str: string): string;
 }
 
 export const richFormat: ColorFormat = {
+  header: str => `\x1b[1m${str}${str.length < 79 ? ` ${`━`.repeat(79 - str.length)}` : `:`}\x1b[22m`,
   bold: str => `\x1b[1m${str}\x1b[22m`,
   error: str => `\x1b[31m\x1b[1m${str}\x1b[22m\x1b[39m`,
   code: str => `\x1b[36m${str}\x1b[39m`,
 };
 
 export const textFormat: ColorFormat = {
+  header: str => str,
   bold: str => str,
   error: str => str,
   code: str => str,
