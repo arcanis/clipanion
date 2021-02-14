@@ -450,7 +450,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
           result += `\n`;
 
           for (const {definition, description} of options) {
-            result += `  ${definition.padEnd(maxDefinitionLength)}    ${formatMarkdownish(description, {format: this.format(colored), paragraphs: false})}`;
+            result += `  ${this.format(colored).bold(definition.padEnd(maxDefinitionLength))}    ${formatMarkdownish(description, {format: this.format(colored), paragraphs: false})}`;
           }
         }
 
