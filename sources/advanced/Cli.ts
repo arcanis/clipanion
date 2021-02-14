@@ -193,9 +193,12 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
     const specs = new Map<string, CommandOption<any>>();
 
     const command = new commandClass();
-    for (const [key, value] of Object.entries(command))
-      if (typeof value === `object` && value !== null && value[Command.isOption])
+    for (const key in command) {
+      const value = (command as any)[key];
+      if (typeof value === `object` && value !== null && value[Command.isOption]) {
         specs.set(key, value);
+      }
+    }
 
     const builder = this.builder.command();
     const index = builder.cliIndex;
