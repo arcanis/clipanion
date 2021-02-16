@@ -134,9 +134,12 @@ export function simplifyMachine(input: StateMachine) {
 }
 
 export function debugMachine(machine: StateMachine, {prefix = ``}: {prefix?: string} = {}) {
-  debug(`${prefix}Nodes are:`);
-  for (let t = 0; t < machine.nodes.length; ++t) {
-    debug(`${prefix}  ${t}: ${JSON.stringify(machine.nodes[t])}`);
+  // Don't iterate unless it's needed
+  if (DEBUG) {
+    debug(`${prefix}Nodes are:`);
+    for (let t = 0; t < machine.nodes.length; ++t) {
+      debug(`${prefix}  ${t}: ${JSON.stringify(machine.nodes[t])}`);
+    }
   }
 }
 
