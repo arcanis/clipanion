@@ -38,7 +38,7 @@ Turn the given argument into a command that will be immediately executed and ret
 ## `Cli#runExit`
 
 ```ts
-cli.run(input: string[], context: Context)
+cli.runExit(input: string[], context: Context)
 ```
 
 Same thing as `Cli#run`, but catches the result of the command and sets `process.exitCode` accordingly. Note that it won't directly call `process.exit`, so the process may stay alive if the event loop isn't empty.
