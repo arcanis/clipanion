@@ -10,7 +10,8 @@ function assertEqual<U>() {
 }
 
 class MyCommand extends Command {
-  requiredPositional = Option.String();
+  defaultPositional = Option.String();
+  requiredPositional = Option.String({required: true});
   optionalPositional = Option.String({required: false});
 
   boolean = Option.Boolean(`--foo`);
@@ -72,6 +73,7 @@ class MyCommand extends Command {
   proxy = Option.Proxy();
 
   async execute() {
+    assertEqual<string>()(this.defaultPositional, true);
     assertEqual<string>()(this.requiredPositional, true);
     assertEqual<string | undefined>()(this.optionalPositional, true);
 
