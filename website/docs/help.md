@@ -5,16 +5,16 @@ title: Help command
 
 Clipanion includes tools to allow documenting and adding a help functionality easily.
 
-## The `usage` member
+## The `usage` property
 
-Commands may define a `usage` static property that will be used to document the command. It must be an object with any of the following fields:
+Commands may define a `usage` static property that will be used to document the command. If defined, it must be an object with any of the following fields:
 
 - `category` will be used to group commands in the global help listing
 - `description` is a one-line description used in the global help listing
 - `details` is a large description of your command, with paragraphs separated with `\n\n`
 - `examples` is an array of `[description, command]` tuple
 
-Note that commands are hidden from the global help listing by default unless a `usage` property has been specified.
+Note that all commands are hidden from the global help listing by default unless they define a `usage` property.
 
 ```ts
 import {Cli, Command, Option} from "clipanion";
@@ -28,7 +28,9 @@ export class HelloCommand extends Command {
     category: `My category`,
     description: `A small description of the command.`,
     details: `
-      A longer description of the command.
+      A longer description of the command with some \`markdown code\`.
+      
+      Multiple paragraphs are allowed. Clipanion will take care of both reindenting the content and wrapping the paragraphs as needed.
     `,
     examples: [[
       `A basic example`,
@@ -60,7 +62,10 @@ $ my-app my-command [--with-parameter]
 
 ━━━ Details ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-A longer description of the command.
+A longer description of the command with some \`markdown code\`.
+
+Multiple paragraphs are allowed. Clipanion will take care of both reindenting the
+content and wrapping the paragraphs as needed.
 
 ━━━ Examples ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
