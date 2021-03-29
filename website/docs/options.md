@@ -10,7 +10,7 @@ Clipanion supports many different types of options. In most cases both short-sty
 Arrays are just string options that support being set multiple times:
 
 ```
---email foo@baz --point bar@baz
+--email foo@baz --email bar@baz
     => Command {"email": ["foo@baz", "bar@baz"]}
 ```
 
