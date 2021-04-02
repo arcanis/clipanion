@@ -76,4 +76,8 @@ module.exports = {
       },
     ],
   ],
+  algolia: {
+    apiKey: `d4d96f8710b3d92b82fe3e01cb108e0c`,
+    indexName: `clipanion`,
+  },
 };
