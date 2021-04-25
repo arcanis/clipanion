@@ -1,19 +1,21 @@
-import {StrictValidator}                                                                                         from "typanion";
+import {StrictValidator}                                                                                                             from "typanion";
 
-import {NoLimits}                                                                                                from "../../core";
+import {NoLimits}                                                                                                                    from "../../core";
 
-import {applyValidator, CommandOptionReturn, GeneralOptionFlags, makeCommandOption, rerouteArguments, WithArity} from "./utils";
+import {applyValidator, CommandOptionReturn, GeneralOptionFlags, makeCommandOption, rerouteArguments, WithArity, CompletionFunction} from "./utils";
 
-export type StringOptionNoBoolean<T, Arity extends number = 1> = GeneralOptionFlags & {
+export type StringOptionNoBoolean<T, Arity extends number = number> = GeneralOptionFlags & {
   validator?: StrictValidator<unknown, T>,
   tolerateBoolean?: false,
   arity?: Arity,
+  completion?: CompletionFunction | Exclude<WithArity<CompletionFunction, Arity>, boolean>,
 };
 
 export type StringOptionTolerateBoolean<T> = GeneralOptionFlags & {
   validator?: StrictValidator<unknown, T>,
   tolerateBoolean: boolean,
   arity?: 0,
+  completion?: CompletionFunction,
 };
 
 export type StringOption<T> =
@@ -24,6 +26,7 @@ export type StringPositionalFlags<T> = {
   validator?: StrictValidator<unknown, T>,
   name?: string,
   required?: boolean,
+  completion?: CompletionFunction,
 };
 
 function StringOption<T = string, Arity extends number = 1>(descriptor: string, opts: StringOptionNoBoolean<T, Arity> & {required: true}): CommandOptionReturn<WithArity<T, Arity>>;
@@ -49,6 +52,8 @@ function StringOption<T = string, Arity extends number = 1>(descriptor: string, 
         hidden: opts.hidden,
         description: opts.description,
         required: opts.required,
+
+        completion: opts.completion,
       });
     },
 
@@ -85,6 +90,7 @@ function StringPositional<T = string>(opts: StringPositionalFlags<T> = {}) {
       builder.addPositional({
         name: opts.name ?? key,
         required: opts.required,
+        completion: opts.completion,
       });
     },
 

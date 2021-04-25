@@ -1,10 +1,11 @@
-import {NoLimits}          from '../../core';
+import {NoLimits}                              from '../../core';
 
-import {makeCommandOption} from "./utils";
+import {makeCommandOption, CompletionFunction} from "./utils";
 
 export type RestFlags = {
   name?: string,
   required?: number,
+  completion?: CompletionFunction,
 };
 
 /**
@@ -26,6 +27,7 @@ export function Rest(opts: RestFlags = {}) {
       builder.addRest({
         name: opts.name ?? key,
         required: opts.required,
+        completion: opts.completion,
       });
     },
 

@@ -7,4 +7,3 @@ export {UsageError, ErrorMeta, ErrorWithMeta} from '../errors';
 
 export * as Builtins from './builtins';
 export * as Option from './options';
-

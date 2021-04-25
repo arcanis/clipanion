@@ -1,7 +1,7 @@
-import {Coercion, LooseTest}         from 'typanion';
+import {Coercion, LooseTest}                             from 'typanion';
 
-import {BaseContext, MiniCli}        from './Cli';
-import {formatError, isOptionSymbol} from './options/utils';
+import {BaseContext, MiniCli}                            from './Cli';
+import {formatError, isOptionSymbol, CompletionFunction} from './options/utils';
 
 /**
  * The usage of a Command.
@@ -169,6 +169,13 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
     } else {
       return 0;
     }
+  }
+
+  /**
+   * Used to strongly-type completion functions and make them infer the partial command class.
+   */
+  completion<T extends CompletionFunction<this>>(completionFunction: T) {
+    return completionFunction;
   }
 
   /**

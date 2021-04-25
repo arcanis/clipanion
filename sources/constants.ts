@@ -13,3 +13,10 @@ export const BATCH_REGEX = /^-[a-zA-Z]{2,}$/;
 export const BINDING_REGEX = /^([^=]+)=([\s\S]*)$/;
 
 export const DEBUG = process.env.DEBUG_CLI === `1`;
+
+export enum CompletionType {
+  PathSegment,
+  Positional,
+  OptionName,
+  OptionValue,
+}

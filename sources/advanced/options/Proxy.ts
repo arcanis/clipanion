@@ -1,8 +1,9 @@
-import {makeCommandOption} from "./utils";
+import {makeCommandOption, CompletionFunction} from "./utils";
 
 export type ProxyFlags = {
   name?: string,
   required?: number,
+  completion?: CompletionFunction,
 };
 
 /**
@@ -24,6 +25,7 @@ export function Proxy(opts: ProxyFlags = {}) {
       builder.addProxy({
         name: opts.name ?? key,
         required: opts.required,
+        completion: opts.completion,
       });
     },
 

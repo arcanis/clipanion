@@ -1,7 +1,8 @@
-import {GeneralOptionFlags, CommandOptionReturn, rerouteArguments, makeCommandOption, WithArity} from "./utils";
+import {GeneralOptionFlags, CommandOptionReturn, rerouteArguments, makeCommandOption, WithArity, CompletionFunction} from "./utils";
 
-export type ArrayFlags<Arity extends number = 1> = GeneralOptionFlags & {
+export type ArrayFlags<Arity extends number = number> = GeneralOptionFlags & {
   arity?: Arity,
+  completion?: CompletionFunction | Exclude<WithArity<CompletionFunction, Arity>, boolean>,
 };
 
 /**
@@ -32,6 +33,8 @@ export function Array<Arity extends number = 1>(descriptor: string, initialValue
         hidden: opts?.hidden,
         description: opts?.description,
         required: opts.required,
+
+        completion: opts.completion,
       });
     },
 

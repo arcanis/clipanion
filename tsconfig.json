@@ -4,7 +4,7 @@
     "esModuleInterop": true,
     "experimentalDecorators": true,
     "lib": [
-      "ES2018"
+      "ES2019"
     ],
     "module": "commonjs",
     "noEmit": true,
@@ -13,4 +13,7 @@
     "target": "ES2018",
     "newLine": "lf"
   },
+  "ts-node": {
+    "transpileOnly": true
+  }
 }

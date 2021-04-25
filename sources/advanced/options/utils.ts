@@ -1,8 +1,10 @@
-import {Coercion, CoercionFn, StrictValidator} from 'typanion';
+import {CompletionResults}                             from 'clcs';
+import {Coercion, CoercionFn, StrictValidator}         from 'typanion';
 
-import {CommandBuilder,  RunState}             from '../../core';
-import {UsageError}                            from '../../errors';
-import {BaseContext, CliContext}               from '../Cli';
+import {CommandBuilder,  CompletionRequest,  RunState} from '../../core';
+import {UsageError}                                    from '../../errors';
+import {BaseContext, CliContext}                       from '../Cli';
+import {Command}                                       from '../Command';
 
 export const isOptionSymbol = Symbol(`clipanion/isOption`);
 
@@ -25,7 +27,7 @@ export type Tuple<Type, Arity extends number> = Arity extends Arity
   : never;
 
 export type WithArity<Type, Arity extends number> = Arity extends 0
-  ? boolean
+  ? boolean | Type
   : Arity extends 1
     ? Type
     : number extends Arity
@@ -38,7 +40,14 @@ export type CommandOption<T> = {
   transformer: <Context extends BaseContext>(builder: CommandBuilder<CliContext<Context>>, key: string, state: RunState) => T,
 };
 
-export type CommandOptionReturn<T> = T;
+export type CommandOptionReturnTag = {__isOption?: true};
+export type CommandOptionReturn<T> = T & CommandOptionReturnTag;
+
+export type PartialCommand<T extends Command<any>> = {
+  [P in keyof T]: T[P] extends CommandOptionReturnTag ? T[P] | undefined : T[P];
+};
+
+export type CompletionFunction<T extends Command<any> = any> = (request: CompletionRequest, command: PartialCommand<T>) => CompletionResults;
 
 export function makeCommandOption<T>(spec: Omit<CommandOption<T>, typeof isOptionSymbol>) {
   // We lie! But it's for the good cause: the cli engine will turn the specs into proper values after instantiation.

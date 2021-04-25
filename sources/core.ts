@@ -1,13 +1,19 @@
-import * as errors from './errors';
+import {CompletionResult, CompletionResults} from 'clcs';
+
+import * as errors                           from './errors';
 
 import {
   BATCH_REGEX, BINDING_REGEX, END_OF_INPUT,
   HELP_COMMAND_INDEX, HELP_REGEX, NODE_ERRORED,
   NODE_INITIAL, NODE_SUCCESS, OPTION_REGEX,
-  START_OF_INPUT, DEBUG,
+  START_OF_INPUT, DEBUG, CompletionType,
 } from './constants';
 
 declare const console: any;
+
+export function identity<T>(arg: T) {
+  return arg;
+}
 
 // ------------------------------------------------------------------------
 
@@ -16,6 +22,20 @@ export function debug(str: string) {
     console.log(str);
   }
 }
+
+// ------------------------------------------------------------------------
+
+export type CompletionRequest = {
+  current: string;
+  prefix: string;
+  suffix: string;
+};
+
+export type PartialCompletionRequest = Omit<CompletionRequest, 'current'> | Omit<CompletionRequest, 'prefix'> | Omit<CompletionRequest, 'suffix'>;
+
+export type CompletionFunction = (request: CompletionRequest, ...args: Array<any>) => CompletionResults;
+
+export type CoreCompletion = {fn: CompletionFunction, request: CompletionRequest, type: CompletionType};
 
 // ------------------------------------------------------------------------
 
@@ -33,6 +53,7 @@ export type RunState = {
   positionals: Array<{value: string, extra: boolean | typeof NoLimits}>;
   remainder: string | null;
   selectedIndex: number | null;
+  completion: CoreCompletion | null;
 };
 
 const basicHelpState: RunState = {
@@ -45,6 +66,7 @@ const basicHelpState: RunState = {
   options: [],
   remainder: null,
   selectedIndex: HELP_COMMAND_INDEX,
+  completion: null,
 };
 
 export function makeStateMachine(): StateMachine {
@@ -143,7 +165,7 @@ export function debugMachine(machine: StateMachine, {prefix = ``}: {prefix?: str
   }
 }
 
-export function runMachineInternal(machine: StateMachine, input: Array<string>, partial: boolean = false) {
+export function runMachineInternal(machine: StateMachine, input: Array<string>, {partial = false, completionCursorPosition}: {partial?: boolean, completionCursorPosition?: number} = {}) {
   debug(`Running a vm on ${JSON.stringify(input)}`);
   let branches: Array<{node: number, state: RunState}> = [{node: NODE_INITIAL, state: {
     candidateUsage: null,
@@ -155,13 +177,31 @@ export function runMachineInternal(machine: StateMachine, input: Array<string>, 
     positionals: [],
     remainder: null,
     selectedIndex: null,
+    completion: null,
   }}];
 
   debugMachine(machine, {prefix: `  `});
 
+  const isCompletionMode = typeof completionCursorPosition !== `undefined`;
+
+  let cursorPosition = -(START_OF_INPUT.length + 1);
+
   const tokens = [START_OF_INPUT, ...input];
   for (let t = 0; t < tokens.length; ++t) {
     const segment = tokens[t];
+
+    const shouldCompleteToken = typeof completionCursorPosition !== `undefined`
+      && completionCursorPosition >= cursorPosition
+      && completionCursorPosition < cursorPosition + segment.length + 1;
+
+    const cursorPositionInSegment = shouldCompleteToken
+      ? completionCursorPosition! - cursorPosition
+      : undefined;
+
+    const current: Current = {
+      segment,
+      cursorPosition: cursorPositionInSegment,
+    };
 
     debug(`  Processing ${JSON.stringify(segment)}`);
     const nextBranches: Array<{node: number, state: RunState}> = [];
@@ -170,7 +210,7 @@ export function runMachineInternal(machine: StateMachine, input: Array<string>, 
       debug(`    Current node is ${node}`);
       const nodeDef = machine.nodes[node];
 
-      if (node === NODE_ERRORED) {
+      if (node === NODE_SUCCESS || node === NODE_ERRORED) {
         nextBranches.push({node, state});
         continue;
       }
@@ -185,7 +225,7 @@ export function runMachineInternal(machine: StateMachine, input: Array<string>, 
         if (hasExactMatch) {
           const transitions = nodeDef.statics[segment];
           for (const {to, reducer} of transitions) {
-            nextBranches.push({node: to, state: typeof reducer !== `undefined` ? execute(reducers, reducer, state, segment) : state});
+            nextBranches.push({node: to, state: typeof reducer !== `undefined` ? execute(reducers, reducer, state, current) : state});
             debug(`      Static transition to ${to} found`);
           }
         } else {
@@ -200,7 +240,7 @@ export function runMachineInternal(machine: StateMachine, input: Array<string>, 
 
           if (segment === candidate) {
             for (const {to, reducer} of nodeDef.statics[candidate]) {
-              nextBranches.push({node: to, state: typeof reducer !== `undefined` ? execute(reducers, reducer, state, segment) : state});
+              nextBranches.push({node: to, state: typeof reducer !== `undefined` ? execute(reducers, reducer, state, current) : state});
               debug(`      Static transition to ${to} found`);
             }
           } else {
@@ -220,8 +260,8 @@ export function runMachineInternal(machine: StateMachine, input: Array<string>, 
 
       if (segment !== END_OF_INPUT) {
         for (const [test, {to, reducer}] of nodeDef.dynamics) {
-          if (execute(tests, test, state, segment)) {
-            nextBranches.push({node: to, state: typeof reducer !== `undefined` ? execute(reducers, reducer, state, segment) : state});
+          if (execute(tests, test, state, current)) {
+            nextBranches.push({node: to, state: typeof reducer !== `undefined` ? execute(reducers, reducer, state, current) : state});
             debug(`      Dynamic transition to ${to} found (via ${test})`);
           }
         }
@@ -243,13 +283,15 @@ export function runMachineInternal(machine: StateMachine, input: Array<string>, 
       }));
     }
 
-    if (nextBranches.every(({node}) => node === NODE_ERRORED)) {
+    if (!isCompletionMode && nextBranches.every(({node}) => node === NODE_ERRORED)) {
       throw new errors.UnknownSyntaxError(input, nextBranches.map(({state}) => {
         return {usage: state.candidateUsage!, reason: state.errorMessage};
       }));
     }
 
     branches = trimSmallerBranches(nextBranches);
+
+    cursorPosition += segment.length + 1;
   }
 
   if (branches.length > 0) {
@@ -281,7 +323,7 @@ function suggestMachine(machine: StateMachine, input: Array<string>, partial: bo
   // prefixed with an extra space.
   const prefix = partial && input.length > 0 ? [``] : [];
 
-  const branches = runMachineInternal(machine, input, partial);
+  const branches = runMachineInternal(machine, input, {partial});
 
   const suggestions: Array<Array<string>> = [];
   const suggestionsJson = new Set<string>();
@@ -365,6 +407,49 @@ function runMachine(machine: StateMachine, input: Array<string>) {
   return selectBestState(input, branches.map(({state}) => {
     return state;
   }));
+}
+
+function normalizePartialCompletionRequest(request: PartialCompletionRequest): CompletionRequest {
+  const normalizedRequest = (() => {
+    if (`current` in request && `prefix` in request) {
+      return {
+        ...request,
+        suffix: request.current.slice(request.prefix.length),
+      };
+    }
+
+    if (`current` in request && `suffix` in request) {
+      return {
+        ...request,
+        prefix: request.current.slice(0, request.suffix.length),
+      };
+    }
+
+    if (`prefix` in request && `suffix` in request) {
+      return {
+        ...request,
+        current: request.prefix + request.suffix,
+      };
+    }
+
+    throw new Error(`Invalid completion request`);
+  })();
+
+  if (!normalizedRequest.current.startsWith(normalizedRequest.prefix))
+    throw new Error(`Invalid completion request: "prefix" doesn't match the start of "current"`);
+
+  if (!normalizedRequest.current.endsWith(normalizedRequest.suffix))
+    throw new Error(`Invalid completion request: "suffix" doesn't match the end of "current"`);
+
+  return normalizedRequest;
+}
+
+function completeMachine(machine: StateMachine, request: PartialCompletionRequest) {
+  const normalizedRequest = normalizePartialCompletionRequest(request);
+
+  const branches = runMachineInternal(machine, [...normalizedRequest.current.split(` `), END_OF_INPUT], {completionCursorPosition: normalizedRequest.prefix.length});
+
+  return branches;
 }
 
 export function trimSmallerBranches(branches: Array<{node: number, state: RunState}>) {
@@ -544,22 +629,24 @@ type UndefinedKeys<T> = {[P in keyof T]-?: undefined extends T[P] ? P : never}[k
 type UndefinedTupleKeys<T extends Array<unknown>> = UndefinedKeys<Omit<T, keyof []>>;
 type TupleKeys<T> = Exclude<keyof T, keyof []>;
 
-export type CallbackFn<P extends Array<any>, R> = (state: RunState, segment: string, ...args: P) => R;
-export type CallbackFnParameters<T extends CallbackFn<any, any>> = T extends ((state: RunState, segment: string, ...args: infer P) => any) ? P : never;
+type Current = {segment: string, cursorPosition?: number};
+
+export type CallbackFn<P extends Array<any>, R> = (state: RunState, current: Current, ...args: P) => R;
+export type CallbackFnParameters<T extends CallbackFn<any, any>> = T extends ((state: RunState, current: Current, ...args: infer P) => any) ? P : never;
 export type CallbackStore<T extends string, R> = Record<T, CallbackFn<any, R>>;
 export type Callback<T extends string, S extends CallbackStore<T, any>> =
     [TupleKeys<CallbackFnParameters<S[T]>>] extends [UndefinedTupleKeys<CallbackFnParameters<S[T]>>]
       ? (T | [T, ...CallbackFnParameters<S[T]>])
       : [T, ...CallbackFnParameters<S[T]>];
 
-export function execute<T extends string, R, S extends CallbackStore<T, R>>(store: S, callback: Callback<T, S>, state: RunState, segment: string) {
+export function execute<T extends string, R, S extends CallbackStore<T, R>>(store: S, callback: Callback<T, S>, state: RunState, current: Current) {
   // TypeScript's control flow can't properly narrow
   // generic conditionals for some mysterious reason
   if (Array.isArray(callback)) {
     const [name, ...args] = callback as [T, ...CallbackFnParameters<S[T]>];
-    return store[name](state, segment, ...args);
+    return store[name](state, current, ...args);
   } else {
-    return store[callback as T](state, segment);
+    return store[callback as T](state, current);
   }
 }
 
@@ -584,35 +671,38 @@ export const tests = {
   always: () => {
     return true;
   },
-  isOptionLike: (state: RunState, segment: string) => {
+  isOptionLike: (state: RunState, {segment}: Current) => {
     return !state.ignoreOptions && segment.startsWith(`-`);
   },
-  isNotOptionLike: (state: RunState, segment: string) => {
+  isNotOptionLike: (state: RunState, {segment}: Current) => {
     return state.ignoreOptions || !segment.startsWith(`-`);
   },
-  isOption: (state: RunState, segment: string, name: string, hidden?: boolean) => {
+  isOption: (state: RunState, {segment}: Current, name: string, hidden?: boolean) => {
     return !state.ignoreOptions && segment === name;
   },
-  isBatchOption: (state: RunState, segment: string, names: Array<string>) => {
+  isBatchOption: (state: RunState, {segment}: Current, names: Array<string>) => {
     return !state.ignoreOptions && BATCH_REGEX.test(segment) && [...segment.slice(1)].every(name => names.includes(`-${name}`));
   },
-  isBoundOption: (state: RunState, segment: string, names: Array<string>, options: Array<OptDefinition>) => {
+  isBoundOption: (state: RunState, {segment}: Current, names: Array<string>, options: Array<OptDefinition>) => {
     const optionParsing = segment.match(BINDING_REGEX);
     return !state.ignoreOptions && !!optionParsing && OPTION_REGEX.test(optionParsing[1]) && names.includes(optionParsing[1])
             // Disallow bound options with no arguments (i.e. booleans)
             && options.filter(opt => opt.names.includes(optionParsing[1])).every(opt => opt.allowBinding);
   },
-  isNegatedOption: (state: RunState, segment: string, name: string) => {
+  isNegatedOption: (state: RunState, {segment}: Current, name: string) => {
     return !state.ignoreOptions && segment === `--no-${name.slice(2)}`;
   },
-  isHelp: (state: RunState, segment: string) => {
+  isHelp: (state: RunState, {segment}: Current) => {
     return !state.ignoreOptions && HELP_REGEX.test(segment);
   },
-  isUnsupportedOption: (state: RunState, segment: string, names: Array<string>) => {
+  isUnsupportedOption: (state: RunState, {segment}: Current, names: Array<string>) => {
     return !state.ignoreOptions && segment.startsWith(`-`) && OPTION_REGEX.test(segment) && !names.includes(segment);
   },
-  isInvalidOption: (state: RunState, segment: string) => {
+  isInvalidOption: (state: RunState, {segment}: Current) => {
     return !state.ignoreOptions && segment.startsWith(`-`) && !OPTION_REGEX.test(segment);
+  },
+  isCompletion: (state: RunState, {cursorPosition}: Current) => {
+    return typeof cursorPosition === `number`;
   },
 };
 
@@ -622,47 +712,50 @@ tests.isOption.suggest = (state: RunState, name: string, hidden: boolean = true)
 };
 
 export const reducers = {
-  setCandidateState: (state: RunState, segment: string, candidateState: Partial<RunState>) => {
+  chain: (state: RunState, current: Current, chain: Array<Callback<any, any>>) => {
+    return chain.reduce((state, reducer) => execute(reducers, reducer, state, current), state);
+  },
+  setCandidateState: (state: RunState, {segment}: Current, candidateState: Partial<RunState>) => {
     return {...state, ...candidateState};
   },
-  setSelectedIndex: (state: RunState, segment: string, index: number) => {
+  setSelectedIndex: (state: RunState, {segment}: Current, index: number) => {
     return {...state, selectedIndex: index};
   },
-  pushBatch: (state: RunState, segment: string) => {
+  pushBatch: (state: RunState, {segment}: Current) => {
     return {...state, options: state.options.concat([...segment.slice(1)].map(name => ({name: `-${name}`, value: true})))};
   },
-  pushBound: (state: RunState, segment: string) => {
+  pushBound: (state: RunState, {segment}: Current) => {
     const [, name, value] = segment.match(BINDING_REGEX)!;
     return {...state, options: state.options.concat({name, value})};
   },
-  pushPath: (state: RunState, segment: string) => {
+  pushPath: (state: RunState, {segment}: Current) => {
     return {...state, path: state.path.concat(segment)};
   },
-  pushPositional: (state: RunState, segment: string) => {
+  pushPositional: (state: RunState, {segment}: Current) => {
     return {...state, positionals: state.positionals.concat({value: segment, extra: false})};
   },
-  pushExtra: (state: RunState, segment: string) => {
+  pushExtra: (state: RunState, {segment}: Current) => {
     return {...state, positionals: state.positionals.concat({value: segment, extra: true})};
   },
-  pushExtraNoLimits: (state: RunState, segment: string) => {
+  pushExtraNoLimits: (state: RunState, {segment}: Current) => {
     return {...state, positionals: state.positionals.concat({value: segment, extra: NoLimits})};
   },
-  pushTrue: (state: RunState, segment: string, name: string = segment) => {
+  pushTrue: (state: RunState, {segment}: Current, name: string = segment) => {
     return {...state, options: state.options.concat({name: segment, value: true})};
   },
-  pushFalse: (state: RunState, segment: string, name: string = segment) => {
+  pushFalse: (state: RunState, {segment}: Current, name: string = segment) => {
     return {...state, options: state.options.concat({name, value: false})};
   },
-  pushUndefined: (state: RunState, segment: string) => {
+  pushUndefined: (state: RunState, {segment}: Current) => {
     return {...state, options: state.options.concat({name: segment, value: undefined})};
   },
-  pushStringValue: (state: RunState, segment: string) => {
+  pushStringValue: (state: RunState, {segment}: Current) => {
     const copy = {...state, options: [...state.options]};
     const lastOption = state.options[state.options.length - 1];
     lastOption.value = (lastOption.value ?? []).concat([segment]);
     return copy;
   },
-  setStringValue: (state: RunState, segment: string) => {
+  setStringValue: (state: RunState, {segment}: Current) => {
     const copy = {...state, options: [...state.options]};
     const lastOption = state.options[state.options.length - 1];
     lastOption.value = segment;
@@ -671,7 +764,7 @@ export const reducers = {
   inhibateOptions: (state: RunState) => {
     return {...state, ignoreOptions: true};
   },
-  useHelp: (state: RunState, segment: string, command: number) => {
+  useHelp: (state: RunState, {segment}: Current, command: number) => {
     const [, /* name */, index] = segment.match(HELP_REGEX)!;
 
     if (typeof index !== `undefined`) {
@@ -680,27 +773,76 @@ export const reducers = {
       return {...state, options: [{name: `-c`, value: String(command)}]};
     }
   },
-  setError: (state: RunState, segment: string, errorMessage: string) => {
+  setError: (state: RunState, {segment}: Current, errorMessage: string) => {
     if (segment === END_OF_INPUT) {
       return {...state, errorMessage: `${errorMessage}.`};
     } else {
       return {...state, errorMessage: `${errorMessage} ("${segment}").`};
     }
   },
-  setOptionArityError: (state: RunState, segment: string) => {
+  setOptionArityError: (state: RunState, {segment}: Current) => {
     const lastOption = state.options[state.options.length - 1];
 
     return {...state, errorMessage: `Not enough arguments to option ${lastOption.name}.`};
+  },
+  setCompletion: (state: RunState, {segment, cursorPosition}: Current, type: CompletionType, completion: CompletionFunction, index: number) => {
+    if (!tests.isCompletion(state, {segment, cursorPosition}))
+      return state;
+
+    return {
+      ...state,
+      completion: {
+        fn: completion,
+        request: {
+          current: segment,
+          prefix: segment.slice(0, cursorPosition),
+          suffix: segment.slice(cursorPosition),
+        },
+        type,
+      },
+      selectedIndex: index,
+    };
+  },
+  setBoundCompletion: (state: RunState, {segment, cursorPosition}: Current, options: Array<OptDefinition>, index: number) => {
+    if (!tests.isCompletion(state, {segment, cursorPosition}))
+      return state;
+
+    const [, name, value] = segment.match(BINDING_REGEX)!;
+
+    const completions = options.filter(opt => opt.names.includes(name)).map(opt => opt.completion);
+    if (completions.length === 0)
+      return state;
+    if (completions.length > 1)
+      throw new Error(`Assertion failed: Expected a single completion for option "${name}"`);
+
+    const [completion] = completions;
+    if (typeof completion === `undefined`)
+      return state;
+
+    const completionWrapperFn: CompletionFunction = async (request, ...args) => {
+      const result = await (completion as CompletionFunction)(request, ...args);
+      const results = Array.isArray(result) ? result : [result];
+
+      return results.map(result => typeof result === `string` ? `${name}=${result}` : {
+        ...result,
+        completionText: `${name}=${result.completionText}`,
+      });
+    };
+
+    return reducers.setCompletion(state, {segment: value, cursorPosition: cursorPosition! - `${name}=`.length}, CompletionType.OptionValue, completionWrapperFn, index);
   },
 };
 
 // ------------------------------------------------------------------------
 export const NoLimits = Symbol();
+export type AritySubdefinition = {name: string, completion?: CompletionFunction};
 export type ArityDefinition = {
-  leading: Array<string>;
-  extra: Array<string> | typeof NoLimits;
-  trailing: Array<string>;
+  leading: Array<AritySubdefinition>;
+  extra: Array<AritySubdefinition> | typeof NoLimits;
+  trailing: Array<AritySubdefinition>;
   proxy: boolean;
+  // Making NoLimits extra an object with a completion property complicates the code by a lot
+  extraCompletion?: CompletionFunction;
 };
 
 export type OptDefinition = {
@@ -710,6 +852,7 @@ export type OptDefinition = {
   hidden: boolean;
   required: boolean;
   allowBinding: boolean;
+  completion?: CompletionFunction | Array<CompletionFunction>;
 };
 
 export class CommandBuilder<Context> {
@@ -736,39 +879,40 @@ export class CommandBuilder<Context> {
     Object.assign(this.arity, {leading, trailing, extra, proxy});
   }
 
-  addPositional({name = `arg`, required = true}: {name?: string, required?: boolean} = {}) {
+  addPositional({name = `arg`, required = true, completion}: {name?: string, required?: boolean, completion?: CompletionFunction} = {}) {
     if (!required && this.arity.extra === NoLimits)
       throw new Error(`Optional parameters cannot be declared when using .rest() or .proxy()`);
     if (!required && this.arity.trailing.length > 0)
       throw new Error(`Optional parameters cannot be declared after the required trailing positional arguments`);
 
     if (!required && this.arity.extra !== NoLimits) {
-      this.arity.extra.push(name);
+      this.arity.extra.push({name, completion});
     } else if (this.arity.extra !== NoLimits && this.arity.extra.length === 0) {
-      this.arity.leading.push(name);
+      this.arity.leading.push({name, completion});
     } else {
-      this.arity.trailing.push(name);
+      this.arity.trailing.push({name, completion});
     }
   }
 
-  addRest({name = `arg`, required = 0}: {name?: string, required?: number} = {}) {
+  addRest({name = `arg`, required = 0, completion}: {name?: string, required?: number, completion?: CompletionFunction} = {}) {
     if (this.arity.extra === NoLimits)
       throw new Error(`Infinite lists cannot be declared multiple times in the same command`);
     if (this.arity.trailing.length > 0)
       throw new Error(`Infinite lists cannot be declared after the required trailing positional arguments`);
 
     for (let t = 0; t < required; ++t)
-      this.addPositional({name});
+      this.addPositional({name, completion});
 
     this.arity.extra = NoLimits;
+    this.arity.extraCompletion = completion;
   }
 
-  addProxy({required = 0}: {name?: string, required?: number} = {}) {
-    this.addRest({required});
+  addProxy({required = 0, completion}: {name?: string, required?: number, completion?: CompletionFunction} = {}) {
+    this.addRest({required, completion});
     this.arity.proxy = true;
   }
 
-  addOption({names, description, arity = 0, hidden = false, required = false, allowBinding = true}: Partial<OptDefinition> & {names: Array<string>}) {
+  addOption({names, description, arity = 0, hidden = false, required = false, allowBinding = true, completion}: Partial<OptDefinition> & {names: Array<string>}) {
     if (!allowBinding && arity > 1)
       throw new Error(`The arity cannot be higher than 1 when the option only supports the --arg=value syntax`);
     if (!Number.isInteger(arity))
@@ -777,7 +921,7 @@ export class CommandBuilder<Context> {
       throw new Error(`The arity must be positive, got ${arity}`);
 
     this.allOptionNames.push(...names);
-    this.options.push({names, description, arity, hidden, required, allowBinding});
+    this.options.push({names, description, arity, hidden, required, allowBinding, completion});
   }
 
   setContext(context: Context) {
@@ -814,14 +958,14 @@ export class CommandBuilder<Context> {
         }
       }
 
-      segments.push(...this.arity.leading.map(name => `<${name}>`));
+      segments.push(...this.arity.leading.map(({name}) => `<${name}>`));
 
       if (this.arity.extra === NoLimits)
         segments.push(`...`);
       else
-        segments.push(...this.arity.extra.map(name => `[${name}]`));
+        segments.push(...this.arity.extra.map(({name}) => `[${name}]`));
 
-      segments.push(...this.arity.trailing.map(name => `<${name}>`));
+      segments.push(...this.arity.trailing.map(({name}) => `<${name}>`));
     }
 
     const usage = segments.join(` `);
@@ -861,12 +1005,13 @@ export class CommandBuilder<Context> {
       if (path.length > 0) {
         const optionPathNode = injectNode(machine, makeNode());
         registerShortcut(machine, lastPathNode, optionPathNode);
-        this.registerOptions(machine, optionPathNode);
+        this.registerOptions(machine, optionPathNode, {completeOptionNames: false});
         lastPathNode = optionPathNode;
       }
 
       for (let t = 0; t < path.length; ++t) {
         const nextPathNode = injectNode(machine, makeNode());
+        registerDynamic(machine, lastPathNode, `isCompletion`, NODE_SUCCESS, [`setCompletion`, CompletionType.PathSegment, () => path[t], this.cliIndex]);
         registerStatic(machine, lastPathNode, path[t], nextPathNode, `pushPath`);
         lastPathNode = nextPathNode;
       }
@@ -892,7 +1037,12 @@ export class CommandBuilder<Context> {
         if (this.arity.trailing.length > 0 || t + 1 !== this.arity.leading.length)
           registerStatic(machine, nextLeadingNode, END_OF_INPUT, NODE_ERRORED, [`setError`, `Not enough positional arguments`]);
 
-        registerDynamic(machine, lastLeadingNode, `isNotOptionLike`, nextLeadingNode, `pushPositional`);
+        const {completion} = this.arity.leading[t];
+        registerDynamic(machine, lastLeadingNode, `isNotOptionLike`, nextLeadingNode, [`chain`, [
+          ...completion ? [[`setCompletion`, CompletionType.Positional, completion, this.cliIndex]] : [],
+          `pushPositional`,
+        ]]);
+
         lastLeadingNode = nextLeadingNode;
       }
 
@@ -907,8 +1057,15 @@ export class CommandBuilder<Context> {
           if (!this.arity.proxy)
             this.registerOptions(machine, extraNode);
 
-          registerDynamic(machine, lastLeadingNode, positionalArgument, extraNode, `pushExtraNoLimits`);
-          registerDynamic(machine, extraNode, positionalArgument, extraNode, `pushExtraNoLimits`);
+          registerDynamic(machine, lastLeadingNode, positionalArgument, extraNode, [`chain`, [
+            ...this.arity.extraCompletion ? [[`setCompletion`, CompletionType.Positional, this.arity.extraCompletion, this.cliIndex]] : [],
+            `pushExtraNoLimits`,
+          ]]);
+          registerDynamic(machine, extraNode, positionalArgument, extraNode, [`chain`, [
+            ...this.arity.extraCompletion ? [[`setCompletion`, CompletionType.Positional, this.arity.extraCompletion, this.cliIndex]] : [],
+            `pushExtraNoLimits`,
+          ]]);
+
           registerShortcut(machine, extraNode, extraShortcutNode);
         } else {
           for (let t = 0; t < this.arity.extra.length; ++t) {
@@ -917,7 +1074,13 @@ export class CommandBuilder<Context> {
             if (!this.arity.proxy)
               this.registerOptions(machine, nextExtraNode);
 
-            registerDynamic(machine, lastExtraNode, positionalArgument, nextExtraNode, `pushExtra`);
+            const {completion} = this.arity.extra[t];
+
+            registerDynamic(machine, lastExtraNode, positionalArgument, nextExtraNode, [`chain`, [
+              ...completion ? [[`setCompletion`, CompletionType.Positional, completion, this.cliIndex]] : [],
+              `pushExtra`,
+            ]]);
+
             registerShortcut(machine, nextExtraNode, extraShortcutNode);
             lastExtraNode = nextExtraNode;
           }
@@ -939,7 +1102,12 @@ export class CommandBuilder<Context> {
         if (t + 1 < this.arity.trailing.length)
           registerStatic(machine, nextTrailingNode, END_OF_INPUT, NODE_ERRORED, [`setError`, `Not enough positional arguments`]);
 
-        registerDynamic(machine, lastTrailingNode, `isNotOptionLike`, nextTrailingNode, `pushPositional`);
+        const {completion} = this.arity.trailing[t];
+        registerDynamic(machine, lastTrailingNode, `isNotOptionLike`, nextTrailingNode, [`chain`, [
+          ...completion ? [[`setCompletion`, CompletionType.Positional, completion, this.cliIndex]] : [],
+          `pushPositional`,
+        ]]);
+
         lastTrailingNode = nextTrailingNode;
       }
 
@@ -953,12 +1121,27 @@ export class CommandBuilder<Context> {
     };
   }
 
-  private registerOptions(machine: StateMachine, node: number) {
+  private getOptionNameCompletionResults(): Array<CompletionResult> {
+    return this.options.map(option => ({
+      // Complete the most descriptive name
+      completionText: option.names.find(name => name.startsWith(`--`)) ?? option.names[0],
+      listItemText: option.names.join(`,`),
+      description: option.description,
+    }));
+  }
+
+  private registerOptions(machine: StateMachine, node: number, {completeOptionNames = true}: {completeOptionNames?: boolean} = {}) {
     registerDynamic(machine, node, [`isOption`, `--`], node, `inhibateOptions`);
     registerDynamic(machine, node, [`isBatchOption`, this.allOptionNames], node, `pushBatch`);
-    registerDynamic(machine, node, [`isBoundOption`, this.allOptionNames, this.options], node, `pushBound`);
+    registerDynamic(machine, node, [`isBoundOption`, this.allOptionNames, this.options], node, [`chain`, [
+      [`setBoundCompletion`, this.options, this.cliIndex],
+      `pushBound`,
+    ]]);
     registerDynamic(machine, node, [`isUnsupportedOption`, this.allOptionNames], NODE_ERRORED, [`setError`, `Unsupported option name`]);
     registerDynamic(machine, node, [`isInvalidOption`], NODE_ERRORED, [`setError`, `Invalid option name`]);
+
+    // if (completeOptionNames)
+    //   registerDynamic(machine, node, [`isOptionLike`], node, [`setCompletion`, CompletionType.OptionName, () => this.getOptionNameCompletionResults(), this.cliIndex]);
 
     for (const option of this.options) {
       const longestName = option.names.reduce((longestName, name) => {
@@ -996,7 +1179,11 @@ export class CommandBuilder<Context> {
             ? `setStringValue`
             : `pushStringValue`;
 
-          registerDynamic(machine, lastNode, `isNotOptionLike`, nextNode, action);
+          const {completion} = option;
+          registerDynamic(machine, lastNode, `isNotOptionLike`, nextNode, [`chain`, [
+            ...completion ? [[`setCompletion`, CompletionType.OptionValue, Array.isArray(completion) ? completion[t] : completion, this.cliIndex]] : [],
+            action,
+          ]]);
 
           lastNode = nextNode;
         }
@@ -1066,11 +1253,15 @@ export class CliBuilder<Context> {
     return {
       machine,
       contexts,
+
       process: (input: Array<string>) => {
         return runMachine(machine, input);
       },
       suggest: (input: Array<string>, partial: boolean) => {
         return suggestMachine(machine, input, partial);
+      },
+      complete: (request: PartialCompletionRequest) => {
+        return completeMachine(machine, request);
       },
     };
   }

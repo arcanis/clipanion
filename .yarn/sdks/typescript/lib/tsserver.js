@@ -4,7 +4,7 @@ const {existsSync} = require(`fs`);
 const {createRequire, createRequireFromPath} = require(`module`);
 const {resolve} = require(`path`);
 
-const relPnpApiPath = "../../../../.pnp.js";
+const relPnpApiPath = "../../../../.pnp.cjs";
 
 const absPnpApiPath = resolve(__dirname, relPnpApiPath);
 const absRequire = (createRequire || createRequireFromPath)(absPnpApiPath);
@@ -23,7 +23,7 @@ const moduleWrapper = tsserver => {
 
   function toEditorPath(str) {
     // We add the `zip:` prefix to both `.zip/` paths and virtual paths
-    if (isAbsolute(str) && !str.match(/^\^zip:/) && (str.match(/\.zip\//) || str.match(/\$\$virtual\//))) {
+    if (isAbsolute(str) && !str.match(/^\^zip:/) && (str.match(/\.zip\//) || str.match(/\/(\$\$virtual|__virtual__)\//))) {
       // We also take the opportunity to turn virtual paths into physical ones;
       // this makes is much easier to work with workspaces that list peer
       // dependencies, since otherwise Ctrl+Click would bring us to the virtual
@@ -65,6 +65,20 @@ const moduleWrapper = tsserver => {
       ? str.replace(/^\^?zip:\//, ``)
       : str.replace(/^\^?zip:/, ``);
   }
+
+  // Force enable 'allowLocalPluginLoads'
+  // TypeScript tries to resolve plugins using a path relative to itself
+  // which doesn't work when using the global cache
+  // https://github.com/microsoft/TypeScript/blob/1b57a0395e0bff191581c9606aab92832001de62/src/server/project.ts#L2238
+  // VSCode doesn't want to enable 'allowLocalPluginLoads' due to security concerns but
+  // TypeScript already does local loads and if this code is running the user trusts the workspace
+  // https://github.com/microsoft/vscode/issues/45856
+  const ConfiguredProject = tsserver.server.ConfiguredProject;
+  const {enablePluginsWithOptions: originalEnablePluginsWithOptions} = ConfiguredProject.prototype;
+  ConfiguredProject.prototype.enablePluginsWithOptions = function() {
+    this.projectService.allowLocalPluginLoads = true;
+    return originalEnablePluginsWithOptions.apply(this, arguments);
+  };
 
   // And here is the point where we hijack the VSCode <-> TS communications
   // by adding ourselves in the middle. We locate everything that looks

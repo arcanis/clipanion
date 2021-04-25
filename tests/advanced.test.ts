@@ -1,54 +1,14 @@
-import chaiAsPromised                                             from 'chai-as-promised';
-import chai, {expect}                                             from 'chai';
-import getStream                                                  from 'get-stream';
-import {PassThrough}                                              from 'stream';
-import * as t                                                     from 'typanion';
+import chaiAsPromised                               from 'chai-as-promised';
+import chai, {expect}                               from 'chai';
+import getStream                                    from 'get-stream';
+import {PassThrough}                                from 'stream';
+import * as t                                       from 'typanion';
 
-import {Cli, CommandClass, Command, CliOptions, Option, Builtins} from '../sources/advanced';
+import {Cli, Command, CliOptions, Option, Builtins} from '../sources/advanced';
+
+import {prefix, log, runCli}                        from './utils';
 
 chai.use(chaiAsPromised);
-
-const log = <T extends Command>(command: T, properties: Array<keyof T> = []) => {
-  command.context.stdout.write(`Running ${command.constructor.name}\n`);
-
-  for (const property of properties) {
-    command.context.stdout.write(`${JSON.stringify(command[property])}\n`);
-  }
-};
-
-const runCli = async (cli: Cli | (() => Array<CommandClass>), args: Array<string>) => {
-  let finalCli;
-
-  if (typeof cli === `function`) {
-    finalCli = new Cli();
-
-    for (const command of cli()) {
-      finalCli.register(command);
-    }
-  } else {
-    finalCli = cli;
-  }
-
-  const stream = new PassThrough();
-  const promise = getStream(stream);
-
-  const exitCode = await finalCli.run(args, {
-    stdin: process.stdin,
-    stdout: stream,
-    stderr: stream,
-  });
-
-  stream.end();
-
-  const output = await promise;
-
-  if (exitCode !== 0)
-    throw new Error(output);
-
-  return output;
-};
-
-const prefix = `\u001b[1m$ \u001b[22m`;
 
 describe(`Advanced`, () => {
   describe(`Builtin Entries`, () => {
@@ -1056,5 +1016,36 @@ describe(`Advanced`, () => {
 
     await expect(runCli(cli, [`--foo=42`])).to.eventually.equal(`Running FooCommand\n42\nfalse\n`);
     await expect(runCli(cli, [`--foo`])).to.eventually.equal(`Running FooCommand\ntrue\nfalse\n`);
+  });
+
+  it(`should write errors to stderr`, async () => {
+    class FooCommand extends Command {
+      async execute() {
+        throw 42;
+      }
+    }
+
+    const cli = Cli.from([FooCommand]);
+
+    const stdout = new PassThrough();
+    const stdoutPromise = getStream(stdout);
+
+    const stderr = new PassThrough();
+    const stderrPromise = getStream(stderr);
+
+    await cli.run([], {
+      stdin: process.stdin,
+      stdout,
+      stderr,
+    });
+
+    stdout.end();
+    stderr.end();
+
+    const stdoutOutput = await stdoutPromise;
+    const stderrOutput = await stderrPromise;
+
+    expect(stdoutOutput).to.equal(``);
+    expect(stderrOutput).to.contain(`non-error rejection`);
   });
 });

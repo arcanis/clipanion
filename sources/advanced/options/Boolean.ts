@@ -32,7 +32,7 @@ export function Boolean(descriptor: string, initialValueBase: BooleanFlags | boo
       });
     },
 
-    transformer(builer, key, state) {
+    transformer(builder, key, state) {
       let currentValue = initialValue;
 
       for (const {name, value} of state.options) {
