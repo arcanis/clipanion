@@ -107,7 +107,7 @@ function StringPositional<T = string>(opts: StringPositionalFlags<T> = {}) {
         // We remove the positional from the list
         const [positional] = state.positionals.splice(i, 1);
 
-        return positional.value;
+        return applyValidator(opts.name ?? key, positional.value, opts.validator);
       }
 
       return undefined;
