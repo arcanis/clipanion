@@ -566,7 +566,7 @@ describe(`Completion`, () => {
               [`foo`],
             ];
 
-            bar = Option.String(`--bar`, {completion: () => [`a`, `b`, `c`]});
+            bar = Option.String(`-b,--bar`, {completion: () => [`a`, `b`, `c`]});
 
             async execute() {}
           }
@@ -576,25 +576,37 @@ describe(`Completion`, () => {
           ];
         };
 
-        expect(await completeCli(cli, {
-          current: `foo --bar `,
-          prefix: `foo --bar `,
-        })).to.deep.equal([`a`, `b`, `c`]);
+        for (const name of [`-b`, `--bar`]) {
+          expect(await completeCli(cli, {
+            current: `foo ${name} `,
+            prefix: `foo ${name} `,
+          })).to.deep.equal([`a`, `b`, `c`]);
 
-        expect(await completeCli(cli, {
-          current: `foo --bar a `,
-          prefix: `foo --bar a `,
-        })).to.deep.equal([]);
+          expect(await completeCli(cli, {
+            current: `foo ${name}=`,
+            prefix: `foo ${name}=`,
+          })).to.deep.equal([`${name}=a`, `${name}=b`, `${name}=c`]);
 
-        expect(await completeCli(cli, {
-          current: `foo --bar a --bar `,
-          prefix: `foo --bar a --bar `,
-        })).to.deep.equal([`a`, `b`, `c`]);
+          expect(await completeCli(cli, {
+            current: `foo ${name} a `,
+            prefix: `foo ${name} a `,
+          })).to.deep.equal([]);
 
-        expect(await completeCli(cli, {
-          current: `foo --bar a --bar b `,
-          prefix: `foo --bar a --bar b `,
-        })).to.deep.equal([]);
+          expect(await completeCli(cli, {
+            current: `foo ${name} a ${name} `,
+            prefix: `foo ${name} a ${name} `,
+          })).to.deep.equal([`a`, `b`, `c`]);
+
+          expect(await completeCli(cli, {
+            current: `foo ${name}=a ${name}=`,
+            prefix: `foo ${name}=a ${name}=`,
+          })).to.deep.equal([`${name}=a`, `${name}=b`, `${name}=c`]);
+
+          expect(await completeCli(cli, {
+            current: `foo ${name} a ${name} b `,
+            prefix: `foo ${name} a ${name} b `,
+          })).to.deep.equal([]);
+        }
       });
 
       it(`should complete string option values (tolerateBoolean)`, async () => {
@@ -610,7 +622,7 @@ describe(`Completion`, () => {
               [`foo`],
             ];
 
-            bar = Option.String(`--bar`, {tolerateBoolean: true, completion: () => [`a`, `b`, `c`]});
+            bar = Option.String(`-b,--bar`, {tolerateBoolean: true, completion: () => [`a`, `b`, `c`]});
 
             barRich = Option.String(`--bar-rich`, {tolerateBoolean: true, completion: () => richCompletions([`a`, `b`, `c`])});
 
@@ -622,36 +634,37 @@ describe(`Completion`, () => {
           ];
         };
 
-        expect(await completeCli(cli, {
-          current: `foo --bar `,
-          prefix: `foo --bar `,
-        })).to.deep.equal([]);
+        for (const name of [`-b`, `--bar`]) {
+          expect(await completeCli(cli, {
+            current: `foo ${name} `,
+            prefix: `foo ${name} `,
+          })).to.deep.equal([]);
 
-        expect(await completeCli(cli, {
-          current: `foo --bar=`,
-          prefix: `foo --bar=`,
-        })).to.deep.equal([`--bar=a`, `--bar=b`, `--bar=c`]);
+          expect(await completeCli(cli, {
+            current: `foo ${name}=`,
+            prefix: `foo ${name}=`,
+          })).to.deep.equal([`${name}=a`, `${name}=b`, `${name}=c`]);
 
-        expect(await completeCli(cli, {
-          current: `foo --bar=a `,
-          prefix: `foo --bar=a `,
-        })).to.deep.equal([]);
+          expect(await completeCli(cli, {
+            current: `foo ${name}=a `,
+            prefix: `foo ${name}=a `,
+          })).to.deep.equal([]);
 
-        expect(await completeCli(cli, {
-          current: `foo --bar=a --bar `,
-          prefix: `foo --bar=a --bar `,
-        })).to.deep.equal([]);
+          expect(await completeCli(cli, {
+            current: `foo ${name}=a ${name} `,
+            prefix: `foo ${name}=a ${name} `,
+          })).to.deep.equal([]);
 
-        expect(await completeCli(cli, {
-          current: `foo --bar=a --bar=`,
-          prefix: `foo --bar=a --bar=`,
-        })).to.deep.equal([`--bar=a`, `--bar=b`, `--bar=c`]);
+          expect(await completeCli(cli, {
+            current: `foo ${name}=a ${name}=`,
+            prefix: `foo ${name}=a ${name}=`,
+          })).to.deep.equal([`${name}=a`, `${name}=b`, `${name}=c`]);
 
-        expect(await completeCli(cli, {
-          current: `foo --bar=a --bar=a `,
-          prefix: `foo --bar=a --bar=a `,
-        })).to.deep.equal([]);
-
+          expect(await completeCli(cli, {
+            current: `foo ${name}=a ${name}=a `,
+            prefix: `foo ${name}=a ${name}=a `,
+          })).to.deep.equal([]);
+        }
 
         expect(await completeCli(cli, {
           current: `foo --bar-rich `,
@@ -691,7 +704,7 @@ describe(`Completion`, () => {
               [`foo`],
             ];
 
-            bar = Option.String(`--bar`, {arity: 3, completion: () => [`a`, `b`, `c`]});
+            bar = Option.String(`-b,--bar`, {arity: 3, completion: () => [`a`, `b`, `c`]});
             baz = Option.String(`--baz`, {arity: 3, completion: [() => [`a`, `b`, `c`], () => [`d`, `e`, `f`], () => [`g`, `h`, `i`]]});
 
             async execute() {}
@@ -702,45 +715,47 @@ describe(`Completion`, () => {
           ];
         };
 
-        expect(await completeCli(cli, {
-          current: `foo --bar `,
-          prefix: `foo --bar `,
-        })).to.deep.equal([`a`, `b`, `c`]);
+        for (const name of [`-b`, `--bar`]) {
+          expect(await completeCli(cli, {
+            current: `foo ${name} `,
+            prefix: `foo ${name} `,
+          })).to.deep.equal([`a`, `b`, `c`]);
 
-        expect(await completeCli(cli, {
-          current: `foo --bar a `,
-          prefix: `foo --bar a `,
-        })).to.deep.equal([`a`, `b`, `c`]);
+          expect(await completeCli(cli, {
+            current: `foo ${name} a `,
+            prefix: `foo ${name} a `,
+          })).to.deep.equal([`a`, `b`, `c`]);
 
-        expect(await completeCli(cli, {
-          current: `foo --bar a b `,
-          prefix: `foo --bar a b `,
-        })).to.deep.equal([`a`, `b`, `c`]);
+          expect(await completeCli(cli, {
+            current: `foo ${name} a b `,
+            prefix: `foo ${name} a b `,
+          })).to.deep.equal([`a`, `b`, `c`]);
 
-        expect(await completeCli(cli, {
-          current: `foo --bar a b c `,
-          prefix: `foo --bar a b c `,
-        })).to.deep.equal([]);
+          expect(await completeCli(cli, {
+            current: `foo ${name} a b c `,
+            prefix: `foo ${name} a b c `,
+          })).to.deep.equal([]);
 
-        expect(await completeCli(cli, {
-          current: `foo --bar a b c --bar `,
-          prefix: `foo --bar a b c --bar `,
-        })).to.deep.equal([`a`, `b`, `c`]);
+          expect(await completeCli(cli, {
+            current: `foo ${name} a b c ${name} `,
+            prefix: `foo ${name} a b c ${name} `,
+          })).to.deep.equal([`a`, `b`, `c`]);
 
-        expect(await completeCli(cli, {
-          current: `foo --bar a b c --bar d `,
-          prefix: `foo --bar a b c --bar d `,
-        })).to.deep.equal([`a`, `b`, `c`]);
+          expect(await completeCli(cli, {
+            current: `foo ${name} a b c ${name} d `,
+            prefix: `foo ${name} a b c ${name} d `,
+          })).to.deep.equal([`a`, `b`, `c`]);
 
-        expect(await completeCli(cli, {
-          current: `foo --bar a b c --bar d e `,
-          prefix: `foo --bar a b c --bar d e `,
-        })).to.deep.equal([`a`, `b`, `c`]);
+          expect(await completeCli(cli, {
+            current: `foo ${name} a b c ${name} d e `,
+            prefix: `foo ${name} a b c ${name} d e `,
+          })).to.deep.equal([`a`, `b`, `c`]);
 
-        expect(await completeCli(cli, {
-          current: `foo --bar a b c --bar d e f `,
-          prefix: `foo --bar a b c --bar d e f `,
-        })).to.deep.equal([]);
+          expect(await completeCli(cli, {
+            current: `foo ${name} a b c ${name} d e f `,
+            prefix: `foo ${name} a b c ${name} d e f `,
+          })).to.deep.equal([]);
+        }
 
 
         expect(await completeCli(cli, {
@@ -791,7 +806,7 @@ describe(`Completion`, () => {
               [`foo`],
             ];
 
-            bar = Option.Array(`--bar`, {completion: () => [`a`, `b`, `c`]});
+            bar = Option.Array(`-b,--bar`, {completion: () => [`a`, `b`, `c`]});
 
             async execute() {}
           }
@@ -801,25 +816,37 @@ describe(`Completion`, () => {
           ];
         };
 
-        expect(await completeCli(cli, {
-          current: `foo --bar `,
-          prefix: `foo --bar `,
-        })).to.deep.equal([`a`, `b`, `c`]);
+        for (const name of [`-b`, `--bar`]) {
+          expect(await completeCli(cli, {
+            current: `foo ${name} `,
+            prefix: `foo ${name} `,
+          })).to.deep.equal([`a`, `b`, `c`]);
 
-        expect(await completeCli(cli, {
-          current: `foo --bar a `,
-          prefix: `foo --bar a `,
-        })).to.deep.equal([]);
+          expect(await completeCli(cli, {
+            current: `foo ${name}=`,
+            prefix: `foo ${name}=`,
+          })).to.deep.equal([`${name}=a`, `${name}=b`, `${name}=c`]);
 
-        expect(await completeCli(cli, {
-          current: `foo --bar a --bar `,
-          prefix: `foo --bar a --bar `,
-        })).to.deep.equal([`a`, `b`, `c`]);
+          expect(await completeCli(cli, {
+            current: `foo ${name} a `,
+            prefix: `foo ${name} a `,
+          })).to.deep.equal([]);
 
-        expect(await completeCli(cli, {
-          current: `foo --bar a --bar b `,
-          prefix: `foo --bar a --bar b `,
-        })).to.deep.equal([]);
+          expect(await completeCli(cli, {
+            current: `foo ${name} a ${name} `,
+            prefix: `foo ${name} a ${name} `,
+          })).to.deep.equal([`a`, `b`, `c`]);
+
+          expect(await completeCli(cli, {
+            current: `foo ${name}=a ${name}=`,
+            prefix: `foo ${name}=a ${name}=`,
+          })).to.deep.equal([`${name}=a`, `${name}=b`, `${name}=c`]);
+
+          expect(await completeCli(cli, {
+            current: `foo ${name} a ${name} b `,
+            prefix: `foo ${name} a ${name} b `,
+          })).to.deep.equal([]);
+        }
       });
 
       it(`should complete array option values (tuples)`, async () => {
@@ -829,7 +856,7 @@ describe(`Completion`, () => {
               [`foo`],
             ];
 
-            bar = Option.Array(`--bar`, {arity: 3, completion: () => [`a`, `b`, `c`]});
+            bar = Option.Array(`-b,--bar`, {arity: 3, completion: () => [`a`, `b`, `c`]});
             baz = Option.Array(`--baz`, {arity: 3, completion: [() => [`a`, `b`, `c`], () => [`d`, `e`, `f`], () => [`g`, `h`, `i`]]});
 
             async execute() {}
@@ -840,45 +867,47 @@ describe(`Completion`, () => {
           ];
         };
 
-        expect(await completeCli(cli, {
-          current: `foo --bar `,
-          prefix: `foo --bar `,
-        })).to.deep.equal([`a`, `b`, `c`]);
+        for (const name of [`-b`, `--bar`]) {
+          expect(await completeCli(cli, {
+            current: `foo ${name} `,
+            prefix: `foo ${name} `,
+          })).to.deep.equal([`a`, `b`, `c`]);
 
-        expect(await completeCli(cli, {
-          current: `foo --bar a `,
-          prefix: `foo --bar a `,
-        })).to.deep.equal([`a`, `b`, `c`]);
+          expect(await completeCli(cli, {
+            current: `foo ${name} a `,
+            prefix: `foo ${name} a `,
+          })).to.deep.equal([`a`, `b`, `c`]);
 
-        expect(await completeCli(cli, {
-          current: `foo --bar a b `,
-          prefix: `foo --bar a b `,
-        })).to.deep.equal([`a`, `b`, `c`]);
+          expect(await completeCli(cli, {
+            current: `foo ${name} a b `,
+            prefix: `foo ${name} a b `,
+          })).to.deep.equal([`a`, `b`, `c`]);
 
-        expect(await completeCli(cli, {
-          current: `foo --bar a b c `,
-          prefix: `foo --bar a b c `,
-        })).to.deep.equal([]);
+          expect(await completeCli(cli, {
+            current: `foo ${name} a b c `,
+            prefix: `foo ${name} a b c `,
+          })).to.deep.equal([]);
 
-        expect(await completeCli(cli, {
-          current: `foo --bar a b c --bar `,
-          prefix: `foo --bar a b c --bar `,
-        })).to.deep.equal([`a`, `b`, `c`]);
+          expect(await completeCli(cli, {
+            current: `foo ${name} a b c ${name} `,
+            prefix: `foo ${name} a b c ${name} `,
+          })).to.deep.equal([`a`, `b`, `c`]);
 
-        expect(await completeCli(cli, {
-          current: `foo --bar a b c --bar d `,
-          prefix: `foo --bar a b c --bar d `,
-        })).to.deep.equal([`a`, `b`, `c`]);
+          expect(await completeCli(cli, {
+            current: `foo ${name} a b c ${name} d `,
+            prefix: `foo ${name} a b c ${name} d `,
+          })).to.deep.equal([`a`, `b`, `c`]);
 
-        expect(await completeCli(cli, {
-          current: `foo --bar a b c --bar d e `,
-          prefix: `foo --bar a b c --bar d e `,
-        })).to.deep.equal([`a`, `b`, `c`]);
+          expect(await completeCli(cli, {
+            current: `foo ${name} a b c ${name} d e `,
+            prefix: `foo ${name} a b c ${name} d e `,
+          })).to.deep.equal([`a`, `b`, `c`]);
 
-        expect(await completeCli(cli, {
-          current: `foo --bar a b c --bar d e f `,
-          prefix: `foo --bar a b c --bar d e f `,
-        })).to.deep.equal([]);
+          expect(await completeCli(cli, {
+            current: `foo ${name} a b c ${name} d e f `,
+            prefix: `foo ${name} a b c ${name} d e f `,
+          })).to.deep.equal([]);
+        }
 
 
         expect(await completeCli(cli, {
@@ -920,6 +949,56 @@ describe(`Completion`, () => {
           current: `foo --baz a b c --baz d e f `,
           prefix: `foo --baz a b c --baz d e f `,
         })).to.deep.equal([]);
+      });
+
+      it(`should complete required string option values`, async () => {
+        const cli = () => {
+          class FooCommand extends Command {
+            static paths = [
+              [`foo`],
+            ];
+
+            bar = Option.String(`-b,--bar`, {required: true, completion: () => [`a`, `b`, `c`]});
+
+            async execute() {}
+          }
+
+          return [
+            FooCommand,
+          ];
+        };
+
+        for (const name of [`-b`, `--bar`]) {
+          expect(await completeCli(cli, {
+            current: `foo ${name} `,
+            prefix: `foo ${name} `,
+          })).to.deep.equal([`a`, `b`, `c`]);
+
+          expect(await completeCli(cli, {
+            current: `foo ${name}=`,
+            prefix: `foo ${name}=`,
+          })).to.deep.equal([`${name}=a`, `${name}=b`, `${name}=c`]);
+
+          expect(await completeCli(cli, {
+            current: `foo ${name} a `,
+            prefix: `foo ${name} a `,
+          })).to.deep.equal([]);
+
+          expect(await completeCli(cli, {
+            current: `foo ${name} a ${name} `,
+            prefix: `foo ${name} a ${name} `,
+          })).to.deep.equal([`a`, `b`, `c`]);
+
+          expect(await completeCli(cli, {
+            current: `foo ${name}=a ${name}=`,
+            prefix: `foo ${name}=a ${name}=`,
+          })).to.deep.equal([`${name}=a`, `${name}=b`, `${name}=c`]);
+
+          expect(await completeCli(cli, {
+            current: `foo ${name} a ${name} b `,
+            prefix: `foo ${name} a ${name} b `,
+          })).to.deep.equal([]);
+        }
       });
     });
   });
@@ -1493,11 +1572,22 @@ describe(`Completion`, () => {
             });
 
             await completeCli(cli, {
+              current: `foo --bar=abcd`,
+              prefix: `foo --bar=ab`,
+            });
+
+            await completeCli(cli, {
               current: `foo --bar abcd --bar abcd`,
               prefix: `foo --bar abcd --bar ab`,
             });
 
-            expect(spy).to.have.been.called.twice;
+
+            await completeCli(cli, {
+              current: `foo --bar=abcd --bar=abcd`,
+              prefix: `foo --bar=abcd --bar=ab`,
+            });
+
+            expect(spy).to.have.been.called.exactly(4);
           });
 
           it(`string option values (tolerateBoolean)`, async () => {
@@ -1617,7 +1707,7 @@ describe(`Completion`, () => {
                 prefix: `ab`,
                 suffix: `cd`,
               });
-              expect(command.bar).to.deep.equal(new Array(calls).fill(`abcd`));
+              expect(command.bar).to.deep.equal(new Array(Math.trunc((calls - 1) / 2) + 1).fill(`abcd`));
 
               return [];
             }));
@@ -1644,11 +1734,21 @@ describe(`Completion`, () => {
             });
 
             await completeCli(cli, {
+              current: `foo --bar=abcd`,
+              prefix: `foo --bar=ab`,
+            });
+
+            await completeCli(cli, {
               current: `foo --bar abcd --bar abcd`,
               prefix: `foo --bar abcd --bar ab`,
             });
 
-            expect(spy).to.have.been.called.twice;
+            await completeCli(cli, {
+              current: `foo --bar=abcd --bar=abcd`,
+              prefix: `foo --bar=abcd --bar=ab`,
+            });
+
+            expect(spy).to.have.been.called.exactly(4);
           });
 
           it(`array option values (tuples)`, async () => {
@@ -1714,6 +1814,58 @@ describe(`Completion`, () => {
             });
 
             expect(spy).to.have.been.called.exactly(6);
+          });
+
+          it(`required string option values`, async () => {
+            const spy = chai.spy(identity<CompletionFunction<FooCommand>>((request, command) => {
+              expect(request).to.deep.equal({
+                current: `abcd`,
+                prefix: `ab`,
+                suffix: `cd`,
+              });
+              expect(command.bar).to.equal(`abcd`);
+
+              return [];
+            }));
+
+            class FooCommand extends Command {
+              static paths = [
+                [`foo`],
+              ];
+
+              bar = Option.String(`--bar`, {required: true, completion: spy});
+
+              async execute() {}
+            }
+
+            const cli = () => {
+              return [
+                FooCommand,
+              ];
+            };
+
+            await completeCli(cli, {
+              current: `foo --bar abcd`,
+              prefix: `foo --bar ab`,
+            });
+
+            await completeCli(cli, {
+              current: `foo --bar=abcd`,
+              prefix: `foo --bar=ab`,
+            });
+
+            await completeCli(cli, {
+              current: `foo --bar abcd --bar abcd`,
+              prefix: `foo --bar abcd --bar ab`,
+            });
+
+
+            await completeCli(cli, {
+              current: `foo --bar=abcd --bar=abcd`,
+              prefix: `foo --bar=abcd --bar=ab`,
+            });
+
+            expect(spy).to.have.been.called.exactly(4);
           });
         });
       });
