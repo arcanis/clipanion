@@ -4,6 +4,7 @@
     "esModuleInterop": true,
     "experimentalDecorators": true,
     "lib": [
+      "DOM",
       "ES2018"
     ],
     "module": "commonjs",
