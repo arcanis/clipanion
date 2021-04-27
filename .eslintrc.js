@@ -6,4 +6,8 @@ module.exports = {
   ignorePatterns: [
     `tests/__snapshots__`,
   ],
+  env: {
+    browser: true,
+    node: true,
+  },
 };
