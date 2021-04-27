@@ -7,6 +7,9 @@ import React                from 'react';
 
 import styles               from './styles.module.css';
 
+if (typeof window !== `undefined` && !window.location.pathname.endsWith(`/`))
+  window.history.replaceState(null, null, `${window.location.href}/`);
+
 const features = [{
   title: `Type Safe`,
   description: `Clipanion provides type inference for the options you declare: no duplicated types to write and keep in sync.`,

@@ -26,12 +26,12 @@ export type StringPositionalFlags<T> = {
   required?: boolean,
 };
 
-function StringOption<T = string>(descriptor: string, opts: StringOptionTolerateBoolean<T> & {required: true}): CommandOptionReturn<T | boolean>;
 function StringOption<T = string, Arity extends number = 1>(descriptor: string, opts: StringOptionNoBoolean<T, Arity> & {required: true}): CommandOptionReturn<WithArity<T, Arity>>;
 function StringOption<T = string, Arity extends number = 1>(descriptor: string, opts?: StringOptionNoBoolean<T, Arity>): CommandOptionReturn<WithArity<T, Arity> | undefined>;
+function StringOption<T = string, Arity extends number = 1>(descriptor: string, initialValue: WithArity<string, Arity>, opts?: Omit<StringOptionNoBoolean<T, Arity>, 'required'>): CommandOptionReturn<WithArity<T, Arity>>;
+function StringOption<T = string>(descriptor: string, opts: StringOptionTolerateBoolean<T> & {required: true}): CommandOptionReturn<T | boolean>;
 function StringOption<T = string>(descriptor: string, opts: StringOptionTolerateBoolean<T>): CommandOptionReturn<T | boolean | undefined>;
 function StringOption<T = string>(descriptor: string, initialValue: string | boolean, opts: Omit<StringOptionTolerateBoolean<T>, 'required'>): CommandOptionReturn<T | boolean>;
-function StringOption<T = string, Arity extends number = 1>(descriptor: string, initialValue: WithArity<string, Arity>, opts?: Omit<StringOptionNoBoolean<T, Arity>, 'required'>): CommandOptionReturn<WithArity<T, Arity>>;
 function StringOption<T = string, Arity extends number = 1>(descriptor: string, initialValueBase: StringOption<T> | WithArity<string, Arity> | string | boolean | undefined, optsBase?: StringOption<T>) {
   const [initialValue, opts] = rerouteArguments(initialValueBase, optsBase ?? {});
   const {arity = 1} = opts;
@@ -138,12 +138,12 @@ export function String<T = string>(opts: StringPositionalFlags<T>): CommandOptio
  * --foo=hello --bar world
  *     ► {"foo": "hello", "bar": "world"}
  */
-export function String<T = string>(descriptor: string, opts: StringOptionTolerateBoolean<T> & {required: true}): CommandOptionReturn<T | boolean>;
 export function String<T = string, Arity extends number = 1>(descriptor: string, opts: StringOptionNoBoolean<T, Arity> & {required: true}): CommandOptionReturn<WithArity<T, Arity>>;
 export function String<T = string, Arity extends number = 1>(descriptor: string, opts?: StringOptionNoBoolean<T, Arity>): CommandOptionReturn<WithArity<T, Arity> | undefined>;
+export function String<T = string, Arity extends number = 1>(descriptor: string, initialValue: WithArity<string, Arity>, opts?: Omit<StringOptionNoBoolean<T, Arity>, 'required'>): CommandOptionReturn<WithArity<T, Arity>>;
+export function String<T = string>(descriptor: string, opts: StringOptionTolerateBoolean<T> & {required: true}): CommandOptionReturn<T | boolean>;
 export function String<T = string>(descriptor: string, opts: StringOptionTolerateBoolean<T>): CommandOptionReturn<T | boolean | undefined>;
 export function String<T = string>(descriptor: string, initialValue: string | boolean, opts: Omit<StringOptionTolerateBoolean<T>, 'required'>): CommandOptionReturn<T | boolean>;
-export function String<T = string, Arity extends number = 1>(descriptor: string, initialValue: WithArity<string, Arity>, opts?: Omit<StringOptionNoBoolean<T, Arity>, 'required'>): CommandOptionReturn<WithArity<T, Arity>>;
 
 // This function is badly typed, but it doesn't matter because the overloads provide the true public typings
 export function String(descriptor?: unknown, ...args: Array<any>) {

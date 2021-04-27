@@ -42,6 +42,7 @@ class MyCommand extends Command {
   stringWithArity3AndRequiredAndDefault = Option.String(`--foo`, [`bar`, `baz`, `qux`], {arity: 3, required: true});
 
   stringWithTolerateBoolean = Option.String(`--foo`, {tolerateBoolean: true});
+  stringWithTolerateBooleanFalse = Option.String(`--foo`, {tolerateBoolean: false});
   stringWithTolerateBooleanAndRequired = Option.String(`--foo`, {tolerateBoolean: true, required: true});
   stringWithTolerateBooleanAndDefault = Option.String(`--foo`, false, {tolerateBoolean: true});
   stringWithTolerateBooleanAndValidator = Option.String(`--foo`, false, {tolerateBoolean: true, validator: t.isNumber()});
@@ -95,6 +96,7 @@ class MyCommand extends Command {
     assertEqual<[number, number, number]>()(this.stringWithArity3AndValidatorAndDefault, true);
     assertEqual<[number, number, number]>()(this.stringWithArity3AndValidatorAndRequired, true);
 
+    assertEqual<string | undefined>()(this.stringWithTolerateBooleanFalse, true);
     assertEqual<string | boolean | undefined>()(this.stringWithTolerateBoolean, true);
     assertEqual<string | boolean>()(this.stringWithTolerateBooleanAndDefault, true);
     assertEqual<string | boolean>()(this.stringWithTolerateBooleanAndRequired, true);

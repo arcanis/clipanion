@@ -7,7 +7,14 @@ Clipanion supports many different types of options. In most cases both short-sty
 
 ## Arrays
 
-Arrays are just string options that support being repeated multiple times. Just like string options, they also support tuples, so you can declare them such as the following becomes possible:
+Arrays are just string options that support being set multiple times:
+
+```
+--email foo@baz --email bar@baz
+    => Command {"email": ["foo@baz", "bar@baz"]}
+```
+
+Just like string options, they also support tuples, so you can declare them such as the following becomes possible:
 
 ```
 --point x1 y1 --point x2 y2
@@ -16,7 +23,7 @@ Arrays are just string options that support being repeated multiple times. Just 
 
 ## Batches
 
-Batches are a set of short-style boolean options put together:
+Batches are a "free" feature, you don't have to specify them explicitly. As long as you configure shorthands to boolean options, you can then reference them in a single argument. For example, assuming that `-p` / `-i` / `-e` are valid boolean options, the following is accepted:
 
 ```
 -pie
