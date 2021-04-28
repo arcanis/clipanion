@@ -4633,7 +4633,7 @@ __metadata:
     rollup: ^2.16.1
     ts-node: ^8.10.2
     tslib: ^2.0.0
-    typanion: ^3.3.0
+    typanion: ^3.3.1
     typescript: ^4.1.2
   peerDependencies:
     typanion: "*"
@@ -14634,10 +14634,10 @@ fsevents@~2.1.2:
   languageName: node
   linkType: hard
 
-"typanion@npm:^3.3.0":
-  version: 3.3.0
-  resolution: "typanion@npm:3.3.0"
-  checksum: e31d9ee6e50bba9d066675a0efcc43df95c581176dcd02855c690bbf1936a160d56c8e3146d9e6870e982a4dc807221e9ede0f0d4603f82a074181ab1860d80d
+"typanion@npm:^3.3.1":
+  version: 3.3.1
+  resolution: "typanion@npm:3.3.1"
+  checksum: 4341c4199f5ce022c9e486a47fff9509bb887768c9496fec86e10bdac9631f34298b9257dc5c9425e2eb177c3df5189ba029570114a5fddbfb11928330023262
   languageName: node
   linkType: hard
 
