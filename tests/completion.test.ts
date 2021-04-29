@@ -652,6 +652,93 @@ describe(`Completion`, () => {
         })).to.deep.equal(boundNamesWithValue);
       });
 
+      it(`should complete batch option names`, async () => {
+        const cli = () => {
+          class FooCommand extends Command {
+            static paths = [
+              [`foo`],
+            ];
+
+            foo = Option.Boolean(`-f,--foo`);
+
+            bar = Option.String(`-b,--bar`, {completion: () => [`a`, `b`, `c`]});
+
+            baz = Option.Boolean(`-B,--baz`);
+
+            qux = Option.String(`-q,--qux`, {tolerateBoolean: true, completion: () => [`d`, `e`, `f`]});
+
+            async execute() {}
+          }
+
+          return [
+            FooCommand,
+          ];
+        };
+
+        expect(await completeCli(cli, {
+          current: `foo -f`,
+          prefix: `foo -f`,
+        })).to.deep.equal([
+          {completionText: `-f`, listItemText: `-f,--foo`, description: undefined},
+          {completionText: `-fB`, listItemText: `-B,--baz`, description: undefined},
+          {completionText: `-fq`, listItemText: `-q,--qux`, description: undefined},
+        ]);
+
+        expect(await completeCli(cli, {
+          current: `foo -fB`,
+          prefix: `foo -fB`,
+        })).to.deep.equal([
+          {completionText: `-fB`, listItemText: `-B,--baz`, description: undefined},
+          {completionText: `-fBq`, listItemText: `-q,--qux`, description: undefined},
+        ]);
+
+        expect(await completeCli(cli, {
+          current: `foo -fBq`,
+          prefix: `foo -fBq`,
+        })).to.deep.equal([
+          {completionText: `-fBq`, listItemText: `-q,--qux`, description: undefined},
+        ]);
+
+        expect(await completeCli(cli, {
+          current: `foo -q`,
+          prefix: `foo -q`,
+        })).to.deep.equal([
+          {completionText: `-q`, listItemText: `-q,--qux`, description: undefined},
+          {completionText: `-qf`, listItemText: `-f,--foo`, description: undefined},
+          {completionText: `-qB`, listItemText: `-B,--baz`, description: undefined},
+        ]);
+
+        expect(await completeCli(cli, {
+          current: `foo -qf`,
+          prefix: `foo -qf`,
+        })).to.deep.equal([
+          {completionText: `-qf`, listItemText: `-f,--foo`, description: undefined},
+          {completionText: `-qfB`, listItemText: `-B,--baz`, description: undefined},
+        ]);
+
+        expect(await completeCli(cli, {
+          current: `foo -qfB`,
+          prefix: `foo -qfB`,
+        })).to.deep.equal([
+          {completionText: `-qfB`, listItemText: `-B,--baz`, description: undefined},
+        ]);
+
+        expect(await completeCli(cli, {
+          current: `foo -fB`,
+          prefix: `foo -`,
+        })).to.deep.equal([
+          {completionText: `-qfB`, listItemText: `-q,--qux`, description: undefined},
+        ]);
+
+        expect(await completeCli(cli, {
+          current: `foo -fB`,
+          prefix: `foo -f`,
+        })).to.deep.equal([
+          {completionText: `-fB`, listItemText: `-f,--foo`, description: undefined},
+          {completionText: `-fqB`, listItemText: `-q,--qux`, description: undefined},
+        ]);
+      });
+
       it(`should complete string option values`, async () => {
         const cli = () => {
           class FooCommand extends Command {

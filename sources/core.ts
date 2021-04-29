@@ -1,11 +1,11 @@
-import {CompletionResult, CompletionResults, RichCompletionResult} from 'clcs';
+import {CompletionResults, RichCompletionResult} from 'clcs';
 
-import * as errors                                                 from './errors';
+import * as errors                               from './errors';
 
 import {
   BATCH_REGEX, BINDING_REGEX, END_OF_INPUT,
   HELP_COMMAND_INDEX, HELP_REGEX, NODE_ERRORED,
-  NODE_INITIAL, NODE_SUCCESS, OPTION_REGEX,
+  NODE_INITIAL, NODE_SUCCESS, OPTION_REGEX, SHORT_OPTION_REGEX, LONG_OPTION_REGEX,
   START_OF_INPUT, DEBUG, CompletionType,
 } from './constants';
 
@@ -701,6 +701,12 @@ export const tests = {
   isOption: (state: RunState, {segment}: Current, name: string, hidden?: boolean) => {
     return !state.ignoreOptions && segment === name;
   },
+  isLongOption: (state: RunState, {segment}: Current, name: string, hidden?: boolean) => {
+    return !state.ignoreOptions && segment === name && LONG_OPTION_REGEX.test(name);
+  },
+  isShortOption: (state: RunState, {segment}: Current, name: string, hidden?: boolean) => {
+    return !state.ignoreOptions && segment === name && SHORT_OPTION_REGEX.test(name);
+  },
   isBatchOption: (state: RunState, {segment}: Current, names: Array<string>) => {
     return !state.ignoreOptions && BATCH_REGEX.test(segment) && [...segment.slice(1)].every(name => names.includes(`-${name}`));
   },
@@ -824,6 +830,33 @@ export const reducers = {
       selectedIndex: index,
     };
   },
+  setBatchCompletion: (state: RunState, {segment, cursorPosition}: Current, builder: CommandBuilder<any>) => {
+    if (!tests.isCompletion(state, {segment, cursorPosition}))
+      return state;
+
+    const completionWrapperFn: CompletionFunction = ({prefix, suffix}) => {
+      const completions = builder.getOptionNameCompletionResults({onlyBatch: true});
+      const lastOptionCompletion = prefix.length > 1
+        ? completions.find(completionResult => completionResult.completionText.slice(1) === prefix[prefix.length - 1])!
+        : null;
+
+      // Since batches aren't suggested unless the user types at least one batch component,
+      // it means that the user either wants to validate the typed component or add new elements
+      // to the batch. Because of this, we suggest the current component and all ways to add more
+      // relevant components to the batch.
+      return [
+        ...lastOptionCompletion ? [{...lastOptionCompletion, completionText: segment}] : [],
+        ...completions
+          .filter(completionResult => !segment.includes(completionResult.completionText.slice(1)))
+          .map(completionResult => ({
+            ...completionResult,
+            completionText: `${prefix}${completionResult.completionText.slice(1)}${suffix}`,
+          })),
+      ];
+    };
+
+    return reducers.setCompletion(state, {segment, cursorPosition}, CompletionType.OptionName, completionWrapperFn, builder.cliIndex);
+  },
   setBoundCompletion: (state: RunState, {segment, cursorPosition}: Current, builder: CommandBuilder<any>) => {
     if (!tests.isCompletion(state, {segment, cursorPosition}))
       return state;
@@ -840,6 +873,7 @@ export const reducers = {
             ...completionResult,
             completionText: `${completionResult.completionText}=${value}`,
           }));
+
       return reducers.setCompletion(state, {segment: name, cursorPosition}, CompletionType.OptionName, completionWrapperFn, builder.cliIndex);
     }
 
@@ -881,6 +915,8 @@ export type ArityDefinition = {
 
 export type OptDefinition = {
   names: Array<string>;
+  longNames: Array<string>;
+  shortNames: Array<string>;
   description?: string;
   arity: number;
   hidden: boolean;
@@ -955,7 +991,20 @@ export class CommandBuilder<Context> {
       throw new Error(`The arity must be positive, got ${arity}`);
 
     this.allOptionNames.push(...names);
-    this.options.push({names, description, arity, hidden, required, allowBinding, completion});
+
+    const longNames = [];
+    const shortNames = [];
+    for (const name of names) {
+      if (name.match(LONG_OPTION_REGEX)) {
+        longNames.push(name);
+      } else if (name.match(SHORT_OPTION_REGEX)) {
+        shortNames.push(name);
+      } else {
+        throw new Error(`Invalid option name "${name}"`);
+      }
+    }
+
+    this.options.push({names, longNames, shortNames, description, arity, hidden, required, allowBinding, completion});
   }
 
   setContext(context: Context) {
@@ -1155,17 +1204,20 @@ export class CommandBuilder<Context> {
     };
   }
 
-  getOptionNameCompletionResults({onlyBound = false}: {onlyBound?: boolean} = {}): Array<RichCompletionResult> {
+  getOptionNameCompletionResults({onlyBatch = false, onlyBound = false}: {onlyBatch?: boolean, onlyBound?: boolean} = {}): Array<RichCompletionResult> {
     return this.options
       .filter(option => {
+        if (onlyBatch && (option.arity !== 0 || option.shortNames.length === 0))
+          return false;
+
         if (onlyBound && !option.allowBinding)
           return false;
 
         return true;
       })
       .map(option => ({
-      // Complete the most descriptive name
-        completionText: option.names.find(name => name.startsWith(`--`)) ?? option.names[0],
+        // Complete the most descriptive name
+        completionText: (!onlyBatch && option.longNames[0]) || option.shortNames[0],
         listItemText: option.names.join(`,`),
         description: option.description,
       }));
@@ -1173,16 +1225,16 @@ export class CommandBuilder<Context> {
 
   private registerOptions(machine: StateMachine, node: number, {completeOptionNames = true}: {completeOptionNames?: boolean} = {}) {
     registerDynamic(machine, node, [`isOption`, `--`], node, `inhibateOptions`);
-    registerDynamic(machine, node, [`isBatchOption`, this.allOptionNames], node, `pushBatch`);
+    registerDynamic(machine, node, [`isBatchOption`, this.allOptionNames], node, [`chain`, [
+      [`setBatchCompletion`, this],
+      `pushBatch`,
+    ]]);
     registerDynamic(machine, node, [`isBoundOption`, this.allOptionNames, this.options], node, [`chain`, [
       [`setBoundCompletion`, this],
       `pushBound`,
     ]]);
     registerDynamic(machine, node, [`isUnsupportedOption`, this.allOptionNames], NODE_ERRORED, [`setError`, `Unsupported option name`]);
     registerDynamic(machine, node, [`isInvalidOption`], NODE_ERRORED, [`setError`, `Invalid option name`]);
-
-    // if (completeOptionNames)
-    //   registerDynamic(machine, node, [`isOptionLike`], node, [`setCompletion`, CompletionType.OptionName, () => this.getOptionNameCompletionResults(), this.cliIndex]);
 
     for (const option of this.options) {
       const longestName = option.names.reduce((longestName, name) => {
@@ -1191,7 +1243,13 @@ export class CommandBuilder<Context> {
 
       if (option.arity === 0) {
         for (const name of option.names) {
-          registerDynamic(machine, node, [`isOption`, name, option.hidden || name !== longestName], node, `pushTrue`);
+          registerDynamic(machine, node, [`isLongOption`, name, option.hidden || name !== longestName], node, [`chain`, [
+            `pushTrue`,
+          ]]);
+          registerDynamic(machine, node, [`isShortOption`, name, option.hidden || name !== longestName], node, [`chain`, [
+            [`setBatchCompletion`, this],
+            `pushTrue`,
+          ]]);
 
           if (name.startsWith(`--`) && !name.startsWith(`--no-`)) {
             registerDynamic(machine, node, [`isNegatedOption`, name], node, [`pushFalse`, name]);
