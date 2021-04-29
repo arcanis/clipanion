@@ -1,6 +1,6 @@
-import {CompletionResult, CompletionResults} from 'clcs';
+import {CompletionResult, CompletionResults, RichCompletionResult} from 'clcs';
 
-import * as errors                           from './errors';
+import * as errors                                                 from './errors';
 
 import {
   BATCH_REGEX, BINDING_REGEX, END_OF_INPUT,
@@ -824,13 +824,26 @@ export const reducers = {
       selectedIndex: index,
     };
   },
-  setBoundCompletion: (state: RunState, {segment, cursorPosition}: Current, options: Array<OptDefinition>, index: number) => {
+  setBoundCompletion: (state: RunState, {segment, cursorPosition}: Current, builder: CommandBuilder<any>) => {
     if (!tests.isCompletion(state, {segment, cursorPosition}))
       return state;
 
     const [, name, value] = segment.match(BINDING_REGEX)!;
 
-    const completions = options.filter(opt => opt.names.includes(name)).map(opt => opt.completion);
+    const binding = `${name}=`;
+
+    if (cursorPosition! < binding.length) {
+      const completionWrapperFn = () =>
+        builder
+          .getOptionNameCompletionResults({onlyBound: true})
+          .map(completionResult => ({
+            ...completionResult,
+            completionText: `${completionResult.completionText}=${value}`,
+          }));
+      return reducers.setCompletion(state, {segment: name, cursorPosition}, CompletionType.OptionName, completionWrapperFn, builder.cliIndex);
+    }
+
+    const completions = builder.options.filter(opt => opt.names.includes(name)).map(opt => opt.completion);
     if (completions.length === 0)
       return state;
     if (completions.length > 1)
@@ -844,13 +857,13 @@ export const reducers = {
       const result = await (completion as CompletionFunction)(request, ...args);
       const results = Array.isArray(result) ? result : [result];
 
-      return results.map(result => typeof result === `string` ? `${name}=${result}` : {
+      return results.map(result => typeof result === `string` ? `${binding}${result}` : {
         ...result,
-        completionText: `${name}=${result.completionText}`,
+        completionText: `${binding}${result.completionText}`,
       });
     };
 
-    return reducers.setCompletion(state, {segment: value, cursorPosition: cursorPosition! - `${name}=`.length}, CompletionType.OptionValue, completionWrapperFn, index);
+    return reducers.setCompletion(state, {segment: value, cursorPosition: cursorPosition! - binding.length}, CompletionType.OptionValue, completionWrapperFn, builder.cliIndex);
   },
 };
 
@@ -1142,20 +1155,27 @@ export class CommandBuilder<Context> {
     };
   }
 
-  private getOptionNameCompletionResults(): Array<CompletionResult> {
-    return this.options.map(option => ({
+  getOptionNameCompletionResults({onlyBound = false}: {onlyBound?: boolean} = {}): Array<RichCompletionResult> {
+    return this.options
+      .filter(option => {
+        if (onlyBound && !option.allowBinding)
+          return false;
+
+        return true;
+      })
+      .map(option => ({
       // Complete the most descriptive name
-      completionText: option.names.find(name => name.startsWith(`--`)) ?? option.names[0],
-      listItemText: option.names.join(`,`),
-      description: option.description,
-    }));
+        completionText: option.names.find(name => name.startsWith(`--`)) ?? option.names[0],
+        listItemText: option.names.join(`,`),
+        description: option.description,
+      }));
   }
 
   private registerOptions(machine: StateMachine, node: number, {completeOptionNames = true}: {completeOptionNames?: boolean} = {}) {
     registerDynamic(machine, node, [`isOption`, `--`], node, `inhibateOptions`);
     registerDynamic(machine, node, [`isBatchOption`, this.allOptionNames], node, `pushBatch`);
     registerDynamic(machine, node, [`isBoundOption`, this.allOptionNames, this.options], node, [`chain`, [
-      [`setBoundCompletion`, this.options, this.cliIndex],
+      [`setBoundCompletion`, this],
       `pushBound`,
     ]]);
     registerDynamic(machine, node, [`isUnsupportedOption`, this.allOptionNames], NODE_ERRORED, [`setError`, `Unsupported option name`]);
