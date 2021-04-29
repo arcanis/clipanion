@@ -47,6 +47,14 @@ export type PartialCommand<T extends Command<any>> = {
   [P in keyof T]: T[P] extends CommandOptionReturnTag ? T[P] | undefined : T[P];
 };
 
+/**
+ * A completion function that returns completion results based on a completion request.
+ *
+ * @template T The type of the partial command. Can be automatically inferred if the completion function is wrapped in a `Command.prototype.completion` (i.e. `this.completion` inside a command class body).
+ *
+ * @param request The normalized completion request.
+ * @param command The partial command populated with all cli arguments that can be parsed.
+ */
 export type CompletionFunction<T extends Command<any> = any> = (request: CompletionRequest, command: PartialCommand<T>) => CompletionResults;
 
 export function makeCommandOption<T>(spec: Omit<CommandOption<T>, typeof isOptionSymbol>) {

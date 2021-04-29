@@ -25,17 +25,38 @@ export function debug(str: string) {
 
 // ------------------------------------------------------------------------
 
+/**
+ * A normalized completion request received by completion functions.
+ */
 export type CompletionRequest = {
+  /**
+   * The current segment.
+   */
   current: string;
+  /**
+   * The part before the cursor.
+   */
   prefix: string;
+  /**
+   * The part after the cursor.
+   */
   suffix: string;
 };
 
+/**
+ * A partial `CompletionRequest` that can be used with `Cli.prototype.complete`. Needs to include at least 2 properties.
+ */
 export type PartialCompletionRequest = Omit<CompletionRequest, 'current'> | Omit<CompletionRequest, 'prefix'> | Omit<CompletionRequest, 'suffix'>;
 
-export type CompletionFunction = (request: CompletionRequest, ...args: Array<any>) => CompletionResults;
+/**
+ * @internal Only exists because the core doesn't know about the `Command` class
+ */
+type CompletionFunction = (request: CompletionRequest, ...args: Array<any>) => CompletionResults;
 
-export type CoreCompletion = {fn: CompletionFunction, request: CompletionRequest, type: CompletionType};
+/**
+ * @internal Set by the state machine
+ */
+type CoreCompletion = {fn: CompletionFunction, request: CompletionRequest, type: CompletionType};
 
 // ------------------------------------------------------------------------
 
