@@ -559,6 +559,97 @@ describe(`Completion`, () => {
     });
 
     describe(`Options`, () => {
+      it(`should complete long option names`, async () => {
+        const cli = () => {
+          class FooCommand extends Command {
+            static paths = [
+              [`foo`],
+            ];
+
+            foo = Option.Boolean(`-f,--foo`);
+
+            bar = Option.String(`-b,--bar`, {completion: () => [`a`, `b`, `c`]});
+
+            baz = Option.String(`-B,--baz`, {arity: 3})
+
+            qux = Option.String(`-q,--qux`, {tolerateBoolean: true, completion: () => [`d`, `e`, `f`]});
+
+            async execute() {}
+          }
+
+          return [
+            FooCommand,
+          ];
+        };
+
+        const options = [
+          {completionText: `--foo`, listItemText: `-f,--foo`, description: undefined},
+          {completionText: `--bar`, listItemText: `-b,--bar`, description: undefined},
+          {completionText: `--baz`, listItemText: `-B,--baz`, description: undefined},
+          {completionText: `--qux`, listItemText: `-q,--qux`, description: undefined},
+        ];
+
+        expect(await completeCli(cli, {
+          current: `foo -`,
+          prefix: `foo -`,
+        })).to.deep.equal(options);
+
+        expect(await completeCli(cli, {
+          current: `foo --`,
+          prefix: `foo --`,
+        })).to.deep.equal(options);
+
+        expect(await completeCli(cli, {
+          current: `foo --f`,
+          prefix: `foo --f`,
+        })).to.deep.equal(options);
+
+        expect(await completeCli(cli, {
+          current: `foo --fo`,
+          prefix: `foo --fo`,
+        })).to.deep.equal(options);
+
+        expect(await completeCli(cli, {
+          current: `foo --foo`,
+          prefix: `foo -`,
+        })).to.deep.equal(options);
+
+        expect(await completeCli(cli, {
+          current: `foo --foo`,
+          prefix: `foo --`,
+        })).to.deep.equal(options);
+
+        expect(await completeCli(cli, {
+          current: `foo --foo`,
+          prefix: `foo --f`,
+        })).to.deep.equal(options);
+
+        expect(await completeCli(cli, {
+          current: `foo --foo`,
+          prefix: `foo --fo`,
+        })).to.deep.equal(options);
+
+        expect(await completeCli(cli, {
+          current: `foo --foo`,
+          prefix: `foo --foo`,
+        })).to.deep.equal(options);
+
+        expect(await completeCli(cli, {
+          current: `foo --bar`,
+          prefix: `foo --bar`,
+        })).to.deep.equal(options);
+
+        expect(await completeCli(cli, {
+          current: `foo --baz`,
+          prefix: `foo --baz`,
+        })).to.deep.equal(options);
+
+        expect(await completeCli(cli, {
+          current: `foo --qux`,
+          prefix: `foo --qux`,
+        })).to.deep.equal(options);
+      });
+
       it(`should complete option names of options that allow binding when "current" is a binding and "prefix" is not`, async () => {
         const cli = () => {
           class FooCommand extends Command {

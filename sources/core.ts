@@ -689,6 +689,9 @@ export function suggest(callback: Callback<keyof typeof tests, typeof tests>, st
 }
 
 export const tests = {
+  all: (state: RunState, current: Current, all: Array<Callback<any, any>>) => {
+    return all.every(test => execute(tests, test, state, current));
+  },
   always: () => {
     return true;
   },
@@ -726,7 +729,7 @@ export const tests = {
     return !state.ignoreOptions && segment.startsWith(`-`) && OPTION_REGEX.test(segment) && !names.includes(segment);
   },
   isInvalidOption: (state: RunState, {segment}: Current) => {
-    return !state.ignoreOptions && segment.startsWith(`-`) && !OPTION_REGEX.test(segment);
+    return !state.ignoreOptions && segment.startsWith(`-`) && !OPTION_REGEX.test(segment) && !BATCH_REGEX.test(segment) && !BINDING_REGEX.test(segment);
   },
   isCompletion: (state: RunState, {cursorPosition}: Current) => {
     return typeof cursorPosition === `number`;
@@ -1233,8 +1236,18 @@ export class CommandBuilder<Context> {
       [`setBoundCompletion`, this],
       `pushBound`,
     ]]);
+
     registerDynamic(machine, node, [`isUnsupportedOption`, this.allOptionNames], NODE_ERRORED, [`setError`, `Unsupported option name`]);
+    registerDynamic(machine, node, [`all`, [
+      [`isCompletion`],
+      [`isUnsupportedOption`, this.allOptionNames],
+    ]], node, [`setCompletion`, CompletionType.OptionName, () => this.getOptionNameCompletionResults(), this.cliIndex]);
+
     registerDynamic(machine, node, [`isInvalidOption`], NODE_ERRORED, [`setError`, `Invalid option name`]);
+    registerDynamic(machine, node, [`all`, [
+      [`isCompletion`],
+      [`isInvalidOption`],
+    ]], node, [`setCompletion`, CompletionType.OptionName, () => this.getOptionNameCompletionResults(), this.cliIndex]);
 
     for (const option of this.options) {
       const longestName = option.names.reduce((longestName, name) => {
@@ -1244,6 +1257,7 @@ export class CommandBuilder<Context> {
       if (option.arity === 0) {
         for (const name of option.names) {
           registerDynamic(machine, node, [`isLongOption`, name, option.hidden || name !== longestName], node, [`chain`, [
+            [`setCompletion`, CompletionType.OptionName, () => this.getOptionNameCompletionResults(), this.cliIndex],
             `pushTrue`,
           ]]);
           registerDynamic(machine, node, [`isShortOption`, name, option.hidden || name !== longestName], node, [`chain`, [
@@ -1260,9 +1274,12 @@ export class CommandBuilder<Context> {
         let lastNode = injectNode(machine, makeNode());
 
         // We register transitions from the starting node to this new node
-        for (const name of option.names)
-          registerDynamic(machine, node, [`isOption`, name, option.hidden || name !== longestName], lastNode, `pushUndefined`);
-
+        for (const name of option.names) {
+          registerDynamic(machine, node, [`isOption`, name, option.hidden || name !== longestName], lastNode, [`chain`, [
+            [`setCompletion`, CompletionType.OptionName, () => this.getOptionNameCompletionResults(), this.cliIndex],
+            `pushUndefined`,
+          ]]);
+        }
 
         // For each argument, we inject a new node at the end and we
         // register a transition from the current node to this new node
