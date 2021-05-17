@@ -79,9 +79,8 @@ function StringOption<T = string, Arity extends number = 1>(descriptor: string, 
 }
 
 function StringPositional(): CommandOptionReturn<string>;
-function StringPositional<T = string>(opts: Omit<StringPositionalFlags<T>, 'required'>): CommandOptionReturn<T>;
 function StringPositional<T = string>(opts: StringPositionalFlags<T> & {required: false}): CommandOptionReturn<T | undefined>;
-function StringPositional<T = string>(opts: StringPositionalFlags<T>): CommandOptionReturn<T | undefined>;
+function StringPositional<T = string>(opts: StringPositionalFlags<T>): CommandOptionReturn<T>;
 function StringPositional<T = string>(opts: StringPositionalFlags<T> = {}) {
   const {required = true} = opts;
 
@@ -114,7 +113,7 @@ function StringPositional<T = string>(opts: StringPositionalFlags<T> = {}) {
         // We remove the positional from the list
         const [positional] = state.positionals.splice(i, 1);
 
-        return positional.value;
+        return applyValidator(opts.name ?? key, positional.value, opts.validator);
       }
 
       return undefined;
@@ -132,9 +131,8 @@ function StringPositional<T = string>(opts: StringPositionalFlags<T> = {}) {
  * command line.
  */
 export function String(): CommandOptionReturn<string>;
-export function String<T = string>(opts: Omit<StringPositionalFlags<T>, 'required'>): CommandOptionReturn<T>;
 export function String<T = string>(opts: StringPositionalFlags<T> & {required: false}): CommandOptionReturn<T | undefined>;
-export function String<T = string>(opts: StringPositionalFlags<T>): CommandOptionReturn<T | undefined>;
+export function String<T = string>(opts: StringPositionalFlags<T>): CommandOptionReturn<T>;
 
 /**
  * Used to annotate string options. Such options will be typed as strings

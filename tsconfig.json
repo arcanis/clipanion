@@ -4,6 +4,7 @@
     "esModuleInterop": true,
     "experimentalDecorators": true,
     "lib": [
+      "DOM",
       "ES2019"
     ],
     "module": "commonjs",

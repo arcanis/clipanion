@@ -993,13 +993,30 @@ describe(`Advanced`, () => {
     class FooCommand extends Command {
       foo = Option.String(`--foo`, {validator: t.isNumber()});
 
-      async execute() {}
+      async execute() {
+        log(this, [`foo`]);
+      }
     }
 
     const cli = Cli.from([FooCommand]);
 
-    await expect(runCli(cli, [`--foo`, `42`])).to.eventually.equal(``);
+    await expect(runCli(cli, [`--foo`, `42`])).to.eventually.equal(`Running FooCommand\n42\n`);
     await expect(runCli(cli, [`--foo`, `ab`])).to.be.rejectedWith(`Invalid value for --foo: expected a number`);
+  });
+
+  it(`should coerce positionals when requested`, async () => {
+    class FooCommand extends Command {
+      foo = Option.String({validator: t.isNumber()});
+
+      async execute() {
+        log(this, [`foo`]);
+      }
+    }
+
+    const cli = Cli.from([FooCommand]);
+
+    await expect(runCli(cli, [`42`])).to.eventually.equal(`Running FooCommand\n42\n`);
+    await expect(runCli(cli, [`ab`])).to.be.rejectedWith(`Invalid value for foo: expected a number`);
   });
 
   it(`should skip coercion for booleans`, async () => {
