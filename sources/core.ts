@@ -327,101 +327,6 @@ export function runMachineInternal(machine: StateMachine, input: Array<string>, 
   return branches;
 }
 
-function checkIfNodeIsFinished(node: Node, state: RunState) {
-  if (state.selectedIndex !== null)
-    return true;
-
-  if (Object.prototype.hasOwnProperty.call(node.statics, END_OF_INPUT))
-    for (const {to} of node.statics[END_OF_INPUT])
-      if (to === NODE_SUCCESS)
-        return true;
-
-  return false;
-}
-
-function suggestMachine(machine: StateMachine, input: Array<string>, partial: boolean) {
-  // If we're accepting partial matches, then exact matches need to be
-  // prefixed with an extra space.
-  const prefix = partial && input.length > 0 ? [``] : [];
-
-  const branches = runMachineInternal(machine, input, {partial});
-
-  const suggestions: Array<Array<string>> = [];
-  const suggestionsJson = new Set<string>();
-
-  const traverseSuggestion = (suggestion: Array<string>, node: number, skipFirst: boolean = true) => {
-    let nextNodes = [node];
-
-    while (nextNodes.length > 0) {
-      const currentNodes = nextNodes;
-      nextNodes = [];
-
-      for (const node of currentNodes) {
-        const nodeDef = machine.nodes[node];
-        const keys = Object.keys(nodeDef.statics);
-
-        // The fact that `key` is unused is likely a bug, but no one has investigated it yet.
-        // TODO: Investigate it.
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        for (const key of Object.keys(nodeDef.statics)) {
-          const segment = keys[0];
-
-          for (const {to, reducer} of nodeDef.statics[segment]) {
-            if (reducer !== `pushPath`)
-              continue;
-
-            if (!skipFirst)
-              suggestion.push(segment);
-
-            nextNodes.push(to);
-          }
-        }
-      }
-
-      skipFirst = false;
-    }
-
-    const json = JSON.stringify(suggestion);
-    if (suggestionsJson.has(json))
-      return;
-
-    suggestions.push(suggestion);
-    suggestionsJson.add(json);
-  };
-
-  for (const {node, state} of branches) {
-    if (state.remainder !== null) {
-      traverseSuggestion([state.remainder], node);
-      continue;
-    }
-
-    const nodeDef = machine.nodes[node];
-    const isFinished = checkIfNodeIsFinished(nodeDef, state);
-
-    for (const [candidate, transitions] of Object.entries(nodeDef.statics))
-      if ((isFinished && candidate !== END_OF_INPUT) || (!candidate.startsWith(`-`) && transitions.some(({reducer}) => reducer === `pushPath`)))
-        traverseSuggestion([...prefix, candidate], node);
-
-    if (!isFinished)
-      continue;
-
-    for (const [test, {to}] of nodeDef.dynamics) {
-      if (to === NODE_ERRORED)
-        continue;
-
-      const tokens = suggest(test, state);
-      if (tokens === null)
-        continue;
-
-      for (const token of tokens) {
-        traverseSuggestion([...prefix, token], node);
-      }
-    }
-  }
-
-  return [...suggestions].sort();
-}
-
 function runMachine(machine: StateMachine, input: Array<string>) {
   const branches = runMachineInternal(machine, [...input, END_OF_INPUT]);
 
@@ -1385,9 +1290,6 @@ export class CliBuilder<Context> {
 
       process: (input: Array<string>) => {
         return runMachine(machine, input);
-      },
-      suggest: (input: Array<string>, partial: boolean) => {
-        return suggestMachine(machine, input, partial);
       },
       complete: (request: PartialCompletionRequest) => {
         return completeMachine(machine, request);

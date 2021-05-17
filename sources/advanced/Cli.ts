@@ -335,11 +335,6 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
     process.exitCode = await this.run(input, context);
   }
 
-  suggest(input: Array<string>, partial: boolean) {
-    const {suggest} = this.builder.compile();
-    return suggest(input, partial);
-  }
-
   async complete(request: PartialCompletionRequest, context: Context): Promise<Array<CompletionResult>> {
     const {complete, contexts} = this.builder.compile();
     const branches = complete(request);
