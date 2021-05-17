@@ -650,6 +650,111 @@ describe(`Completion`, () => {
         })).to.deep.equal(options);
       });
 
+      it(`should complete negated long option names`, async () => {
+        const cli = () => {
+          class FooCommand extends Command {
+            static paths = [
+              [`foo`],
+            ];
+
+            foo = Option.Boolean(`-f,--foo`);
+
+            bar = Option.String(`-b,--bar`, {completion: () => [`a`, `b`, `c`]});
+
+            baz = Option.String(`-B,--baz`, {arity: 3})
+
+            qux = Option.String(`-q,--qux`, {tolerateBoolean: true, completion: () => [`d`, `e`, `f`]});
+
+            nonInteractive = Option.Boolean(`--non-interactive`);
+
+            async execute() {}
+          }
+
+          return [
+            FooCommand,
+          ];
+        };
+
+        const originalOptions = [
+          {completionText: `--foo`, listItemText: `-f,--foo`, description: undefined},
+          {completionText: `--bar`, listItemText: `-b,--bar`, description: undefined},
+          {completionText: `--baz`, listItemText: `-B,--baz`, description: undefined},
+          {completionText: `--qux`, listItemText: `-q,--qux`, description: undefined},
+          {completionText: `--non-interactive`, listItemText: `--non-interactive`, description: undefined},
+        ];
+
+        const originalAndNegatedOptions = [
+          {completionText: `--foo`, listItemText: `-f,--foo`, description: undefined},
+          {completionText: `--no-foo`, listItemText: `--no-foo`, description: undefined},
+          {completionText: `--bar`, listItemText: `-b,--bar`, description: undefined},
+          {completionText: `--baz`, listItemText: `-B,--baz`, description: undefined},
+          {completionText: `--qux`, listItemText: `-q,--qux`, description: undefined},
+          {completionText: `--no-qux`, listItemText: `--no-qux`, description: undefined},
+          {completionText: `--non-interactive`, listItemText: `--non-interactive`, description: undefined},
+          {completionText: `--no-non-interactive`, listItemText: `--no-non-interactive`, description: undefined},
+        ];
+
+        expect(await completeCli(cli, {
+          current: `foo -`,
+          prefix: `foo -`,
+        })).to.deep.equal(originalOptions);
+
+        expect(await completeCli(cli, {
+          current: `foo --`,
+          prefix: `foo --`,
+        })).to.deep.equal(originalOptions);
+
+        expect(await completeCli(cli, {
+          current: `foo --foo`,
+          prefix: `foo -`,
+        })).to.deep.equal(originalOptions);
+
+        expect(await completeCli(cli, {
+          current: `foo --foo`,
+          prefix: `foo --`,
+        })).to.deep.equal(originalOptions);
+
+        expect(await completeCli(cli, {
+          current: `foo --n`,
+          prefix: `foo --n`,
+        })).to.deep.equal(originalOptions);
+
+        expect(await completeCli(cli, {
+          current: `foo --no`,
+          prefix: `foo --no`,
+        })).to.deep.equal(originalOptions);
+
+        expect(await completeCli(cli, {
+          current: `foo --no-`,
+          prefix: `foo --no`,
+        })).to.deep.equal(originalOptions);
+
+        expect(await completeCli(cli, {
+          current: `foo --no-`,
+          prefix: `foo --no-`,
+        })).to.deep.equal(originalAndNegatedOptions);
+
+        expect(await completeCli(cli, {
+          current: `foo --no-f`,
+          prefix: `foo --no-f`,
+        })).to.deep.equal(originalAndNegatedOptions);
+
+        expect(await completeCli(cli, {
+          current: `foo --no-fo`,
+          prefix: `foo --no-fo`,
+        })).to.deep.equal(originalAndNegatedOptions);
+
+        expect(await completeCli(cli, {
+          current: `foo --no-foo`,
+          prefix: `foo --no-foo`,
+        })).to.deep.equal(originalAndNegatedOptions);
+
+        expect(await completeCli(cli, {
+          current: `foo --non`,
+          prefix: `foo --non`,
+        })).to.deep.equal(originalOptions);
+      });
+
       it(`should complete option names of options that allow binding when "current" is a binding and "prefix" is not`, async () => {
         const cli = () => {
           class FooCommand extends Command {

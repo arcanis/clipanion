@@ -869,9 +869,9 @@ export const reducers = {
     const binding = `${name}=`;
 
     if (cursorPosition! < binding.length) {
-      const completionWrapperFn = () =>
+      const completionWrapperFn = ({prefix}: CompletionRequest) =>
         builder
-          .getOptionNameCompletionResults({onlyBound: true})
+          .getOptionNameCompletionResults({onlyBound: true, negated: prefix.startsWith(`--no-`)})
           .map(completionResult => ({
             ...completionResult,
             completionText: `${completionResult.completionText}=${value}`,
@@ -1207,23 +1207,36 @@ export class CommandBuilder<Context> {
     };
   }
 
-  getOptionNameCompletionResults({onlyBatch = false, onlyBound = false}: {onlyBatch?: boolean, onlyBound?: boolean} = {}): Array<RichCompletionResult> {
-    return this.options
-      .filter(option => {
-        if (onlyBatch && (option.arity !== 0 || option.shortNames.length === 0))
-          return false;
+  getOptionNameCompletionResults({onlyBatch = false, onlyBound = false, negated = false}: {onlyBatch?: boolean, onlyBound?: boolean, negated?: boolean} = {}): Array<RichCompletionResult> {
+    const completions = [];
 
-        if (onlyBound && !option.allowBinding)
-          return false;
+    for (const option of this.options) {
+      if (onlyBatch && (option.arity !== 0 || option.shortNames.length === 0))
+        continue;
 
-        return true;
-      })
-      .map(option => ({
+      if (onlyBound && !option.allowBinding)
+        continue;
+
+      completions.push({
         // Complete the most descriptive name
         completionText: (!onlyBatch && option.longNames[0]) || option.shortNames[0],
         listItemText: option.names.join(`,`),
         description: option.description,
-      }));
+      });
+
+      if (negated && !onlyBatch && option.arity === 0 && option.longNames.length > 0) {
+        const name = option.longNames.find(name => !name.startsWith(`--no-`));
+        if (typeof name !== `undefined`) {
+          completions.push({
+            completionText: `--no-${name.slice(2)}`,
+            listItemText: option.longNames.map(name => `--no-${name.slice(2)}`).join(`,`),
+            description: option.description,
+          });
+        }
+      }
+    }
+
+    return completions;
   }
 
   private registerOptions(machine: StateMachine, node: number, {completeOptionNames = true}: {completeOptionNames?: boolean} = {}) {
@@ -1241,13 +1254,13 @@ export class CommandBuilder<Context> {
     registerDynamic(machine, node, [`all`, [
       [`isCompletion`],
       [`isUnsupportedOption`, this.allOptionNames],
-    ]], node, [`setCompletion`, CompletionType.OptionName, () => this.getOptionNameCompletionResults(), this.cliIndex]);
+    ]], node, [`setCompletion`, CompletionType.OptionName, ({prefix}) => this.getOptionNameCompletionResults({negated: prefix.startsWith(`--no-`)}), this.cliIndex]);
 
     registerDynamic(machine, node, [`isInvalidOption`], NODE_ERRORED, [`setError`, `Invalid option name`]);
     registerDynamic(machine, node, [`all`, [
       [`isCompletion`],
       [`isInvalidOption`],
-    ]], node, [`setCompletion`, CompletionType.OptionName, () => this.getOptionNameCompletionResults(), this.cliIndex]);
+    ]], node, [`setCompletion`, CompletionType.OptionName, ({prefix}) => this.getOptionNameCompletionResults({negated: prefix.startsWith(`--no-`)}), this.cliIndex]);
 
     for (const option of this.options) {
       const longestName = option.names.reduce((longestName, name) => {
@@ -1257,7 +1270,7 @@ export class CommandBuilder<Context> {
       if (option.arity === 0) {
         for (const name of option.names) {
           registerDynamic(machine, node, [`isLongOption`, name, option.hidden || name !== longestName], node, [`chain`, [
-            [`setCompletion`, CompletionType.OptionName, () => this.getOptionNameCompletionResults(), this.cliIndex],
+            [`setCompletion`, CompletionType.OptionName, ({prefix}: CompletionRequest) => this.getOptionNameCompletionResults({negated: prefix.startsWith(`--no-`)}), this.cliIndex],
             `pushTrue`,
           ]]);
           registerDynamic(machine, node, [`isShortOption`, name, option.hidden || name !== longestName], node, [`chain`, [
@@ -1276,7 +1289,7 @@ export class CommandBuilder<Context> {
         // We register transitions from the starting node to this new node
         for (const name of option.names) {
           registerDynamic(machine, node, [`isOption`, name, option.hidden || name !== longestName], lastNode, [`chain`, [
-            [`setCompletion`, CompletionType.OptionName, () => this.getOptionNameCompletionResults(), this.cliIndex],
+            [`setCompletion`, CompletionType.OptionName, ({prefix}: CompletionRequest) => this.getOptionNameCompletionResults({negated: prefix.startsWith(`--no-`)}), this.cliIndex],
             `pushUndefined`,
           ]]);
         }
