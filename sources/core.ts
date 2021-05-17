@@ -576,23 +576,6 @@ export function execute<T extends string, R, S extends CallbackStore<T, R>>(stor
   }
 }
 
-export function suggest(callback: Callback<keyof typeof tests, typeof tests>, state: RunState): Array<string> | null {
-  const fn = Array.isArray(callback)
-    ? tests[callback[0]]
-    : tests[callback];
-
-  // @ts-ignore
-  if (typeof fn.suggest === `undefined`)
-    return null;
-
-  const args = Array.isArray(callback)
-    ? callback.slice(1)
-    : [];
-
-  // @ts-ignore
-  return fn.suggest(state, ...args);
-}
-
 export const tests = {
   all: (state: RunState, current: Current, all: Array<Callback<any, any>>) => {
     return all.every(test => execute(tests, test, state, current));
@@ -639,11 +622,6 @@ export const tests = {
   isCompletion: (state: RunState, {cursorPosition}: Current) => {
     return typeof cursorPosition === `number`;
   },
-};
-
-// @ts-ignore
-tests.isOption.suggest = (state: RunState, name: string, hidden: boolean = true) => {
-  return !hidden ? [name] : null;
 };
 
 export const reducers = {
