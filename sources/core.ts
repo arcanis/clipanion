@@ -616,6 +616,11 @@ export const tests = {
   isUnsupportedOption: (state: RunState, {segment}: Current, names: Array<string>) => {
     return !state.ignoreOptions && segment.startsWith(`-`) && OPTION_REGEX.test(segment) && !names.includes(segment);
   },
+  isUnsupportedBoundOption: (state: RunState, {segment}: Current, names: Array<string>) => {
+    const optionParsing = segment.match(BINDING_REGEX);
+
+    return !state.ignoreOptions && !!optionParsing && OPTION_REGEX.test(optionParsing[1]) && !names.includes(optionParsing[1]);
+  },
   isInvalidOption: (state: RunState, {segment}: Current) => {
     return !state.ignoreOptions && segment.startsWith(`-`) && !OPTION_REGEX.test(segment) && !BATCH_REGEX.test(segment) && !BINDING_REGEX.test(segment);
   },
@@ -1138,6 +1143,12 @@ export class CommandBuilder<Context> {
       [`isCompletion`],
       [`isUnsupportedOption`, this.allOptionNames],
     ]], node, [`setCompletion`, CompletionType.OptionName, ({prefix}) => this.getOptionNameCompletionResults({negated: prefix.startsWith(`--no-`)}), this.cliIndex]);
+
+    registerDynamic(machine, node, [`isUnsupportedBoundOption`, this.allOptionNames], NODE_ERRORED, [`setError`, `Unsupported bound option name`]);
+    registerDynamic(machine, node, [`all`, [
+      [`isCompletion`],
+      [`isUnsupportedBoundOption`, this.allOptionNames],
+    ]], node, [`setBoundCompletion`, this]);
 
     registerDynamic(machine, node, [`isInvalidOption`], NODE_ERRORED, [`setError`, `Invalid option name`]);
     registerDynamic(machine, node, [`all`, [

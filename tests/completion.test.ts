@@ -802,7 +802,17 @@ describe(`Completion`, () => {
         })).to.deep.equal(boundNames);
 
         expect(await completeCli(cli, {
+          current: `foo --ba=`,
+          prefix: `foo -`,
+        })).to.deep.equal(boundNames);
+
+        expect(await completeCli(cli, {
           current: `foo --bar=`,
+          prefix: `foo --`,
+        })).to.deep.equal(boundNames);
+
+        expect(await completeCli(cli, {
+          current: `foo --ba=`,
           prefix: `foo --`,
         })).to.deep.equal(boundNames);
 
@@ -812,7 +822,17 @@ describe(`Completion`, () => {
         })).to.deep.equal(boundNames);
 
         expect(await completeCli(cli, {
+          current: `foo --ba=`,
+          prefix: `foo --b`,
+        })).to.deep.equal(boundNames);
+
+        expect(await completeCli(cli, {
           current: `foo --bar=`,
+          prefix: `foo --ba`,
+        })).to.deep.equal(boundNames);
+
+        expect(await completeCli(cli, {
+          current: `foo --ba=`,
           prefix: `foo --ba`,
         })).to.deep.equal(boundNames);
 
@@ -828,7 +848,17 @@ describe(`Completion`, () => {
         })).to.deep.equal(boundNamesWithValue);
 
         expect(await completeCli(cli, {
+          current: `foo --qu=test`,
+          prefix: `foo -`,
+        })).to.deep.equal(boundNamesWithValue);
+
+        expect(await completeCli(cli, {
           current: `foo --qux=test`,
+          prefix: `foo --`,
+        })).to.deep.equal(boundNamesWithValue);
+
+        expect(await completeCli(cli, {
+          current: `foo --qu=test`,
           prefix: `foo --`,
         })).to.deep.equal(boundNamesWithValue);
 
@@ -838,7 +868,17 @@ describe(`Completion`, () => {
         })).to.deep.equal(boundNamesWithValue);
 
         expect(await completeCli(cli, {
+          current: `foo --qu=test`,
+          prefix: `foo --q`,
+        })).to.deep.equal(boundNamesWithValue);
+
+        expect(await completeCli(cli, {
           current: `foo --qux=test`,
+          prefix: `foo --qu`,
+        })).to.deep.equal(boundNamesWithValue);
+
+        expect(await completeCli(cli, {
+          current: `foo --qu=test`,
           prefix: `foo --qu`,
         })).to.deep.equal(boundNamesWithValue);
 
