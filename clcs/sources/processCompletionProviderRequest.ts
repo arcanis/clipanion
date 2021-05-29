@@ -20,5 +20,5 @@ export async function processCompletionProviderRequest({
   ...getCompletionProviderOptions
 }: ProcessCompletionProviderRequestOptions): Promise<void> {
   const driver = getDriver(shellName);
-  stdout.write(driver.getCompletionProvider(getCompletionProviderOptions));
+  stdout.write(`${driver.getCompletionProvider(getCompletionProviderOptions)}\n`);
 }

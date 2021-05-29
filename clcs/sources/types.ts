@@ -127,6 +127,8 @@ export interface GetCompletionProviderOptions {
  * All shell drivers should be documented in-depth, including
  * all relevant documentation and articles, because otherwise
  * nobody will be able to understand what's going on.
+ *
+ * TODO: Make shells cache clcs completions.
  */
 export interface ShellDriver {
   /**

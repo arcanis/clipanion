@@ -15,22 +15,22 @@ const PowerShellDriver: ShellDriver = {
 
   isDefaultShell: () =>
     process.platform === `win32`
-      ? // Windows doesn't have the concept of a default shell, so the closest we can get is
-    // "PowerShell is installed (aka $PSModulePath is defined) and $SHELL is not defined
-    // ($SHELL is a Unix-only concept but it's also shimmed by Windows shells like Git Bash)"
-      typeof process.env.PSModulePath !== `undefined` && typeof process.env.SHELL === `undefined`
-      : // Unix - checking $SHELL
-      !!process.env.SHELL?.includes(`pwsh`),
+      // Windows doesn't have the concept of a default shell, so the closest we can get is
+      // "PowerShell is installed (aka $PSModulePath is defined) and $SHELL is not defined
+      // ($SHELL is a Unix-only concept but it's also shimmed by Windows shells like Git Bash)"
+      ? typeof process.env.PSModulePath !== `undefined` && typeof process.env.SHELL === `undefined`
+      // Unix - checking $SHELL
+      : !!process.env.SHELL?.includes(`pwsh`),
 
   getShellConfigurationFile: () =>
     process.platform === `win32`
-      ? // Current user, Current Host: $Home\[My ]Documents\PowerShell\Microsoft.PowerShell_profile.ps1
-    // https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_profiles#the-profile-files
-    // TODO: Support `[My ]Documents\\...`
-      path.join(homedir(), `Documents\\PowerShell\\Microsoft.PowerShell_profile.ps1`)
-      : // Respects XDG Base Directory Specification:
-    // https://docs.microsoft.com/en-us/powershell/scripting/whats-new/what-s-new-in-powershell-core-60#filesystem
-      path.join(homedir(), `.config/powershell/Microsoft.PowerShell_profile.ps1`),
+      // Current user, Current Host: $Home\[My ]Documents\PowerShell\Microsoft.PowerShell_profile.ps1
+      // https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_profiles#the-profile-files
+      // TODO: Support `[My ]Documents\\...`
+      ? path.join(homedir(), `Documents\\PowerShell\\Microsoft.PowerShell_profile.ps1`)
+      // Respects XDG Base Directory Specification:
+      // https://docs.microsoft.com/en-us/powershell/scripting/whats-new/what-s-new-in-powershell-core-60#filesystem
+      : path.join(homedir(), `.config/powershell/Microsoft.PowerShell_profile.ps1`),
 
   getCompletionBlock: ({getCompletionProviderCommand}) =>
     `${getCompletionProviderCommand} ${PowerShellDriver.shellName} | Out-String | Invoke-Expression`,
@@ -56,6 +56,7 @@ const PowerShellDriver: ShellDriver = {
         ToolTip: result.description || ` `,
         // https://docs.microsoft.com/en-us/dotnet/api/system.management.automation.completionresulttype
         // "Text - An unknown result type, kept as text only"
+        // TODO: add support for configurable `ResultType`s
         ResultType: `Text`,
       })),
     ),
