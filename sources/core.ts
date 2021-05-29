@@ -1107,7 +1107,7 @@ export class CommandBuilder<Context> {
   }
 
   getOptionNameCompletionResults({onlyBatch = false, onlyBound = false, negated = false}: {onlyBatch?: boolean, onlyBound?: boolean, negated?: boolean} = {}): Array<RichCompletionResult> {
-    const completions = [];
+    const completions: Array<RichCompletionResult> = [];
 
     for (const option of this.options) {
       if (onlyBatch && (option.arity !== 0 || option.shortNames.length === 0))
@@ -1133,6 +1133,15 @@ export class CommandBuilder<Context> {
           });
         }
       }
+    }
+
+    // Allows binding, can't be negated or batched
+    if (!onlyBatch) {
+      completions.push({
+        completionText: `--help`,
+        listItemText: `-h,--help`,
+        description: `Display the usage of the command`,
+      });
     }
 
     return completions;

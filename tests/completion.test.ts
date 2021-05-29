@@ -11,7 +11,7 @@ import {completeCli}                  from './utils';
 chai.use(chaiAsPromised);
 chai.use(chaiSpies);
 
-describe(`Completion`, () => {
+describe.only(`Completion`, () => {
   describe(`Argument types`, () => {
     describe(`Path segments`, () => {
       it(`should complete command paths`, async () => {
@@ -587,6 +587,7 @@ describe(`Completion`, () => {
           {completionText: `--bar`, listItemText: `-b,--bar`, description: undefined},
           {completionText: `--baz`, listItemText: `-B,--baz`, description: undefined},
           {completionText: `--qux`, listItemText: `-q,--qux`, description: undefined},
+          {completionText: `--help`, listItemText: `-h,--help`, description: `Display the usage of the command`},
         ];
 
         expect(await completeCli(cli, {
@@ -681,6 +682,7 @@ describe(`Completion`, () => {
           {completionText: `--baz`, listItemText: `-B,--baz`, description: undefined},
           {completionText: `--qux`, listItemText: `-q,--qux`, description: undefined},
           {completionText: `--non-interactive`, listItemText: `--non-interactive`, description: undefined},
+          {completionText: `--help`, listItemText: `-h,--help`, description: `Display the usage of the command`},
         ];
 
         const originalAndNegatedOptions = [
@@ -692,6 +694,7 @@ describe(`Completion`, () => {
           {completionText: `--no-qux`, listItemText: `--no-qux`, description: undefined},
           {completionText: `--non-interactive`, listItemText: `--non-interactive`, description: undefined},
           {completionText: `--no-non-interactive`, listItemText: `--no-non-interactive`, description: undefined},
+          {completionText: `--help`, listItemText: `-h,--help`, description: `Display the usage of the command`},
         ];
 
         expect(await completeCli(cli, {
@@ -776,25 +779,17 @@ describe(`Completion`, () => {
           ];
         };
 
-        const boundNames = [{
-          completionText: `--bar=`,
-          listItemText: `-b,--bar`,
-          description: undefined,
-        }, {
-          completionText: `--qux=`,
-          listItemText: `-q,--qux`,
-          description: undefined,
-        }];
+        const boundNames = [
+          {completionText: `--bar=`, listItemText: `-b,--bar`, description: undefined},
+          {completionText: `--qux=`, listItemText: `-q,--qux`, description: undefined},
+          {completionText: `--help=`, listItemText: `-h,--help`, description: `Display the usage of the command`},
+        ];
 
-        const boundNamesWithValue = [{
-          completionText: `--bar=test`,
-          listItemText: `-b,--bar`,
-          description: undefined,
-        }, {
-          completionText: `--qux=test`,
-          listItemText: `-q,--qux`,
-          description: undefined,
-        }];
+        const boundNamesWithValue = [
+          {completionText: `--bar=test`, listItemText: `-b,--bar`, description: undefined},
+          {completionText: `--qux=test`, listItemText: `-q,--qux`, description: undefined},
+          {completionText: `--help=test`, listItemText: `-h,--help`, description: `Display the usage of the command`},
+        ];
 
         expect(await completeCli(cli, {
           current: `foo --bar=`,
