@@ -781,4 +781,20 @@ describe(`Core`, () => {
       cli.process([`--foo=bar`]);
     }).to.throw(`Invalid option name ("--foo=bar")`);
   });
+
+  it(`should throw acceptable errors when writing batches with invalid option names`, () => {
+    const cli = makeCli([
+      b => {
+        b.addOption({names: [`-a`], allowBinding: false});
+      },
+    ]);
+
+    expect(() => {
+      cli.process([`-ab`]);
+    }).to.throw(`Unsupported batch option name ("-b")`);
+
+    expect(() => {
+      cli.process([`-abc`]);
+    }).to.throw(`Unsupported batch option names ("-b", "-c")`);
+  });
 });

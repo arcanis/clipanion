@@ -685,6 +685,13 @@ export const reducers = {
       return {...state, errorMessage: `${errorMessage} ("${segment}").`};
     }
   },
+  setUnsupportedBatchOptionError: (state: RunState, {segment}: Current, names: Array<string>) => {
+    const unsupportedNames = [...segment.slice(1)]
+      .filter(name => !names.includes(`-${name}`))
+      .map(name => `"-${name}"`);
+
+    return {...state, errorMessage: `Unsupported batch option name${unsupportedNames.length > 1 ? `s` : ``} (${unsupportedNames.join(`, `)}).`};
+  },
   setOptionArityError: (state: RunState, {segment}: Current) => {
     const lastOption = state.options[state.options.length - 1];
 
@@ -1140,7 +1147,7 @@ export class CommandBuilder<Context> {
       [`isUnsupportedOption`, this.allOptionNames],
     ]], node, [`setCompletion`, CompletionType.OptionName, ({prefix}) => this.getOptionNameCompletionResults({negated: prefix.startsWith(`--no-`)}), this.cliIndex]);
 
-    registerDynamic(machine, node, [`isUnsupportedBatchOption`, this.allOptionNames], NODE_ERRORED, [`setError`, `Unsupported batch option names`]);
+    registerDynamic(machine, node, [`isUnsupportedBatchOption`, this.allOptionNames], NODE_ERRORED, [`setUnsupportedBatchOptionError`, this.allOptionNames]);
     // Nothing to complete in the case of unsupported batch options
 
     registerDynamic(machine, node, [`isUnsupportedBoundOption`, this.allOptionNames], NODE_ERRORED, [`setError`, `Unsupported bound option name`]);
