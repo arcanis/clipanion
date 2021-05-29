@@ -346,7 +346,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
       completionResult: CompletionResult;
     };
 
-    const allResults = await Promise.all(branches.map(async ({state}) => {
+    const allResults = await Promise.all(branches.map(async state => {
       if (state.completion === null)
         return null;
 

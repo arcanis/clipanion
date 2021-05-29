@@ -87,7 +87,16 @@ const basicHelpState: RunState = {
   options: [],
   remainder: null,
   selectedIndex: HELP_COMMAND_INDEX,
-  completion: null,
+  // TODO: find a way to not leak the HelpCommand into the core
+  completion: {
+    fn: (request, helpCommand) => helpCommand.completions(),
+    request: {
+      current: ``,
+      prefix: ``,
+      suffix: ``,
+    },
+    type: CompletionType.HelpIndex,
+  },
 };
 
 export function makeStateMachine(): StateMachine {
@@ -375,7 +384,9 @@ function completeMachine(machine: StateMachine, request: PartialCompletionReques
 
   const branches = runMachineInternal(machine, [...normalizedRequest.current.split(` `), END_OF_INPUT], {completionCursorPosition: normalizedRequest.prefix.length});
 
-  return branches;
+  return aggregateHelpStates(branches.map(({state}) => {
+    return state;
+  }));
 }
 
 export function trimSmallerBranches(branches: Array<{node: number, state: RunState}>) {
@@ -685,7 +696,7 @@ export const reducers = {
   useHelp: (state: RunState, {segment}: Current, command: number) => {
     const [, /* name */, index] = segment.match(HELP_REGEX)!;
 
-    if (typeof index !== `undefined`) {
+    if (typeof index !== `undefined` && index !== ``) {
       return {...state, options: [{name: `-c`, value: String(command)}, {name: `-i`, value: index}]};
     } else {
       return {...state, options: [{name: `-c`, value: String(command)}]};

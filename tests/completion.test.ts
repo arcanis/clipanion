@@ -1417,6 +1417,90 @@ describe(`Completion`, () => {
         }
       });
     });
+
+    describe(`Help`, () => {
+      it(`should complete help indexes`, async () => {
+        const cli = () => {
+          class FooCommand extends Command {
+            static paths = [
+              [`foo`],
+            ];
+
+            async execute() {}
+          }
+
+          class FooCommandWithPositional extends Command {
+            static paths = [
+              [`foo`],
+            ];
+
+            positional = Option.String();
+
+            async execute() {}
+          }
+
+          class BarCommand extends Command {
+            static paths = [
+              [`bar`],
+            ];
+
+            option = Option.String(`--opt`);
+
+            async execute() {}
+          }
+
+          return [
+            FooCommand,
+            FooCommandWithPositional,
+            BarCommand,
+          ];
+        };
+
+        const fooHelpCompletions = [
+          {completionText: `-h=0`, listItemText: `0`, description: `\u001b[1m$ \u001b[22m... foo\n`},
+          {completionText: `--help=0`, listItemText: `0`, description: `\u001b[1m$ \u001b[22m... foo\n`},
+          {completionText: `-h=1`, listItemText: `1`, description: `\u001b[1m$ \u001b[22m... foo <positional>\n`},
+          {completionText: `--help=1`, listItemText: `1`, description: `\u001b[1m$ \u001b[22m... foo <positional>\n`},
+        ];
+
+        const barHelpCompletions = [
+          {completionText: `-h=0`, listItemText: `0`, description: `\u001b[1m$ \u001b[22m... bar [--opt #0]\n`},
+          {completionText: `--help=0`, listItemText: `0`, description: `\u001b[1m$ \u001b[22m... bar [--opt #0]\n`},
+        ];
+
+        for (const name of [`-h`, `--help`]) {
+          expect(await completeCli(cli, {
+            current: `foo ${name} `,
+            prefix: `foo ${name} `,
+          })).to.deep.equal([]);
+
+          expect(await completeCli(cli, {
+            current: `foo ${name}=`,
+            prefix: `foo ${name}=`,
+          })).to.deep.equal(fooHelpCompletions);
+
+          expect(await completeCli(cli, {
+            current: `bar ${name} `,
+            prefix: `bar ${name} `,
+          })).to.deep.equal([]);
+
+          expect(await completeCli(cli, {
+            current: `bar ${name}=`,
+            prefix: `bar ${name}=`,
+          })).to.deep.equal(barHelpCompletions);
+
+          expect(await completeCli(cli, {
+            current: `bar --opt val ${name}=`,
+            prefix: `bar --opt val ${name}=`,
+          })).to.deep.equal(barHelpCompletions);
+
+          expect(await completeCli(cli, {
+            current: `bar --opt=val ${name}=`,
+            prefix: `bar --opt=val ${name}=`,
+          })).to.deep.equal(barHelpCompletions);
+        }
+      });
+    });
   });
 
   describe(`API`, () => {
