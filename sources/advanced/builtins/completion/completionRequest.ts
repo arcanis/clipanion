@@ -1,7 +1,7 @@
 import {processCompletionRequest} from 'clcs';
 
 import {Command}                  from '../../Command';
-import {Option}                   from '../..';
+import * as Option                from '../../options';
 
 export class CompletionRequestCommand extends Command<any> {
   static paths = [[`completion`, `request`]];

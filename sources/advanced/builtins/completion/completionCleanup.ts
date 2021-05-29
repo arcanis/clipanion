@@ -1,7 +1,7 @@
 import {cleanupShellConfigurationFile} from 'clcs';
 
 import {Command}                       from '../../Command';
-import {Option}                        from '../..';
+import * as Option                     from '../../options';
 
 export class CompletionCleanupCommand extends Command<any> {
   static paths = [[`completion`, `cleanup`]];

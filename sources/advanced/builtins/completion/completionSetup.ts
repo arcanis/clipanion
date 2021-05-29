@@ -1,7 +1,7 @@
 import {setupShellConfigurationFile} from 'clcs';
 
 import {Command}                     from '../../Command';
-import {Option}                      from '../..';
+import * as Option                   from '../../options';
 
 export class CompletionSetupCommand extends Command<any> {
   static paths = [[`completion`, `setup`]];

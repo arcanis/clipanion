@@ -9,10 +9,11 @@
     "type": "git"
   },
   "workspaces": [
+    "clcs",
     "website"
   ],
   "dependencies": {
-    "clcs": "https://github.com/paul-soporan/clcs",
+    "clcs": "workspace:*",
     "typanion": "^3.3.1"
   },
   "peerDependencies": {

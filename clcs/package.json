@@ -1,0 +1,38 @@
+{
+  "name": "clcs",
+  "description": "Command Line Completion Service",
+  "version": "0.1.0",
+  "license": "MIT",
+  "repository": {
+    "url": "https://github.com/arcanis/clipanion",
+    "type": "git",
+    "directory": "clcs"
+  },
+  "main": "./sources/index.ts",
+  "publishConfig": {
+    "main": "./lib/index.js",
+    "module": "./lib/index.mjs"
+  },
+  "sideEffects": false,
+  "scripts": {
+    "prepack": "rm -rf lib && rollup -c",
+    "postpack": "rm -rf lib"
+  },
+  "files": [
+    "lib"
+  ],
+  "keywords": [
+    "completion",
+    "complete"
+  ],
+  "dependencies": {
+    "string.prototype.replaceall": "^1.0.5"
+  },
+  "devDependencies": {
+    "@rollup/plugin-node-resolve": "^10.0.0",
+    "@rollup/plugin-typescript": "^6.1.0",
+    "@types/node": "^14.0.13",
+    "rollup": "^2.16.1",
+    "tslib": "^2.0.0"
+  }
+}

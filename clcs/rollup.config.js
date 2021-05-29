@@ -2,7 +2,7 @@ import ts from '@rollup/plugin-typescript';
 
 // eslint-disable-next-line arca/no-default-export
 export default {
-  input: `./sources/advanced/index.ts`,
+  input: `./sources/index.ts`,
   output: [
     {
       dir: `lib`,
@@ -15,11 +15,10 @@ export default {
       format: `cjs`,
     },
   ],
-  external: [`clcs`, `typanion`],
   preserveModules: true,
   plugins: [
     ts({
-      tsconfig: `tsconfig.dist.json`,
+      tsconfig: `./tsconfig.dist.json`,
     }),
   ],
 };
