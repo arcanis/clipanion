@@ -556,6 +556,48 @@ describe(`Completion`, () => {
           prefix: `foo a c`,
         })).to.deep.equal([`d`, `e`, `f`, `g`, `h`, `i`]);
       });
+
+      it(`should correctly complete proxied options`, async () => {
+        const cli = () => {
+          class FooCommand extends Command {
+            static paths = [
+              [`foo`],
+            ];
+
+            option = Option.String(`--opt`, {completion: () => [`a`, `b`, `c`]});
+
+            leading = Option.String();
+
+            extra = Option.Proxy({completion: () => [`d`, `e`, `f`]});
+
+            async execute() {}
+          }
+
+          return [
+            FooCommand,
+          ];
+        };
+
+        expect(await completeCli(cli, {
+          current: `foo --opt `,
+          prefix: `foo --opt `,
+        })).to.deep.equal([`a`, `b`, `c`]);
+
+        expect(await completeCli(cli, {
+          current: `foo -- --opt `,
+          prefix: `foo -- --opt `,
+        })).to.deep.equal([`d`, `e`, `f`]);
+
+        expect(await completeCli(cli, {
+          current: `foo a --opt `,
+          prefix: `foo a --opt `,
+        })).to.deep.equal([`d`, `e`, `f`]);
+
+        expect(await completeCli(cli, {
+          current: `foo a b --opt `,
+          prefix: `foo a b --opt `,
+        })).to.deep.equal([`d`, `e`, `f`]);
+      });
     });
 
     describe(`Options`, () => {
@@ -1410,6 +1452,61 @@ describe(`Completion`, () => {
             prefix: `foo ${name} a ${name} b `,
           })).to.deep.equal([]);
         }
+      });
+
+      it(`should not complete option names and values after --`, async () => {
+        const values = [`a`, `b`, `c`];
+
+        const cli = () => {
+          class FooCommand extends Command {
+            static paths = [
+              [`foo`],
+            ];
+
+            foo = Option.String(`-f,--foo`, {completion: () => values});
+
+            async execute() {}
+          }
+
+          return [
+            FooCommand,
+          ];
+        };
+
+        const options = [
+          {completionText: `--foo`, listItemText: `-f,--foo`, description: undefined},
+          {completionText: `--help`, listItemText: `-h,--help`, description: `Display the usage of the command`},
+        ];
+
+        expect(await completeCli(cli, {
+          current: `foo --foo`,
+          prefix: `foo --foo`,
+        })).to.deep.equal(options);
+
+        expect(await completeCli(cli, {
+          current: `foo --foo `,
+          prefix: `foo --foo `,
+        })).to.deep.equal(values);
+
+        expect(await completeCli(cli, {
+          current: `foo --foo=`,
+          prefix: `foo --foo=`,
+        })).to.deep.equal(values.map(value => `--foo=${value}`));
+
+        expect(await completeCli(cli, {
+          current: `foo -- --foo`,
+          prefix: `foo -- --foo`,
+        })).to.deep.equal([]);
+
+        expect(await completeCli(cli, {
+          current: `foo -- --foo `,
+          prefix: `foo -- --foo `,
+        })).to.deep.equal([]);
+
+        expect(await completeCli(cli, {
+          current: `foo -- --foo=`,
+          prefix: `foo -- --foo=`,
+        })).to.deep.equal([]);
       });
     });
 
