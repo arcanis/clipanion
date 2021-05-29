@@ -346,9 +346,11 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
       completionResult: CompletionResult;
     };
 
-    const allResults = await Promise.all(branches.map(async state => {
+    const results: Array<Result> = [];
+
+    await Promise.all(branches.map(async state => {
       if (state.completion === null)
-        return null;
+        return;
 
       const {commandClass, command: partialCommand} = this.processImpl(state, contexts);
       const {completion: {fn, request: completionRequest, type}} = state;
@@ -358,15 +360,14 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
       const completionResult = await fn(completionRequest, partialCommand);
       const completionResults = Array.isArray(completionResult) ? completionResult : [completionResult];
 
-      return completionResults.map(result => ({commandClass, partialCommand, completionType: type, completionResult: result}));
+      for (const result of completionResults) {
+        results.push({commandClass, partialCommand, completionType: type, completionResult: result});
+      }
     }));
 
-    const results = allResults
-      .filter((results): results is Array<Result> => results !== null)
-      .flat()
-      .sort();
-
-    return [...new Set(results.map(result => result.completionResult))];
+    return results
+      .sort()
+      .map(result => result.completionResult);
   }
 
   definitions({colored = false}: {colored?: boolean} = {}): Array<Definition> {
