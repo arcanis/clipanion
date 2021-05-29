@@ -11,7 +11,7 @@ import {completeCli}                  from './utils';
 chai.use(chaiAsPromised);
 chai.use(chaiSpies);
 
-describe.only(`Completion`, () => {
+describe(`Completion`, () => {
   describe(`Argument types`, () => {
     describe(`Path segments`, () => {
       it(`should complete command paths`, async () => {

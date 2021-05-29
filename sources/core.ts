@@ -195,7 +195,7 @@ export function debugMachine(machine: StateMachine, {prefix = ``}: {prefix?: str
   }
 }
 
-export function runMachineInternal(machine: StateMachine, input: Array<string>, {partial = false, completionCursorPosition}: {partial?: boolean, completionCursorPosition?: number} = {}) {
+export function runMachineInternal(machine: StateMachine, input: Array<string>, {completionCursorPosition}: {completionCursorPosition?: number} = {}) {
   debug(`Running a vm on ${JSON.stringify(input)}`);
   let branches: Array<{node: number, state: RunState}> = [{node: NODE_INITIAL, state: {
     candidateUsage: null,
@@ -251,41 +251,14 @@ export function runMachineInternal(machine: StateMachine, input: Array<string>, 
       );
 
       const hasExactMatch = Object.prototype.hasOwnProperty.call(nodeDef.statics, segment);
-      if (!partial || t < tokens.length - 1 || hasExactMatch) {
-        if (hasExactMatch) {
-          const transitions = nodeDef.statics[segment];
-          for (const {to, reducer} of transitions) {
-            nextBranches.push({node: to, state: typeof reducer !== `undefined` ? execute(reducers, reducer, state, current) : state});
-            debug(`      Static transition to ${to} found`);
-          }
-        } else {
-          debug(`      No static transition found`);
+      if (hasExactMatch) {
+        const transitions = nodeDef.statics[segment];
+        for (const {to, reducer} of transitions) {
+          nextBranches.push({node: to, state: typeof reducer !== `undefined` ? execute(reducers, reducer, state, current) : state});
+          debug(`      Static transition to ${to} found`);
         }
       } else {
-        let hasMatches = false;
-
-        for (const candidate of Object.keys(nodeDef.statics)) {
-          if (!candidate.startsWith(segment))
-            continue;
-
-          if (segment === candidate) {
-            for (const {to, reducer} of nodeDef.statics[candidate]) {
-              nextBranches.push({node: to, state: typeof reducer !== `undefined` ? execute(reducers, reducer, state, current) : state});
-              debug(`      Static transition to ${to} found`);
-            }
-          } else {
-            for (const {to} of nodeDef.statics[candidate]) {
-              nextBranches.push({node: to, state: {...state, remainder: candidate.slice(segment.length)}});
-              debug(`      Static transition to ${to} found (partial match)`);
-            }
-          }
-
-          hasMatches = true;
-        }
-
-        if (!hasMatches) {
-          debug(`      No partial static transition found`);
-        }
+        debug(`      No static transition found`);
       }
 
       if (segment !== END_OF_INPUT) {
