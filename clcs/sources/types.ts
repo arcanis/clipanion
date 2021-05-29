@@ -1,5 +1,5 @@
-type Awaitable<T> = T | Promise<T>;
-type SingleOrArray<T> = T | Array<T>;
+export type Awaitable<T> = T | Promise<T>;
+export type SingleOrArray<T> = T | Array<T>;
 
 /**
  * A raw completion request sent by the shells.
@@ -14,7 +14,7 @@ export interface ShellCompletionRequest {
  * A completion request forwarded to the CLI developer.
  */
 export interface CompletionRequest {
-  input: Array<string>;
+  input: string;
   cursorPosition: number;
 }
 

@@ -7,24 +7,18 @@ export function normalizeShellCompletionRequest(
   shellCompletionRequest: ShellCompletionRequest,
 ): CompletionRequest {
   const cursorPosition = Number(shellCompletionRequest.cursorPosition);
-  if (!Number.isInteger(cursorPosition)) {
-    throw new TypeError(
-      `Expected cursorPosition to be an integer, got ${JSON.stringify(cursorPosition)}`,
-    );
-  }
+  if (!Number.isInteger(cursorPosition))
+    throw new Error(`Expected cursorPosition to be an integer, got ${JSON.stringify(cursorPosition)}`);
 
   if (cursorPosition > shellCompletionRequest.input.length)
-    // eslint-disable-next-line no-param-reassign
     shellCompletionRequest.input += ` `;
-
 
   const [binaryName, ...input] = shellCompletionRequest.input.split(` `);
   if (typeof binaryName === `undefined`)
-    throw new TypeError(`Expected binaryName to be defined`);
-
+    throw new Error(`Expected binaryName to be defined`);
 
   return {
-    input,
+    input: input.join(` `),
     cursorPosition: cursorPosition - (binaryName.length + 1),
   };
 }

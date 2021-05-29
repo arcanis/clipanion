@@ -5,7 +5,12 @@ import {FishDriver}       from './FishDriver';
 import {PowerShellDriver} from './PowerShellDriver';
 import {ZshDriver}        from './ZshDriver';
 
-export const drivers = [BashDriver, ZshDriver, FishDriver, PowerShellDriver];
+export const drivers = [
+  BashDriver,
+  ZshDriver,
+  FishDriver,
+  PowerShellDriver,
+];
 
 /**
  * @returns The driver corresponding to the default shell.
@@ -15,9 +20,9 @@ function getDefaultDriver(): ShellDriver {
 
   if (typeof defaultDriver === `undefined`) {
     if (typeof process.env.SHELL !== `undefined`)
-      throw new TypeError(`Default shell "${process.env.SHELL}" is not supported`);
+      throw new Error(`Default shell "${process.env.SHELL}" is not supported`);
 
-    throw new TypeError(`No default shell could be detected`);
+    throw new Error(`No default shell could be detected`);
   }
 
   return defaultDriver;
@@ -30,7 +35,7 @@ function getRequestedDriver(shellName: string): ShellDriver {
   const requestedDriver = drivers.find(driver => driver.shellName === shellName);
 
   if (typeof requestedDriver === `undefined`)
-    throw new TypeError(`Requested shell "${shellName}" is not supported`);
+    throw new Error(`Requested shell "${shellName}" is not supported`);
 
   return requestedDriver;
 }
