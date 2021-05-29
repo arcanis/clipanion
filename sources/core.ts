@@ -600,6 +600,9 @@ export const tests = {
   isUnsupportedOption: (state: RunState, {segment}: Current, names: Array<string>) => {
     return !state.ignoreOptions && segment.startsWith(`-`) && OPTION_REGEX.test(segment) && !names.includes(segment);
   },
+  isUnsupportedBatchOption: (state: RunState, {segment}: Current, names: Array<string>) => {
+    return !state.ignoreOptions && BATCH_REGEX.test(segment) && ![...segment.slice(1)].every(name => names.includes(`-${name}`));
+  },
   isUnsupportedBoundOption: (state: RunState, {segment}: Current, names: Array<string>) => {
     const optionParsing = segment.match(BINDING_REGEX);
 
@@ -1136,6 +1139,9 @@ export class CommandBuilder<Context> {
       [`isCompletion`],
       [`isUnsupportedOption`, this.allOptionNames],
     ]], node, [`setCompletion`, CompletionType.OptionName, ({prefix}) => this.getOptionNameCompletionResults({negated: prefix.startsWith(`--no-`)}), this.cliIndex]);
+
+    registerDynamic(machine, node, [`isUnsupportedBatchOption`, this.allOptionNames], NODE_ERRORED, [`setError`, `Unsupported batch option names`]);
+    // Nothing to complete in the case of unsupported batch options
 
     registerDynamic(machine, node, [`isUnsupportedBoundOption`, this.allOptionNames], NODE_ERRORED, [`setError`, `Unsupported bound option name`]);
     registerDynamic(machine, node, [`all`, [
