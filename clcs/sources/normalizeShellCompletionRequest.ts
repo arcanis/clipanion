@@ -17,8 +17,12 @@ export function normalizeShellCompletionRequest(
   if (typeof binaryName === `undefined`)
     throw new Error(`Expected binaryName to be defined`);
 
+  const normalizedInput = input.join(` `);
+  const normalizedCursorPosition = cursorPosition - (binaryName.length + 1);
+
   return {
-    input: input.join(` `),
-    cursorPosition: cursorPosition - (binaryName.length + 1),
+    current: normalizedInput,
+    prefix: normalizedInput.slice(0, normalizedCursorPosition),
+    suffix: normalizedInput.slice(normalizedCursorPosition),
   };
 }

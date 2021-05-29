@@ -1,10 +1,10 @@
-import {CompletionResults}                             from 'clcs';
-import {Coercion, CoercionFn, StrictValidator}         from 'typanion';
+import {CompletionResults, CompletionRequest}  from 'clcs';
+import {Coercion, CoercionFn, StrictValidator} from 'typanion';
 
-import {CommandBuilder,  CompletionRequest,  RunState} from '../../core';
-import {UsageError}                                    from '../../errors';
-import {BaseContext, CliContext}                       from '../Cli';
-import {Command}                                       from '../Command';
+import {CommandBuilder,  RunState}             from '../../core';
+import {UsageError}                            from '../../errors';
+import {BaseContext, CliContext}               from '../Cli';
+import {Command}                               from '../Command';
 
 export const isOptionSymbol = Symbol(`clipanion/isOption`);
 

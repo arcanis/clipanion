@@ -14,7 +14,7 @@ export class CompletionDebugCommand extends Command<any> {
       stdout: this.context.stdout,
       stderr: this.context.stderr,
     }, request => {
-      return this.cli.complete({current: request.input, prefix: request.input.slice(0, request.cursorPosition)});
+      return this.cli.complete(request);
     });
   }
 }

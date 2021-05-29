@@ -6,16 +6,32 @@ export type SingleOrArray<T> = T | Array<T>;
  * It shouldn't be used by itself.
  */
 export interface ShellCompletionRequest {
+  /**
+   * The input which includes the binary name.
+   */
   input: string;
+  /**
+   * The cursor position inside the input.
+   */
   cursorPosition: string;
 }
 
 /**
- * A completion request forwarded to the CLI developer.
+ * A normalized completion request sent to the CLI developer.
  */
 export interface CompletionRequest {
-  input: string;
-  cursorPosition: number;
+  /**
+   * The current segment.
+   */
+  current: string;
+  /**
+   * The part before the cursor.
+   */
+  prefix: string;
+  /**
+   * The part after the cursor.
+   */
+  suffix: string;
 }
 
 /**

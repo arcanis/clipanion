@@ -19,7 +19,7 @@ export class CompletionRequestCommand extends Command<any> {
       cursorPosition: this.cursorPosition,
       stdout: this.context.stdout,
     }, request => {
-      return this.cli.complete({current: request.input, prefix: request.input.slice(0, request.cursorPosition)});
+      return this.cli.complete(request);
     });
   }
 }

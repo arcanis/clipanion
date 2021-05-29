@@ -1,6 +1,6 @@
-import {CompletionResults, RichCompletionResult} from 'clcs';
+import {CompletionResults, RichCompletionResult, CompletionRequest} from 'clcs';
 
-import * as errors                               from './errors';
+import * as errors                                                  from './errors';
 
 import {
   BATCH_REGEX, BINDING_REGEX, END_OF_INPUT,
@@ -24,24 +24,6 @@ export function debug(str: string) {
 }
 
 // ------------------------------------------------------------------------
-
-/**
- * A normalized completion request received by completion functions.
- */
-export type CompletionRequest = {
-  /**
-   * The current segment.
-   */
-  current: string;
-  /**
-   * The part before the cursor.
-   */
-  prefix: string;
-  /**
-   * The part after the cursor.
-   */
-  suffix: string;
-};
 
 /**
  * A partial `CompletionRequest` that can be used with `Cli.prototype.complete`. Needs to include at least 2 properties.
