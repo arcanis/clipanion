@@ -603,10 +603,13 @@ export const tests = {
   isUnsupportedBatchOption: (state: RunState, {segment}: Current, names: Array<string>) => {
     return !state.ignoreOptions && BATCH_REGEX.test(segment) && ![...segment.slice(1)].every(name => names.includes(`-${name}`));
   },
-  isUnsupportedBoundOption: (state: RunState, {segment}: Current, names: Array<string>) => {
+  isUnsupportedBoundOption: (state: RunState, {segment}: Current, names: Array<string>, options: Array<OptDefinition>) => {
     const optionParsing = segment.match(BINDING_REGEX);
 
-    return !state.ignoreOptions && !!optionParsing && OPTION_REGEX.test(optionParsing[1]) && !names.includes(optionParsing[1]);
+    return !state.ignoreOptions && !!optionParsing && OPTION_REGEX.test(optionParsing[1]) && (
+      !names.includes(optionParsing[1])
+      || options.filter(opt => opt.names.includes(optionParsing[1])).some(opt => !opt.allowBinding)
+    );
   },
   isInvalidOption: (state: RunState, {segment}: Current) => {
     return !state.ignoreOptions && segment.startsWith(`-`) && !OPTION_REGEX.test(segment) && !BATCH_REGEX.test(segment) && !BINDING_REGEX.test(segment);
@@ -690,7 +693,15 @@ export const reducers = {
       .filter(name => !names.includes(`-${name}`))
       .map(name => `"-${name}"`);
 
-    return {...state, errorMessage: `Unsupported batch option name${unsupportedNames.length > 1 ? `s` : ``} (${unsupportedNames.join(`, `)}).`};
+    return {...state, errorMessage: `Unsupported option name${unsupportedNames.length > 1 ? `s` : ``} (${unsupportedNames.join(`, `)}).`};
+  },
+  setUnsupportedBoundOptionError: (state: RunState, {segment}: Current, options: Array<OptDefinition>) => {
+    const [, name] = segment.match(BINDING_REGEX)!;
+
+    if (options.filter(opt => opt.names.includes(name)).some(opt => !opt.allowBinding))
+      return {...state, errorMessage: `Unsupported binding ("${segment}").`};
+
+    return {...state, errorMessage: `Unsupported option name ("${name}").`};
   },
   setOptionArityError: (state: RunState, {segment}: Current) => {
     const lastOption = state.options[state.options.length - 1];
@@ -1150,10 +1161,10 @@ export class CommandBuilder<Context> {
     registerDynamic(machine, node, [`isUnsupportedBatchOption`, this.allOptionNames], NODE_ERRORED, [`setUnsupportedBatchOptionError`, this.allOptionNames]);
     // Nothing to complete in the case of unsupported batch options
 
-    registerDynamic(machine, node, [`isUnsupportedBoundOption`, this.allOptionNames], NODE_ERRORED, [`setError`, `Unsupported bound option name`]);
+    registerDynamic(machine, node, [`isUnsupportedBoundOption`, this.allOptionNames, this.options], NODE_ERRORED, [`setUnsupportedBoundOptionError`, this.options]);
     registerDynamic(machine, node, [`all`, [
       [`isCompletion`],
-      [`isUnsupportedBoundOption`, this.allOptionNames],
+      [`isUnsupportedBoundOption`, this.allOptionNames, this.options],
     ]], node, [`setBoundCompletion`, this]);
 
     registerDynamic(machine, node, [`isInvalidOption`], NODE_ERRORED, [`setError`, `Invalid option name`]);

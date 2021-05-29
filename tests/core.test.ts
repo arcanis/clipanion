@@ -770,18 +770,6 @@ describe(`Core`, () => {
     }).to.throw(`Invalid option name ("-%#@$%#()@")`);
   });
 
-  it(`should throw acceptable errors when writing bound boolean arguments`, () => {
-    const cli = makeCli([
-      b => {
-        b.addOption({names: [`--foo`], allowBinding: false});
-      },
-    ]);
-
-    expect(() => {
-      cli.process([`--foo=bar`]);
-    }).to.throw(`Invalid option name ("--foo=bar")`);
-  });
-
   it(`should throw acceptable errors when writing batches with invalid option names`, () => {
     const cli = makeCli([
       b => {
@@ -791,10 +779,28 @@ describe(`Core`, () => {
 
     expect(() => {
       cli.process([`-ab`]);
-    }).to.throw(`Unsupported batch option name ("-b")`);
+    }).to.throw(`Unsupported option name ("-b")`);
 
     expect(() => {
       cli.process([`-abc`]);
-    }).to.throw(`Unsupported batch option names ("-b", "-c")`);
+    }).to.throw(`Unsupported option names ("-b", "-c")`);
+  });
+
+  it(`should throw acceptable errors when writing bindings with invalid option names`, () => {
+    const cli = makeCli([b => {}]);
+
+    expect(() => {
+      cli.process([`--foo=bar`]);
+    }).to.throw(`Unsupported option name ("--foo")`);
+  });
+
+  it(`should throw acceptable errors when writing unsupported bindings`, () => {
+    const cli = makeCli([b => {
+      b.addOption({names: [`--foo`], allowBinding: false});
+    }]);
+
+    expect(() => {
+      cli.process([`--foo=bar`]);
+    }).to.throw(`Unsupported binding ("--foo=bar")`);
   });
 });
