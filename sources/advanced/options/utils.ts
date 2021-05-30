@@ -55,7 +55,7 @@ export type PartialCommand<T extends Command<any>> = {
  * @param request The normalized completion request.
  * @param command The partial command populated with all cli arguments that can be parsed.
  */
-export type CompletionFunction<T extends Command<any> = any> = (request: CompletionRequest, command: PartialCommand<T>) => CompletionResults;
+export type CompletionFunction<T extends Command<any> = any> = (this: undefined, request: CompletionRequest, command: PartialCommand<T>) => CompletionResults;
 
 export function makeCommandOption<T>(spec: Omit<CommandOption<T>, typeof isOptionSymbol>) {
   // We lie! But it's for the good cause: the cli engine will turn the specs into proper values after instantiation.

@@ -357,7 +357,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
 
       this.populateCommand(partialCommand, context);
 
-      const completionResult = await fn(completionRequest, partialCommand);
+      const completionResult = await fn.call(undefined, completionRequest, partialCommand);
       const completionResults = Array.isArray(completionResult) ? completionResult : [completionResult];
 
       for (const result of completionResults) {
