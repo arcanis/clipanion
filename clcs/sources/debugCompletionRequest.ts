@@ -38,12 +38,15 @@ export async function debugCompletionRequest(
   }: DebugCompletionRequestOptions,
   getCompletion: CompletionFunction,
 ): Promise<void> {
-  const console = new Console(stdout, stderr);
+  if (!shellCompletionRequest.input.includes(`|`))
+    throw new Error(`Missing cursor ("|") in input`);
 
   const interpolatedRequest = {
     input: shellCompletionRequest.input.replace(`|`, ``),
     cursorPosition: String(shellCompletionRequest.input.indexOf(`|`)),
   };
+
+  const console = new Console(stdout, stderr);
 
   console.time(`Time spent normalizing the completion request`);
   const completionRequest = normalizeShellCompletionRequest(interpolatedRequest);
