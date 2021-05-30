@@ -6,7 +6,7 @@ import {CompletionFunction}           from '../sources/advanced/options';
 import {BaseContext, Command, Option} from '../sources/advanced';
 import {identity}                     from '../sources/core';
 
-import {completeCli}                  from './utils';
+import {completeCli, prefix}          from './utils';
 
 chai.use(chaiAsPromised);
 chai.use(chaiSpies);
@@ -1549,15 +1549,15 @@ describe(`Completion`, () => {
         };
 
         const fooHelpCompletions = [
-          {completionText: `-h=0`, listItemText: `0`, description: `\u001b[1m$ \u001b[22m... foo\n`},
-          {completionText: `--help=0`, listItemText: `0`, description: `\u001b[1m$ \u001b[22m... foo\n`},
-          {completionText: `-h=1`, listItemText: `1`, description: `\u001b[1m$ \u001b[22m... foo <positional>\n`},
-          {completionText: `--help=1`, listItemText: `1`, description: `\u001b[1m$ \u001b[22m... foo <positional>\n`},
+          {completionText: `-h=0`, listItemText: `0`, description: `${prefix}... foo\n`},
+          {completionText: `--help=0`, listItemText: `0`, description: `${prefix}... foo\n`},
+          {completionText: `-h=1`, listItemText: `1`, description: `${prefix}... foo <positional>\n`},
+          {completionText: `--help=1`, listItemText: `1`, description: `${prefix}... foo <positional>\n`},
         ];
 
         const barHelpCompletions = [
-          {completionText: `-h=0`, listItemText: `0`, description: `\u001b[1m$ \u001b[22m... bar [--opt #0]\n`},
-          {completionText: `--help=0`, listItemText: `0`, description: `\u001b[1m$ \u001b[22m... bar [--opt #0]\n`},
+          {completionText: `-h=0`, listItemText: `0`, description: `${prefix}... bar [--opt #0]\n`},
+          {completionText: `--help=0`, listItemText: `0`, description: `${prefix}... bar [--opt #0]\n`},
         ];
 
         for (const name of [`-h`, `--help`]) {

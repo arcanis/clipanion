@@ -341,7 +341,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
 
     type Result = {
       commandClass: CommandClass<Context> | typeof HelpCommand;
-      partialCommand: HelpCommand<Context> | Command<Context>;
+      partialCommand: Command<Context> | HelpCommand<Context>;
       completionType: CompletionType;
       completionResult: CompletionResult;
     };
@@ -366,6 +366,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
     }));
 
     return results
+      // TODO: sort the completion results based on various criteria
       .sort()
       .map(result => result.completionResult);
   }

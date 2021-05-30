@@ -966,7 +966,7 @@ export class CommandBuilder<Context> {
       if (path.length > 0) {
         const optionPathNode = injectNode(machine, makeNode());
         registerShortcut(machine, lastPathNode, optionPathNode);
-        this.registerOptions(machine, optionPathNode, {completeOptionNames: false});
+        this.registerOptions(machine, optionPathNode);
         lastPathNode = optionPathNode;
       }
 
@@ -1123,7 +1123,7 @@ export class CommandBuilder<Context> {
     return completions;
   }
 
-  private registerOptions(machine: StateMachine, node: number, {completeOptionNames = true}: {completeOptionNames?: boolean} = {}) {
+  private registerOptions(machine: StateMachine, node: number) {
     registerDynamic(machine, node, [`isOption`, `--`], node, `inhibateOptions`);
     registerDynamic(machine, node, [`isBatchOption`, this.allOptionNames], node, [`chain`, [
       [`setBatchCompletion`, this],
