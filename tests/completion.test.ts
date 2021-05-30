@@ -186,6 +186,155 @@ describe(`Completion`, () => {
           prefix: `b`,
         })).to.deep.equal([`foo`, `bar`, `baz`]);
       });
+
+      it(`should complete nested command paths with descriptions if completing the last segment`, async () => {
+        const cli = () => {
+          class AddCommand extends Command {
+            static paths = [
+              [`add`],
+            ];
+
+            static usage = Command.Usage({
+              description: `description for add`,
+            });
+
+            async execute() {}
+          }
+
+          class ConfigCommand extends Command {
+            static paths = [
+              [`config`],
+            ];
+
+            static usage = Command.Usage({
+              description: `description for config`,
+            });
+
+            async execute() {}
+          }
+
+          class ConfigGetCommand extends Command {
+            static paths = [
+              [`config`, `get`],
+            ];
+
+            static usage = Command.Usage({
+              description: `description for config get`,
+            });
+
+            async execute() {}
+          }
+
+          class ConfigSetCommand extends Command {
+            static paths = [
+              [`config`, `set`],
+            ];
+
+            static usage = Command.Usage({
+              description: `description for config set`,
+            });
+
+            async execute() {}
+          }
+
+          class PluginImportCommand extends Command {
+            static paths = [
+              [`plugin`, `import`],
+            ];
+
+            static usage = Command.Usage({
+              description: `description for plugin import`,
+            });
+
+            async execute() {}
+          }
+
+          class PluginImportFromSourcesCommand extends Command {
+            static paths = [
+              [`plugin`, `import`, `from`, `sources`],
+            ];
+
+            static usage = Command.Usage({
+              description: `description for plugin import from sources`,
+            });
+
+            async execute() {}
+          }
+
+          class PluginRuntimeCommand extends Command {
+            static paths = [
+              [`plugin`, `runtime`],
+            ];
+
+            static usage = Command.Usage({
+              description: `description for plugin runtime`,
+            });
+
+            async execute() {}
+          }
+
+          class UpCommand extends Command {
+            static paths = [
+              [`up`],
+            ];
+
+            // No description
+
+            async execute() {}
+          }
+
+          return [
+            AddCommand,
+            ConfigCommand,
+            ConfigGetCommand,
+            ConfigSetCommand,
+            PluginImportCommand,
+            PluginImportFromSourcesCommand,
+            PluginRuntimeCommand,
+            UpCommand,
+          ];
+        };
+
+        expect(await completeCli(cli, {
+          current: ``,
+          prefix: ``,
+        })).to.deep.equal([
+          {completionText: `add`, description: `description for add`},
+          {completionText: `config`, description: `description for config`},
+          `config`,
+          `plugin`,
+          `up`,
+        ]);
+
+        expect(await completeCli(cli, {
+          current: `config `,
+          prefix: `config `,
+        })).to.deep.equal([
+          {completionText: `get`, description: `description for config get`},
+          {completionText: `set`, description: `description for config set`},
+        ]);
+
+        expect(await completeCli(cli, {
+          current: `plugin `,
+          prefix: `plugin `,
+        })).to.deep.equal([
+          {completionText: `import`, description: `description for plugin import`},
+          `import`,
+          {completionText: `runtime`, description: `description for plugin runtime`},
+        ]);
+
+        expect(await completeCli(cli, {
+          current: `plugin import `,
+          prefix: `plugin import `,
+        })).to.deep.equal([`from`]);
+
+        expect(await completeCli(cli, {
+          current: `plugin import from `,
+          prefix: `plugin import from `,
+        })).to.deep.equal([
+          {completionText: `sources`, description: `description for plugin import from sources`},
+        ]);
+      });
     });
 
     describe(`Positionals`, () => {

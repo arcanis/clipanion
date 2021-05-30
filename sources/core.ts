@@ -972,7 +972,19 @@ export class CommandBuilder<Context> {
 
       for (let t = 0; t < path.length; ++t) {
         const nextPathNode = injectNode(machine, makeNode());
-        registerDynamic(machine, lastPathNode, `isCompletion`, NODE_SUCCESS, [`setCompletion`, CompletionType.PathSegment, () => path[t], this.cliIndex]);
+
+        // TODO: find a way to not leak command into the core
+        registerDynamic(machine, lastPathNode, `isCompletion`, NODE_SUCCESS, [`setCompletion`, CompletionType.PathSegment, (request, command) => {
+          if (t === path.length - 1 && typeof command.constructor.usage?.description !== `undefined`) {
+            return {
+              completionText: path[t],
+              description: command.constructor.usage.description,
+            };
+          }
+
+          return path[t];
+        }, this.cliIndex]);
+
         registerStatic(machine, lastPathNode, path[t], nextPathNode, `pushPath`);
         lastPathNode = nextPathNode;
       }
