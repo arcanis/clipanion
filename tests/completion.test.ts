@@ -706,7 +706,7 @@ describe(`Completion`, () => {
 
             baz = Option.String(`-B,--baz`, {arity: 3})
 
-            qux = Option.String(`-q,--qux`, {tolerateBoolean: true, completion: () => [`d`, `e`, `f`]});
+            qux = Option.String(`-q,--qux,--no-opt`, {tolerateBoolean: true, completion: () => [`d`, `e`, `f`]});
 
             nonInteractive = Option.Boolean(`--non-interactive`);
 
@@ -722,7 +722,7 @@ describe(`Completion`, () => {
           {completionText: `--foo`, listItemText: `-f,--foo`, description: undefined},
           {completionText: `--bar`, listItemText: `-b,--bar`, description: undefined},
           {completionText: `--baz`, listItemText: `-B,--baz`, description: undefined},
-          {completionText: `--qux`, listItemText: `-q,--qux`, description: undefined},
+          {completionText: `--qux`, listItemText: `-q,--qux,--no-opt`, description: undefined},
           {completionText: `--non-interactive`, listItemText: `--non-interactive`, description: undefined},
           {completionText: `--help`, listItemText: `-h,--help`, description: `Display the usage of the command`},
         ];
@@ -732,7 +732,7 @@ describe(`Completion`, () => {
           {completionText: `--no-foo`, listItemText: `--no-foo`, description: undefined},
           {completionText: `--bar`, listItemText: `-b,--bar`, description: undefined},
           {completionText: `--baz`, listItemText: `-B,--baz`, description: undefined},
-          {completionText: `--qux`, listItemText: `-q,--qux`, description: undefined},
+          {completionText: `--qux`, listItemText: `-q,--qux,--no-opt`, description: undefined},
           {completionText: `--no-qux`, listItemText: `--no-qux`, description: undefined},
           {completionText: `--non-interactive`, listItemText: `--non-interactive`, description: undefined},
           {completionText: `--no-non-interactive`, listItemText: `--no-non-interactive`, description: undefined},

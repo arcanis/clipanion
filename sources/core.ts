@@ -1104,7 +1104,7 @@ export class CommandBuilder<Context> {
         if (typeof name !== `undefined`) {
           completions.push({
             completionText: `--no-${name.slice(2)}`,
-            listItemText: option.longNames.map(name => `--no-${name.slice(2)}`).join(`,`),
+            listItemText: option.longNames.filter(name => !name.startsWith(`--no-`)).map(name => `--no-${name.slice(2)}`).join(`,`),
             description: option.description,
           });
         }
