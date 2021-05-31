@@ -337,7 +337,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
 
   async complete(request: PartialCompletionRequest, context: Context): Promise<Array<CompletionResult>> {
     const {complete, contexts} = this.builder.compile();
-    const branches = complete(request);
+    const states = complete(request);
 
     type Result = {
       commandClass: CommandClass<Context> | typeof HelpCommand;
@@ -348,7 +348,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
 
     const results: Array<Result> = [];
 
-    await Promise.all(branches.map(async state => {
+    await Promise.all(states.map(async state => {
       if (state.completion === null)
         return;
 
