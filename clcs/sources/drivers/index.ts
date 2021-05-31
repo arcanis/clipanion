@@ -20,7 +20,7 @@ function getDefaultDriver(): ShellDriver {
 
   if (typeof defaultDriver === `undefined`) {
     if (typeof process.env.SHELL !== `undefined`)
-      throw new Error(`Default shell "${process.env.SHELL}" is not supported`);
+      throw new Error(`Default shell ${JSON.stringify(process.env.SHELL)} is not supported`);
 
     throw new Error(`No default shell could be detected`);
   }
@@ -35,7 +35,7 @@ function getRequestedDriver(shellName: string): ShellDriver {
   const requestedDriver = drivers.find(driver => driver.shellName === shellName);
 
   if (typeof requestedDriver === `undefined`)
-    throw new Error(`Requested shell "${shellName}" is not supported`);
+    throw new Error(`Requested shell ${JSON.stringify(shellName)} is not supported`);
 
   return requestedDriver;
 }
