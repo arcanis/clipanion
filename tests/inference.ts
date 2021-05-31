@@ -6,7 +6,7 @@ import {Command, Option} from '..';
 type AssertEqual<T, Expected> = [T, Expected] extends [Expected, T] ? true : false;
 
 function assertEqual<U>() {
-  return <V>(val: V, expected: AssertEqual<U, V>) => {};
+  return <V>(val: V, expected: AssertEqual<Option.CommandOptionReturn<U>, V>) => {};
 }
 
 class MyCommand extends Command {
