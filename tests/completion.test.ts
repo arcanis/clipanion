@@ -1852,12 +1852,11 @@ describe(`Completion`, () => {
             ];
 
             leading = Option.String({
-              completion: this.completion((request, command) =>
+              completion: (request, command) =>
                 command.cli.complete({
                   current: `bar `,
                   prefix: `bar `,
-                }, {cwd: `test`})
-              ),
+                }, {cwd: `test`}),
             });
 
             async execute() {}
@@ -1868,7 +1867,7 @@ describe(`Completion`, () => {
               [`bar`],
             ];
 
-            leading = Option.String({completion: this.completion((request, command) => [command.context.cwd])});
+            leading = Option.String({completion: (request, command) => [command.context.cwd]});
 
             async execute() {}
           }
