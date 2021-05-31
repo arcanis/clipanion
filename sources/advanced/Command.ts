@@ -1,7 +1,7 @@
-import {Coercion, LooseTest}                             from 'typanion';
+import {Coercion, LooseTest}         from 'typanion';
 
-import {BaseContext, MiniCli}                            from './Cli';
-import {formatError, isOptionSymbol, CompletionFunction} from './options/utils';
+import {BaseContext, MiniCli}        from './Cli';
+import {formatError, isOptionSymbol} from './options/utils';
 
 /**
  * The usage of a Command.
