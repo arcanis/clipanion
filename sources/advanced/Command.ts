@@ -172,13 +172,6 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
   }
 
   /**
-   * Used to strongly-type completion functions and make them infer the partial command class.
-   */
-  completion<T extends CompletionFunction<this>>(completionFunction: T) {
-    return completionFunction;
-  }
-
-  /**
    * Used to detect option definitions.
    */
   static isOption: typeof isOptionSymbol = isOptionSymbol;
