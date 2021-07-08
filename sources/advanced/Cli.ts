@@ -343,6 +343,31 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
   }
 
   usage(command: CommandClass<Context> | Command<Context> | null = null, {colored, detailed = false, prefix = `$ `}: {colored?: boolean, detailed?: boolean, prefix?: string} = {}) {
+    // In case the default command is the only one, we can just show the command help rather than the general one
+    if (command === null) {
+      for (const commandClass of this.registrations.keys()) {
+        const paths = commandClass.paths;
+
+        const isDocumented = typeof commandClass.usage !== `undefined`;
+        const isExclusivelyDefault = !paths || paths.length === 0 || (paths.length === 1 && paths[0].length === 0);
+        const isDefault = isExclusivelyDefault || (paths?.some(path => path.length === 0) ?? false);
+
+        if (isDefault) {
+          if (command) {
+            command = null;
+            break;
+          } else {
+            command = commandClass;
+          }
+        } else {
+          if (isDocumented) {
+            command = null;
+            continue;
+          }
+        }
+      }
+    }
+
     // @ts-ignore
     const commandClass = command !== null && command instanceof Command
       ? command.constructor as CommandClass<Context>
