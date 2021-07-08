@@ -149,7 +149,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
 
   private readonly builder: CliBuilder<CliContext<Context>>;
 
-  private readonly registrations: Map<CommandClass<Context>, {
+  protected readonly registrations: Map<CommandClass<Context>, {
     index: number,
     builder: CommandBuilder<CliContext<Context>>,
     specs: Map<string, CommandOption<unknown>>,
@@ -512,7 +512,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
     return result;
   }
 
-  private getUsageByRegistration(klass: CommandClass<Context>, opts?: {detailed?: boolean; inlineOptions?: boolean}) {
+  protected getUsageByRegistration(klass: CommandClass<Context>, opts?: {detailed?: boolean; inlineOptions?: boolean}) {
     const record = this.registrations.get(klass);
     if (typeof record === `undefined`)
       throw new Error(`Assertion failed: Unregistered command`);
@@ -520,11 +520,11 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
     return this.getUsageByIndex(record.index, opts);
   }
 
-  private getUsageByIndex(n: number, opts?: {detailed?: boolean; inlineOptions?: boolean}) {
+  protected getUsageByIndex(n: number, opts?: {detailed?: boolean; inlineOptions?: boolean}) {
     return this.builder.getBuilderByIndex(n).usage(opts);
   }
 
-  private format(colored: boolean = this.enableColors): ColorFormat {
+  protected format(colored: boolean = this.enableColors): ColorFormat {
     return colored ? richFormat : textFormat;
   }
 }
