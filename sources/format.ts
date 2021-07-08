@@ -24,18 +24,29 @@ export const textFormat: ColorFormat = {
   code: str => str,
 };
 
+function dedent(text: string) {
+  const lines = text.split(`\n`);
+  const nonEmptyLines = lines.filter(line => line.match(/\S/));
+
+  const indent = nonEmptyLines.length > 0 ? nonEmptyLines.reduce((minLength, line) => Math.min(minLength, line.length - line.trimStart().length), Number.MAX_VALUE) : 0;
+
+  return lines
+    .map(line => line.slice(indent).trimRight())
+    .join(`\n`);
+}
+
 export function formatMarkdownish(text: string, {format, paragraphs}: {format: ColorFormat, paragraphs: boolean}) {
   // Enforce \n as newline character
   text = text.replace(/\r\n?/g, `\n`);
 
   // Remove the indentation, since it got messed up with the JS indentation
-  text = text.replace(/^[\t ]+|[\t ]+$/gm, ``);
+  text = dedent(text);
 
   // Remove surrounding newlines, since they got added for JS formatting
   text = text.replace(/^\n+|\n+$/g, ``);
 
   // List items always end with at least two newlines (in order to not be collapsed)
-  text = text.replace(/^-([^\n]*?)\n+/gm, `-$1\n\n`);
+  text = text.replace(/^(\s*)-([^\n]*?)\n+/gm, `$1-$2\n\n`);
 
   // Single newlines are removed; larger than that are collapsed into one
   text = text.replace(/\n(\n)?\n*/g, `$1`);
@@ -43,15 +54,17 @@ export function formatMarkdownish(text: string, {format, paragraphs}: {format: C
   if (paragraphs) {
     text = text.split(/\n/).map(paragraph => {
       // Does the paragraph starts with a list?
-      const bulletMatch = paragraph.match(/^[*-][\t ]+(.*)/);
+      const bulletMatch = paragraph.match(/^\s*[*-][\t ]+(.*)/);
 
       if (!bulletMatch)
-      // No, cut the paragraphs into segments of 80 characters
+        // No, cut the paragraphs into segments of 80 characters
         return paragraph.match(/(.{1,80})(?: |$)/g)!.join(`\n`);
 
-      // Yes, cut the paragraphs into segments of 78 characters (to account for the prefix)
-      return bulletMatch[1].match(/(.{1,78})(?: |$)/g)!.map((line, index) => {
-        return (index === 0 ? `- ` : `  `) + line;
+      const indent = paragraph.length - paragraph.trimStart().length;
+
+      // Yes, cut the paragraphs into segments of (78 - indent) characters (to account for the prefix)
+      return bulletMatch[1].match(new RegExp(`(.{1,${78 - indent}})(?: |$)`, `g`))!.map((line, index) => {
+        return ` `.repeat(indent) + (index === 0 ? `- ` : `  `) + line;
       }).join(`\n`);
     }).join(`\n\n`);
   }
