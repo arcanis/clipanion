@@ -366,6 +366,10 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
           }
         }
       }
+
+      if (command) {
+        detailed = true;
+      }
     }
 
     // @ts-ignore
