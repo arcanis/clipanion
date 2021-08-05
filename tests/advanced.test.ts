@@ -51,6 +51,104 @@ describe(`Advanced`, () => {
         expect(await runCli(cli, [`-h`])).to.equal(cli.usage(null));
         expect(await runCli(cli, [`--help`])).to.equal(cli.usage(null));
       });
+
+      it(`should display the usage per-command`, async () => {
+        const cli = new Cli();
+        cli.register(Builtins.HelpCommand);
+
+        class CommandA extends Command {
+          static paths = [[`foo`]];
+
+          foo = Option.Boolean(`--foo`);
+          async execute() {log(this);}
+        }
+
+        cli.register(CommandA);
+
+        expect(await runCli(cli, [`foo`, `-h`])).to.equal(cli.usage(CommandA));
+        expect(await runCli(cli, [`foo`, `--help`])).to.equal(cli.usage(CommandA));
+      });
+
+      it(`should display the command usage if there's a single one and it's the default`, async () => {
+        const cli = new Cli();
+        cli.register(Builtins.HelpCommand);
+
+        class CommandA extends Command {
+          static usage = {};
+
+          foo = Option.Boolean(`--foo`);
+          async execute() {log(this);}
+        }
+
+        cli.register(CommandA);
+
+        expect(await runCli(cli, [`-h`])).to.equal(cli.usage(CommandA));
+        expect(await runCli(cli, [`--help`])).to.equal(cli.usage(CommandA));
+      });
+
+      it(`should print the command usage if there are no documented named commands apart the default one`, async () => {
+        const cli = new Cli();
+        cli.register(Builtins.HelpCommand);
+
+        class CommandA extends Command {
+          static paths = [[`foo`]];
+
+          foo = Option.Boolean(`--foo`);
+          async execute() {log(this);}
+        }
+
+        class CommandB extends Command {
+          foo = Option.Boolean(`--fobar`);
+          async execute() {log(this);}
+        }
+
+        cli.register(CommandA);
+        cli.register(CommandB);
+
+        expect(await runCli(cli, [`-h`])).to.equal(cli.usage(CommandB));
+        expect(await runCli(cli, [`--help`])).to.equal(cli.usage(CommandB));
+      });
+
+      it(`should print the general help if there's a single named command`, async () => {
+        const cli = new Cli();
+        cli.register(Builtins.HelpCommand);
+
+        class CommandA extends Command {
+          static paths = [[`foo`]];
+
+          foo = Option.Boolean(`--foo`);
+          async execute() {log(this);}
+        }
+
+        cli.register(CommandA);
+
+        expect(await runCli(cli, [`-h`])).to.equal(cli.usage(null));
+        expect(await runCli(cli, [`--help`])).to.equal(cli.usage(null));
+      });
+
+      it(`should print the general help if there are documented named commands apart the default one`, async () => {
+        const cli = new Cli();
+        cli.register(Builtins.HelpCommand);
+
+        class CommandA extends Command {
+          static paths = [[`foo`]];
+          static usage = {};
+
+          foo = Option.Boolean(`--foo`);
+          async execute() {log(this);}
+        }
+
+        class CommandB extends Command {
+          foo = Option.Boolean(`--fobar`);
+          async execute() {log(this);}
+        }
+
+        cli.register(CommandA);
+        cli.register(CommandB);
+
+        expect(await runCli(cli, [`-h`])).to.equal(cli.usage(null));
+        expect(await runCli(cli, [`--help`])).to.equal(cli.usage(null));
+      });
     });
 
     describe(`version`, () => {
@@ -82,6 +180,7 @@ describe(`Advanced`, () => {
       }
 
       class CommandA extends Command {
+        static paths = [[`a`]];
         async execute() {log(this);}
       }
 

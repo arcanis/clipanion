@@ -550,10 +550,10 @@ export const tests = {
     return true;
   },
   isOptionLike: (state: RunState, {segment}: Current) => {
-    return !state.ignoreOptions && segment.startsWith(`-`);
+    return !state.ignoreOptions && (segment !== `-` && segment.startsWith(`-`));
   },
   isNotOptionLike: (state: RunState, {segment}: Current) => {
-    return state.ignoreOptions || !segment.startsWith(`-`);
+    return state.ignoreOptions || segment === `-` || !segment.startsWith(`-`);
   },
   isOption: (state: RunState, {segment}: Current, name: string, hidden?: boolean) => {
     return !state.ignoreOptions && segment === name;

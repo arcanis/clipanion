@@ -1,6 +1,6 @@
 {
   "name": "clipanion",
-  "version": "3.0.0-rc.12",
+  "version": "3.0.1",
   "main": "sources/advanced/index.ts",
   "license": "MIT",
   "sideEffects": false,
@@ -57,5 +57,6 @@
   },
   "files": [
     "lib"
-  ]
+  ],
+  "packageManager": "yarn@3.0.0"
 }

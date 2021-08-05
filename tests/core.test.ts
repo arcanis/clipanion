@@ -384,6 +384,19 @@ describe(`Core`, () => {
     ]);
   });
 
+  it(`shouldn't consider '-' as an option`, () => {
+    const cli = makeCli([
+      b => {
+        b.addOption({names: [`--foo`], arity: 1});
+      },
+    ]);
+
+    const {options} = cli.process([`--foo`, `-`]);
+    expect(options).to.deep.equal([
+      {name: `--foo`, value: `-`},
+    ]);
+  });
+
   it(`should extract arrays from complex options`, () => {
     const cli = makeCli([
       b => {

@@ -160,7 +160,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
 
   private readonly builder: CliBuilder<CliContext<Context>>;
 
-  private readonly registrations: Map<CommandClass<Context>, {
+  protected readonly registrations: Map<CommandClass<Context>, {
     index: number,
     builder: CommandBuilder<CliContext<Context>>,
     specs: Map<string, CommandOption<unknown>>,
@@ -404,6 +404,35 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
   }
 
   usage(command: CommandClass<Context> | Command<Context> | null = null, {colored, detailed = false, prefix = `$ `}: {colored?: boolean, detailed?: boolean, prefix?: string} = {}) {
+    // In case the default command is the only one, we can just show the command help rather than the general one
+    if (command === null) {
+      for (const commandClass of this.registrations.keys()) {
+        const paths = commandClass.paths;
+
+        const isDocumented = typeof commandClass.usage !== `undefined`;
+        const isExclusivelyDefault = !paths || paths.length === 0 || (paths.length === 1 && paths[0].length === 0);
+        const isDefault = isExclusivelyDefault || (paths?.some(path => path.length === 0) ?? false);
+
+        if (isDefault) {
+          if (command) {
+            command = null;
+            break;
+          } else {
+            command = commandClass;
+          }
+        } else {
+          if (isDocumented) {
+            command = null;
+            continue;
+          }
+        }
+      }
+
+      if (command) {
+        detailed = true;
+      }
+    }
+
     // @ts-ignore
     const commandClass = command !== null && command instanceof Command
       ? command.constructor as CommandClass<Context>
@@ -575,7 +604,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
     return result;
   }
 
-  private getUsageByRegistration(klass: CommandClass<Context>, opts?: {detailed?: boolean; inlineOptions?: boolean}) {
+  protected getUsageByRegistration(klass: CommandClass<Context>, opts?: {detailed?: boolean; inlineOptions?: boolean}) {
     const record = this.registrations.get(klass);
     if (typeof record === `undefined`)
       throw new Error(`Assertion failed: Unregistered command`);
@@ -583,11 +612,11 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
     return this.getUsageByIndex(record.index, opts);
   }
 
-  private getUsageByIndex(n: number, opts?: {detailed?: boolean; inlineOptions?: boolean}) {
+  protected getUsageByIndex(n: number, opts?: {detailed?: boolean; inlineOptions?: boolean}) {
     return this.builder.getBuilderByIndex(n).usage(opts);
   }
 
-  private format(colored: boolean = this.enableColors): ColorFormat {
+  protected format(colored: boolean = this.enableColors): ColorFormat {
     return colored ? richFormat : textFormat;
   }
 }

@@ -77,6 +77,11 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
   paths?: undefined;
 
   /**
+   * Defined to prevent a common typo.
+   */
+  static path: never;
+
+  /**
    * Paths under which the command should be exposed.
    */
   static paths?: Array<Array<string>>;
