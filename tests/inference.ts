@@ -31,6 +31,8 @@ class MyCommand extends Command {
   stringWithRequired = Option.String(`--foo`, {required: true});
   // @ts-expect-error: Overload prevents this
   stringWithRequiredAndDefault = Option.String(`--foo`, false, {required: true});
+  stringWithArityNumber = Option.String(`--foo`, {arity: 0 as number});
+  stringWithArityNumberAndRequired = Option.String(`--foo`, {arity: 0 as number, required: true});
   stringWithArity0 = Option.String(`--foo`, {arity: 0});
   stringWithArity1 = Option.String(`--foo`, {arity: 1});
   stringWithArity2 = Option.String(`--foo`, {arity: 2});
@@ -91,6 +93,8 @@ class MyCommand extends Command {
     assertEqual<number>()(this.stringWithValidatorAndRequired, true);
     assertEqual<number>()(this.stringWithValidatorAndDefault, true);
     assertEqual<string>()(this.stringWithRequired, true);
+    assertEqual<Array<string> | boolean | string | undefined>()(this.stringWithArityNumber, true);
+    assertEqual<Array<string> | boolean | string>()(this.stringWithArityNumberAndRequired, true);
     assertEqual<boolean | string | undefined>()(this.stringWithArity0, true);
     assertEqual<string | undefined>()(this.stringWithArity1, true);
     assertEqual<[string, string] | undefined>()(this.stringWithArity2, true);
@@ -144,6 +148,8 @@ declare const partialCommand: PartialCommand<MyCommand>;
   assertEqual<number | undefined>()(partialCommand.stringWithValidatorAndRequired, true);
   assertEqual<number>()(partialCommand.stringWithValidatorAndDefault, true);
   assertEqual<string | undefined>()(partialCommand.stringWithRequired, true) ;
+  assertEqual<Array<string> | boolean | string | undefined>()(partialCommand.stringWithArityNumber, true);
+  assertEqual<Array<string> | boolean | string | undefined>()(partialCommand.stringWithArityNumberAndRequired, true);
   assertEqual<boolean | string | undefined>()(partialCommand.stringWithArity0, true);
   assertEqual<string | undefined>()(partialCommand.stringWithArity1, true);
   assertEqual<[string, string?] | undefined>()(partialCommand.stringWithArity2, true);
