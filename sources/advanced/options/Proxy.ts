@@ -1,4 +1,4 @@
-import {makeCommandOption, CompletionFunction} from "./utils";
+import {makeCommandOption, CompletionFunction, CommandOptionReturn} from "./utils";
 
 export type ProxyFlags = {
   name?: string,
@@ -19,7 +19,7 @@ export type ProxyFlags = {
  * yarn run foo hello --foo=bar world
  *     ► proxy = ["hello", "--foo=bar", "world"]
  */
-export function Proxy(opts: ProxyFlags = {}) {
+export function Proxy(opts: ProxyFlags = {}): CommandOptionReturn<Array<string>> {
   return makeCommandOption({
     definition(builder, key) {
       builder.addProxy({

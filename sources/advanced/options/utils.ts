@@ -40,11 +40,40 @@ export type CommandOption<T> = {
   transformer: <Context extends BaseContext>(builder: CommandBuilder<CliContext<Context>>, key: string, state: RunState) => T,
 };
 
-export type CommandOptionReturnTag = {__isOption?: true};
-export type CommandOptionReturn<T> = T & CommandOptionReturnTag;
+export type PartialTuple<T extends [any, ...Array<any>]> = T extends [infer Leading, ...infer Rest]
+  ? [Leading, ...Partial<Rest>]
+  : never;
+
+export type PartialArrayOfTuples<T extends Array<[any, ...Array<any>]>> = T extends Array<infer U>
+  ? U extends [any, ...Array<any>]
+    ? [...Array<U>, PartialTuple<U>]
+    : never
+  : never;
+
+type PartialReturn<T> = T extends [any, ...Array<any>]
+  ? PartialTuple<T>
+  : T extends Array<[any, ...Array<any>]>
+    ? PartialArrayOfTuples<T>
+    : T;
+
+export type CommandOptionReturnTag<ForceOptional extends boolean> = {__isOption?: true, __forceOptional?: ForceOptional};
+export type CommandOptionReturn<T, ForceOptional extends boolean = false> = undefined extends T
+  ? Exclude<T, undefined> & CommandOptionReturnTag<ForceOptional> | undefined
+  : T & CommandOptionReturnTag<ForceOptional>;
+
+// Apparently TypeScript doesn't untag it unless we explicitly handle both cases
+export type Untag<T> = T extends infer U & CommandOptionReturnTag<true> ? U
+  : T extends infer U & CommandOptionReturnTag<false> ? U
+    : T;
 
 export type PartialCommand<T extends Command<any>> = {
-  [P in keyof T]: T[P] extends CommandOptionReturnTag ? T[P] | undefined : T[P];
+  [P in keyof T]: Exclude<T[P], undefined> extends CommandOptionReturn<infer R, infer ForceOptional>
+    ? ForceOptional extends true
+      ? CommandOptionReturn<PartialReturn<Untag<R>> | undefined, ForceOptional>
+      : undefined extends T[P]
+        ? CommandOptionReturn<PartialReturn<Untag<R> | undefined>, ForceOptional>
+        : CommandOptionReturn<PartialReturn<Untag<R>>, ForceOptional>
+    : T[P];
 };
 
 /**
@@ -57,9 +86,9 @@ export type PartialCommand<T extends Command<any>> = {
  */
 export type CompletionFunction<T extends Command<any> = any> = (this: undefined, request: CompletionRequest, command: PartialCommand<T>) => CompletionResults;
 
-export function makeCommandOption<T>(spec: Omit<CommandOption<T>, typeof isOptionSymbol>) {
+export function makeCommandOption<T, ForceOptional extends boolean = boolean>(spec: Omit<CommandOption<T>, typeof isOptionSymbol>) {
   // We lie! But it's for the good cause: the cli engine will turn the specs into proper values after instantiation.
-  return {...spec, [isOptionSymbol]: true} as any as CommandOptionReturn<T>;
+  return {...spec, [isOptionSymbol]: true} as any as CommandOptionReturn<T, ForceOptional>;
 }
 
 export function rerouteArguments<A, B>(a: A | B, b: B): [Exclude<A, B>, B];

@@ -9,7 +9,7 @@ export type BooleanFlags = GeneralOptionFlags;
  * --foo --no-bar
  *     ► {"foo": true, "bar": false}
  */
-export function Boolean(descriptor: string, opts: BooleanFlags & {required: true}): CommandOptionReturn<boolean>;
+export function Boolean(descriptor: string, opts: BooleanFlags & {required: true}): CommandOptionReturn<boolean, true>;
 export function Boolean(descriptor: string, opts?: BooleanFlags): CommandOptionReturn<boolean | undefined>;
 export function Boolean(descriptor: string, initialValue: boolean, opts?: Omit<BooleanFlags, 'required'>): CommandOptionReturn<boolean>;
 export function Boolean(descriptor: string, initialValueBase: BooleanFlags | boolean | undefined, optsBase?: BooleanFlags) {

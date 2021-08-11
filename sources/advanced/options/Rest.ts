@@ -1,6 +1,6 @@
-import {NoLimits}                              from '../../core';
+import {NoLimits}                                                   from '../../core';
 
-import {makeCommandOption, CompletionFunction} from "./utils";
+import {makeCommandOption, CompletionFunction, CommandOptionReturn} from "./utils";
 
 export type RestFlags = {
   name?: string,
@@ -21,7 +21,7 @@ export type RestFlags = {
  * yarn add hello world
  *     ► rest = ["hello", "world"]
  */
-export function Rest(opts: RestFlags = {}) {
+export function Rest(opts: RestFlags = {}): CommandOptionReturn<Array<string>> {
   return makeCommandOption({
     definition(builder, key) {
       builder.addRest({

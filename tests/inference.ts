@@ -1,13 +1,16 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import * as t            from 'typanion';
 
+import {PartialCommand}  from '../sources/advanced/options';
 import {Command, Option} from '..';
 
 type AssertEqual<T, Expected> = [T, Expected] extends [Expected, T] ? true : false;
 
 function assertEqual<U>() {
-  return <V>(val: V, expected: AssertEqual<Option.CommandOptionReturn<U>, V>) => {};
+  return <V>(val: V, expected: AssertEqual<Option.CommandOptionReturn<U, any>, V>) => {};
 }
+
+// IMPORTANT: Each `Command` assertion must have a matching `PartialCommand` assertion!
 
 class MyCommand extends Command {
   defaultPositional = Option.String();
@@ -121,3 +124,55 @@ class MyCommand extends Command {
     assertEqual<Array<string>>()(this.proxy, true);
   }
 }
+
+/* PartialCommand */
+
+declare const partialCommand: PartialCommand<MyCommand>;
+
+() => {
+  assertEqual<string | undefined>()(partialCommand.defaultPositional, true);
+  assertEqual<string | undefined>()(partialCommand.requiredPositional, true);
+  assertEqual<string | undefined>()(partialCommand.optionalPositional, true);
+
+  assertEqual<boolean | undefined>()(partialCommand.boolean, true);
+  assertEqual<boolean>()(partialCommand.booleanWithDefault, true);
+  assertEqual<boolean | undefined>()(partialCommand.booleanWithRequired, true);
+
+  assertEqual<string | undefined>()(partialCommand.string, true);
+  assertEqual<string>()(partialCommand.stringWithDefault, true);
+  assertEqual<number | undefined>()(partialCommand.stringWithValidator, true);
+  assertEqual<number | undefined>()(partialCommand.stringWithValidatorAndRequired, true);
+  assertEqual<number>()(partialCommand.stringWithValidatorAndDefault, true);
+  assertEqual<string | undefined>()(partialCommand.stringWithRequired, true) ;
+  assertEqual<boolean | string | undefined>()(partialCommand.stringWithArity0, true);
+  assertEqual<string | undefined>()(partialCommand.stringWithArity1, true);
+  assertEqual<[string, string?] | undefined>()(partialCommand.stringWithArity2, true);
+  assertEqual<[string, string?, string?] | undefined>()(partialCommand.stringWithArity3, true);
+  assertEqual<[string, string?, string?]>()(partialCommand.stringWithArity3AndDefault, true);
+  assertEqual<[string, string?, string?] | undefined>()(partialCommand.stringWithArity3AndRequired, true);
+  assertEqual<[number, number?, number?] | undefined>()(partialCommand.stringWithArity3AndValidator, true);
+  assertEqual<[number, number?, number?]>()(partialCommand.stringWithArity3AndValidatorAndDefault, true);
+  assertEqual<[number, number?, number?] | undefined>()(partialCommand.stringWithArity3AndValidatorAndRequired, true);
+
+  assertEqual<string | undefined>()(partialCommand.stringWithTolerateBooleanFalse, true);
+  assertEqual<string | boolean | undefined>()(partialCommand.stringWithTolerateBoolean, true);
+  assertEqual<string | boolean>()(partialCommand.stringWithTolerateBooleanAndDefault, true);
+  assertEqual<string | boolean | undefined>()(partialCommand.stringWithTolerateBooleanAndRequired, true);
+
+  assertEqual<number | undefined>()(partialCommand.counter, true);
+  assertEqual<number>()(partialCommand.counterWithDefault, true);
+  assertEqual<number | undefined>()(partialCommand.counterWithRequired, true);
+
+  assertEqual<Array<string> | undefined>()(partialCommand.array, true);
+  assertEqual<Array<string>>()(partialCommand.arrayWithDefault, true);
+  assertEqual<Array<string> | undefined>()(partialCommand.arrayWithRequired, true);
+  assertEqual<Array<boolean | string> | undefined>()(partialCommand.arrayWithArity0, true);
+  assertEqual<Array<string> | undefined>()(partialCommand.arrayWithArity1, true);
+  assertEqual<[...Array<[string, string]>, [string, string?]] | undefined>()(partialCommand.arrayWithArity2, true);
+  assertEqual<[...Array<[string, string, string]>, [string, string?, string?]] | undefined>()(partialCommand.arrayWithArity3, true);
+  assertEqual<[...Array<[string, string, string]>, [string, string?, string?]]>()(partialCommand.arrayWithArity3AndDefault, true);
+  assertEqual<[...Array<[string, string, string]>, [string, string?, string?]] | undefined>()(partialCommand.arrayWithArity3AndRequired, true);
+
+  assertEqual<Array<string>>()(partialCommand.rest, true);
+  assertEqual<Array<string>>()(partialCommand.proxy, true);
+};

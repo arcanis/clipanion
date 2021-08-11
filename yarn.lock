@@ -4678,7 +4678,7 @@ __metadata:
     ts-node: ^8.10.2
     tslib: ^2.0.0
     typanion: ^3.3.1
-    typescript: ^4.1.2
+    typescript: ^4.3.5
   peerDependencies:
     typanion: "*"
   languageName: unknown
@@ -14894,23 +14894,23 @@ fsevents@~2.1.2:
   languageName: node
   linkType: hard
 
-typescript@^4.1.2:
-  version: 4.1.2
-  resolution: "typescript@npm:4.1.2"
+typescript@^4.3.5:
+  version: 4.3.5
+  resolution: "typescript@npm:4.3.5"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: a0bd309f001592b400a9e7ee3a6efe557cdd1a6bc84ebbfdaa179f994185e5276a1ea30e248d7139df08eee8ad2aa30b6108c27a9dd3b524a5e1c5669e25399e
+  checksum: bab033b5e2b0790dd35b77fd005df976ef80b8d84fd2c6e63cc31808151875beae9216e5a315fe7068e8499905c3c354248fe83272cdfc13b7705635f0c66c97
   languageName: node
   linkType: hard
 
-"typescript@patch:typescript@^4.1.2#~builtin<compat/typescript>":
-  version: 4.1.2
-  resolution: "typescript@patch:typescript@npm%3A4.1.2#~builtin<compat/typescript>::version=4.1.2&hash=d8b4e7"
+"typescript@patch:typescript@^4.3.5#~builtin<compat/typescript>":
+  version: 4.3.5
+  resolution: "typescript@patch:typescript@npm%3A4.3.5#~builtin<compat/typescript>::version=4.3.5&hash=d8b4e7"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 5c5b61a411c90c728487f178bc268b4bdedc3560baed239f9a8649e912ff16147982540b5e16aeee367e18ae42697fde7db717503e85051237b0f9b6562efa7a
+  checksum: bc2c4fdf0f1557fdafe4ef74848c72ebd9c8c60829568248f869121aea2bb20e16649a252431d0acb185ec118143be22bed73d08f64379557810d82756afedde
   languageName: node
   linkType: hard
 
