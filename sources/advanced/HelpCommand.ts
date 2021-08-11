@@ -43,8 +43,10 @@ export class HelpCommand<Context extends BaseContext> extends Command<Context> {
         description: this.cli.usage(command),
       };
 
-      completions.push({...completion, completionText: `-h=${t}`});
-      completions.push({...completion, completionText: `--help=${t}`});
+      completions.push(
+        {...completion, completionText: `-h=${t}`},
+        {...completion, completionText: `--help=${t}`},
+      );
     }
 
     return completions;
