@@ -18,6 +18,7 @@ export class CompletionRequestCommand extends Command<any> {
       input: this.input,
       cursorPosition: this.cursorPosition,
       stdout: this.context.stdout,
+      stderr: this.context.stderr,
     }, request => {
       return this.cli.complete(request);
     });

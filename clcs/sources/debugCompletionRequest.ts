@@ -1,9 +1,9 @@
 import {Console}                                         from 'console';
-import type {Writable}                                   from 'stream';
 import {inspect}                                         from 'util';
 
 import {normalizeCompletionResults}                      from './normalizeCompletionResults';
 import {normalizeShellCompletionRequest}                 from './normalizeShellCompletionRequest';
+import * as stdoutUtils                                  from './stdoutUtils';
 import type {CompletionFunction, ShellCompletionRequest} from './types';
 
 const COMPLETION_TEXT = `completionText`;
@@ -25,9 +25,7 @@ const repeatText = (text: string, maxLength: number) => text.repeat(getMaxTextLe
 /**
  * The options of the `debugCompletionRequest` function.
  */
-export interface DebugCompletionRequestOptions extends Omit<ShellCompletionRequest, 'cursorPosition'> {
-  stdout?: Writable;
-  stderr?: Writable;
+export interface DebugCompletionRequestOptions extends Omit<ShellCompletionRequest, 'cursorPosition'>, Partial<stdoutUtils.TraceAndRedirectStdoutOptions> {
 }
 
 export async function debugCompletionRequest(
@@ -52,16 +50,19 @@ export async function debugCompletionRequest(
   const completionRequest = normalizeShellCompletionRequest(interpolatedRequest);
   console.timeEnd(`Time spent normalizing the completion request`);
 
-  console.time(`Time spent gathering completions`);
   let results = null;
-  try {
-    results = await getCompletion(completionRequest);
-  } catch (error) {
-    const reason = error instanceof Error
-      ? error.stack ?? error.message
-      : `Non-error rejection: ${JSON.stringify(error)}`;
-    console.error(`Failed to gather completions:\n  ${reason}`);
-  }
+
+  console.time(`Time spent gathering completions`);
+  await stdoutUtils.traceAndRedirectStdout({stdout, stderr}, async () => {
+    try {
+      results = await getCompletion(completionRequest);
+    } catch (error) {
+      const reason = error instanceof Error
+        ? error.stack ?? error.message
+        : `Non-error rejection: ${JSON.stringify(error)}`;
+      console.error(`Failed to gather completions:\n  ${reason}`);
+    }
+  });
   console.timeEnd(`Time spent gathering completions`);
 
   if (results === null)

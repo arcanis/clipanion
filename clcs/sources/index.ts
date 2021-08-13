@@ -7,3 +7,4 @@ export {processCompletionRequest} from './processCompletionRequest';
 export {debugCompletionRequest} from './debugCompletionRequest';
 
 export * from './types';
+export * as stdoutUtils from './stdoutUtils';
