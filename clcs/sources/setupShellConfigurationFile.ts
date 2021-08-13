@@ -1,4 +1,5 @@
 import fs                               from 'fs';
+import path                             from 'path';
 
 import {getDriver}                      from './drivers';
 import type {GetCompletionBlockOptions} from './types';
@@ -29,6 +30,7 @@ export async function setupShellConfigurationFile({
 
   const completionBlock = driver.getCompletionBlock(getCompletionBlockOptions);
 
+  await fs.promises.mkdir(path.dirname(configurationFile), {recursive: true});
   await fs.promises.writeFile(
     configurationFile,
     oldContent.replaceAll(completionBlock, ``) + completionBlock,
