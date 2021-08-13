@@ -300,7 +300,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
       try {
         command = this.process(input);
       } catch (error) {
-        context.stderr.write(this.error(error));
+        context.stdout.write(this.error(error));
         return 1;
       }
     }
@@ -316,7 +316,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
     try {
       exitCode = await command.validateAndExecute().catch(error => command.catch(error).then(() => 0));
     } catch (error) {
-      context.stderr.write(this.error(error, {command}));
+      context.stdout.write(this.error(error, {command}));
       return 1;
     }
 

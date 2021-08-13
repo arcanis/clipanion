@@ -1134,7 +1134,7 @@ describe(`Advanced`, () => {
     await expect(runCli(cli, [`--foo`])).to.eventually.equal(`Running FooCommand\ntrue\nfalse\n`);
   });
 
-  it(`should write errors to stderr`, async () => {
+  it(`should write errors to stdout`, async () => {
     class FooCommand extends Command {
       async execute() {
         throw 42;
@@ -1161,7 +1161,7 @@ describe(`Advanced`, () => {
     const stdoutOutput = await stdoutPromise;
     const stderrOutput = await stderrPromise;
 
-    expect(stdoutOutput).to.equal(``);
-    expect(stderrOutput).to.contain(`non-error rejection`);
+    expect(stdoutOutput).to.contain(`non-error rejection`);
+    expect(stderrOutput).to.equal(``);
   });
 });
