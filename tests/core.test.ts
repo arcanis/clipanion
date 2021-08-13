@@ -387,13 +387,55 @@ describe(`Core`, () => {
   it(`shouldn't consider '-' as an option`, () => {
     const cli = makeCli([
       b => {
+        b.addPositional({required: false});
         b.addOption({names: [`--foo`], arity: 1});
       },
     ]);
 
-    const {options} = cli.process([`--foo`, `-`]);
+    {
+      const {options} = cli.process([`--foo`, `-`]);
+      expect(options).to.deep.equal([
+        {name: `--foo`, value: `-`},
+      ]);
+    }
+
+    {
+      const {options} = cli.process([`--foo=-`]);
+      expect(options).to.deep.equal([
+        {name: `--foo`, value: `-`},
+      ]);
+    }
+
+    {
+      const {positionals} = cli.process([`-`]);
+      expect(positionals).to.deep.equal([
+        {value: `-`, extra: true},
+      ]);
+    }
+  });
+
+  it(`should consider '--' as an option`, () => {
+    const cli = makeCli([
+      b => {
+        b.addOption({names: [`--foo`], arity: 1, allowBinding: true});
+      },
+    ]);
+
+    expect(() =>
+      cli.process([`--foo`, `--`])
+    ).to.throw(`Not enough arguments to option --foo.`);
+  });
+
+  it(`shouldn't consider bound '--' as an option`, () => {
+    const cli = makeCli([
+      b => {
+        b.addOption({names: [`--foo`], arity: 1, allowBinding: true});
+      },
+    ]);
+
+    const {options} = cli.process([`--foo=--`]);
     expect(options).to.deep.equal([
-      {name: `--foo`, value: `-`},
+      {name: `--foo`, value: `--`},
     ]);
   });
 
