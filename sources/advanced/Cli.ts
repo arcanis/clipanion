@@ -1,4 +1,4 @@
-import {CompletionResult}                                               from 'clcs';
+import {CompletionResult, SingleOrArray}                                from 'clcs';
 import {Readable, Writable}                                             from 'stream';
 
 import {CompletionType, HELP_COMMAND_INDEX}                             from '../constants';
@@ -181,8 +181,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
   static from<Context extends BaseContext = BaseContext>(commandClasses: Array<CommandClass<Context>>, options: Partial<CliOptions> = {}) {
     const cli = new Cli<Context>(options);
 
-    for (const commandClass of commandClasses)
-      cli.register(commandClass);
+    cli.register(commandClasses);
 
     return cli;
   }
@@ -213,9 +212,16 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
   }
 
   /**
-   * Registers a command inside the CLI.
+   * Registers a command (or multiple commands) inside the CLI.
    */
-  register(commandClass: CommandClass<Context>) {
+  register(commandClass: SingleOrArray<CommandClass<Context>>) {
+    if (Array.isArray(commandClass)) {
+      for (const klass of commandClass)
+        this.register(klass);
+
+      return;
+    }
+
     const specs = new Map<string, CommandOption<any>>();
 
     const command = new commandClass();
