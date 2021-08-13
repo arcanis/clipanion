@@ -9,23 +9,26 @@ export function normalizeCompletionResults(
   if (!Array.isArray(results))
     results = [results];
 
-  const richResultHashes = new Set<string>();
-  const richResults = [];
+  const shellCompletionResultHashes = new Set<string>();
+  const shellCompletionResults = [];
 
   for (const result of results) {
     const richResult = typeof result === `string` ? {completionText: result} : result;
-    const normalizedRichResult = {
-      ...richResult,
+
+    // The property order has to be consistent
+    const shellCompletionResult: ShellCompletionResult = {
+      completionText: richResult.completionText,
       listItemText: richResult.listItemText ?? richResult.completionText,
+      description: richResult.description,
     };
 
-    const hash = JSON.stringify(normalizedRichResult);
-    if (richResultHashes.has(hash))
+    const hash = JSON.stringify(shellCompletionResult);
+    if (shellCompletionResultHashes.has(hash))
       continue;
 
-    richResults.push(normalizedRichResult);
-    richResultHashes.add(hash);
+    shellCompletionResults.push(shellCompletionResult);
+    shellCompletionResultHashes.add(hash);
   }
 
-  return richResults;
+  return shellCompletionResults;
 }
