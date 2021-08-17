@@ -13,7 +13,7 @@ export interface ProcessCompletionProviderRequestOptions extends GetCompletionPr
 }
 
 /**
- *  Prints the requested completion provider source to stdout to be registered by the shell.
+ * Prints the requested completion provider source to stdout to be registered by the shell.
  */
 export async function processCompletionProviderRequest({
   shellName,

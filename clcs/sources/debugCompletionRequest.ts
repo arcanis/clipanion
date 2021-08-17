@@ -28,6 +28,11 @@ const repeatText = (text: string, maxLength: number) => text.repeat(getMaxTextLe
 export interface DebugCompletionRequestOptions extends Omit<ShellCompletionRequest, 'cursorPosition'>, Partial<stdoutUtils.TraceAndRedirectStdoutOptions> {
 }
 
+/**
+ * Measures the performance of processing and answering completion requests and pretty-prints the completion results to stdout.
+ *
+ * Also redirects all stdout writes to stderr and adds a stack trace to them.
+ */
 export async function debugCompletionRequest(
   {
     stdout = process.stdout,

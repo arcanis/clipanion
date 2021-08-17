@@ -11,6 +11,11 @@ export interface ProcessCompletionRequestOptions extends ShellCompletionRequest,
   shellName: string;
 }
 
+/**
+ * Processes a completion request and writes the results to stdout to be processed by the shell.
+ *
+ * Also redirects all stdout writes to stderr and adds a stack trace to them.
+ */
 export async function processCompletionRequest(
   {
     shellName,

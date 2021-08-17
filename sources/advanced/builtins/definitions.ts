@@ -1,11 +1,17 @@
-import {Command} from '../Command';
+import {Command}        from '../Command';
+
+import {BuiltinOptions} from './utils';
 
 /**
- * A command that prints the clipanion definitions.
+ * A command that prints the Clipanion definitions.
+ *
+ * Default Paths: `--clipanion=definitions`
  */
-export class DefinitionsCommand extends Command<any> {
-  static paths = [[`--clipanion=definitions`]];
-  async execute() {
-    this.context.stdout.write(`${JSON.stringify(this.cli.definitions(), null, 2)}\n`);
-  }
+export function DefinitionsCommand({paths = [[`--clipanion=definitions`]]}: BuiltinOptions = {}) {
+  return class DefinitionsCommand extends Command<any> {
+    static paths = paths;
+    async execute() {
+      this.context.stdout.write(`${JSON.stringify(this.cli.definitions(), null, 2)}\n`);
+    }
+  };
 }

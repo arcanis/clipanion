@@ -12,6 +12,8 @@ import {CommandOption}                                                  from './
 
 const errorCommandSymbol = Symbol(`clipanion/errorCommand`);
 
+type TypeOrFactory<T> = T | (() => T);
+
 /**
  * The base context of the CLI.
  *
@@ -175,10 +177,10 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
   /**
    * Creates a new Cli and registers all commands passed as parameters.
    *
-   * @param commandClasses The Commands to register
+   * @param commandClasses The Commands / Command factories to register
    * @returns The created `Cli` instance
    */
-  static from<Context extends BaseContext = BaseContext>(commandClasses: Array<CommandClass<Context>>, options: Partial<CliOptions> = {}) {
+  static from<Context extends BaseContext = BaseContext>(commandClasses: TypeOrFactory<Array<CommandClass<Context>>>, options: Partial<CliOptions> = {}) {
     const cli = new Cli<Context>(options);
 
     cli.register(commandClasses);
@@ -212,9 +214,12 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
   }
 
   /**
-   * Registers a command (or multiple commands) inside the CLI.
+   * Registers a command / multiple commands / a command factory inside the CLI.
    */
-  register(commandClass: SingleOrArray<CommandClass<Context>>) {
+  register(commandClass: TypeOrFactory<SingleOrArray<CommandClass<Context>>>) {
+    if (typeof commandClass === `function` && !(`isCommandClass` in commandClass))
+      commandClass = commandClass();
+
     if (Array.isArray(commandClass)) {
       for (const klass of commandClass)
         this.register(klass);

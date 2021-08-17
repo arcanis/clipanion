@@ -1,13 +1,17 @@
-import {Command} from '../Command';
+import {Command}        from '../Command';
+
+import {BuiltinOptions} from './utils';
 
 /**
  * A command that prints the usage of all commands.
  *
- * Paths: `-h`, `--help`
+ * Default Paths: `-h`, `--help`
  */
-export class HelpCommand extends Command<any> {
-  static paths = [[`-h`], [`--help`]];
-  async execute() {
-    this.context.stdout.write(this.cli.usage());
-  }
+export function HelpCommand({paths = [[`-h`], [`--help`]]}: BuiltinOptions = {}) {
+  return class HelpCommand extends Command<any> {
+    static paths = paths;
+    async execute() {
+      this.context.stdout.write(this.cli.usage());
+    }
+  };
 }
