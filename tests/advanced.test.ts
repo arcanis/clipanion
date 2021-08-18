@@ -92,6 +92,18 @@ describe(`Advanced`, () => {
   });
 
   describe(`Cli.from`, () => {
+    it(`should register a command`, async () => {
+      class CommandA extends Command {
+        async execute() {
+          log(this);
+        }
+      }
+
+      const cli = Cli.from(CommandA);
+
+      expect(await runCli(cli, [])).to.equal(`Running CommandA\n`);
+    });
+
     it(`should register an array of commands`, async () => {
       class CommandA extends Command {
         static paths = [[`a`]]
@@ -113,6 +125,18 @@ describe(`Advanced`, () => {
 
       expect(await runCli(cli, [`a`])).to.equal(`Running CommandA\n`);
       expect(await runCli(cli, [`b`])).to.equal(`Running CommandB\n`);
+    });
+
+    it(`should register a command factory`, async () => {
+      class CommandA extends Command {
+        async execute() {
+          log(this);
+        }
+      }
+
+      const cli = Cli.from(() => CommandA);
+
+      expect(await runCli(cli, [])).to.equal(`Running CommandA\n`);
     });
 
     it(`should register a command array factory`, async () => {

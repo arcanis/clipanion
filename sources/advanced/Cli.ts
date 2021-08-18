@@ -177,10 +177,10 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
   /**
    * Creates a new Cli and registers all commands passed as parameters.
    *
-   * @param commandClasses The Commands / Command factories to register
+   * @param commandClasses The commands / factory of commands to register
    * @returns The created `Cli` instance
    */
-  static from<Context extends BaseContext = BaseContext>(commandClasses: TypeOrFactory<Array<CommandClass<Context>>>, options: Partial<CliOptions> = {}) {
+  static from<Context extends BaseContext = BaseContext>(commandClasses: TypeOrFactory<SingleOrArray<CommandClass<Context>>>, options: Partial<CliOptions> = {}) {
     const cli = new Cli<Context>(options);
 
     cli.register(commandClasses);
