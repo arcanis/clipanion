@@ -11,6 +11,134 @@ import {prefix, log, runCli}                        from './utils';
 chai.use(chaiAsPromised);
 
 describe(`Advanced`, () => {
+  describe(`Cli.prototype.register`, () => {
+    it(`should register a command`, async () => {
+      const cli = new Cli();
+
+      class CommandA extends Command {
+        async execute() {
+          log(this);
+        }
+      }
+
+      cli.register(CommandA);
+
+      expect(await runCli(cli, [])).to.equal(`Running CommandA\n`);
+    });
+
+    it(`should register an array of commands`, async () => {
+      const cli = new Cli();
+
+      class CommandA extends Command {
+        static paths = [[`a`]]
+
+        async execute() {
+          log(this);
+        }
+      }
+
+      class CommandB extends Command {
+        static paths = [[`b`]]
+
+        async execute() {
+          log(this);
+        }
+      }
+
+      cli.register([CommandA, CommandB]);
+
+      expect(await runCli(cli, [`a`])).to.equal(`Running CommandA\n`);
+      expect(await runCli(cli, [`b`])).to.equal(`Running CommandB\n`);
+    });
+
+    it(`should register a command factory`, async () => {
+      const cli = new Cli();
+
+      class CommandA extends Command {
+        async execute() {
+          log(this);
+        }
+      }
+
+      cli.register(() => CommandA);
+
+      expect(await runCli(cli, [])).to.equal(`Running CommandA\n`);
+    });
+
+    it(`should register a command array factory`, async () => {
+      const cli = new Cli();
+
+      class CommandA extends Command {
+        static paths = [[`a`]]
+
+        async execute() {
+          log(this);
+        }
+      }
+
+      class CommandB extends Command {
+        static paths = [[`b`]]
+
+        async execute() {
+          log(this);
+        }
+      }
+
+      cli.register(() => [CommandA, CommandB]);
+
+      expect(await runCli(cli, [`a`])).to.equal(`Running CommandA\n`);
+      expect(await runCli(cli, [`b`])).to.equal(`Running CommandB\n`);
+    });
+  });
+
+  describe(`Cli.from`, () => {
+    it(`should register an array of commands`, async () => {
+      class CommandA extends Command {
+        static paths = [[`a`]]
+
+        async execute() {
+          log(this);
+        }
+      }
+
+      class CommandB extends Command {
+        static paths = [[`b`]]
+
+        async execute() {
+          log(this);
+        }
+      }
+
+      const cli = Cli.from([CommandA, CommandB]);
+
+      expect(await runCli(cli, [`a`])).to.equal(`Running CommandA\n`);
+      expect(await runCli(cli, [`b`])).to.equal(`Running CommandB\n`);
+    });
+
+    it(`should register a command array factory`, async () => {
+      class CommandA extends Command {
+        static paths = [[`a`]]
+
+        async execute() {
+          log(this);
+        }
+      }
+
+      class CommandB extends Command {
+        static paths = [[`b`]]
+
+        async execute() {
+          log(this);
+        }
+      }
+
+      const cli = Cli.from(() => [CommandA, CommandB]);
+
+      expect(await runCli(cli, [`a`])).to.equal(`Running CommandA\n`);
+      expect(await runCli(cli, [`b`])).to.equal(`Running CommandB\n`);
+    });
+  });
+
   describe(`Builtin Entries`, () => {
     describe(`help`, () => {
       it(`should have a path`, async () => {
