@@ -4589,9 +4589,17 @@ __metadata:
   dependencies:
     "@rollup/plugin-node-resolve": ^10.0.0
     "@rollup/plugin-typescript": ^6.1.0
+    "@types/chai": ^4.2.11
+    "@types/chai-as-promised": ^7.1.2
+    "@types/mocha": ^7.0.2
     "@types/node": ^14.0.13
+    chai: ^4.2.0
+    chai-as-promised: ^7.1.1
+    get-stream: ^6.0.1
+    mocha: ^8.0.1
     rollup: ^2.16.1
     string.prototype.replaceall: ^1.0.5
+    ts-node: ^8.10.2
     tslib: ^2.0.0
   languageName: unknown
   linkType: soft
@@ -7330,6 +7338,13 @@ fsevents@~2.1.2:
   dependencies:
     pump: ^3.0.0
   checksum: 8bc1a23174a06b2b4ce600df38d6c98d2ef6d84e020c1ddad632ad75bac4e092eeb40e4c09e0761c35fc2dbc5e7fff5dab5e763a383582c4a167dd69a905bd12
+  languageName: node
+  linkType: hard
+
+"get-stream@npm:^6.0.1":
+  version: 6.0.1
+  resolution: "get-stream@npm:6.0.1"
+  checksum: e04ecece32c92eebf5b8c940f51468cd53554dcbb0ea725b2748be583c9523d00128137966afce410b9b051eb2ef16d657cd2b120ca8edafcf5a65e81af63cad
   languageName: node
   linkType: hard
 

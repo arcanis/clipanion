@@ -79,7 +79,7 @@ export interface TraceAndRedirectStdoutOptions {
 export async function traceAndRedirectStdout<T>({stdout, stderr}: TraceAndRedirectStdoutOptions, cb: () => T | Promise<T>): Promise<T> {
   const originalWrite = stdout._write;
   stdout._write = (chunk, encoding, callback) => {
-    const message = chunk.toString(encoding);
+    const message = chunk.toString();
     const {stack} = new ErrorWithStackTrace(undefined, stdout._write);
 
     const write = (string: string = ``) => {

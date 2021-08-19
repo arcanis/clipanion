@@ -16,7 +16,9 @@
   "sideEffects": false,
   "scripts": {
     "prepack": "rm -rf lib && rollup -c",
-    "postpack": "rm -rf lib"
+    "postpack": "rm -rf lib",
+    "test": "FORCE_COLOR=1 mocha --require ts-node/register --extension ts tests",
+    "test:clcs": "run test"
   },
   "files": [
     "lib"
@@ -31,8 +33,16 @@
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^10.0.0",
     "@rollup/plugin-typescript": "^6.1.0",
+    "@types/chai": "^4.2.11",
+    "@types/chai-as-promised": "^7.1.2",
+    "@types/mocha": "^7.0.2",
     "@types/node": "^14.0.13",
+    "chai": "^4.2.0",
+    "chai-as-promised": "^7.1.1",
+    "get-stream": "^6.0.1",
+    "mocha": "^8.0.1",
     "rollup": "^2.16.1",
+    "ts-node": "^8.10.2",
     "tslib": "^2.0.0"
   }
 }
