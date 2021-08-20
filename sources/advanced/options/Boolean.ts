@@ -29,6 +29,7 @@ export function Boolean(descriptor: string, initialValueBase: BooleanFlags | boo
         hidden: opts.hidden,
         description: opts.description,
         required: opts.required,
+        category: opts.category,
       });
     },
 
