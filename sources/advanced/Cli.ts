@@ -75,6 +75,14 @@ export type CliOptions = Readonly<{
    * process.env.FORCE_COLOR ?? process.stdout.isTTY
    */
   enableColors: boolean,
+
+  /**
+   * Explicit ordering of categories in help output.
+   * 
+   * @default
+   * Categories are listed in alphabetical order.
+   */
+  categoryOrder: readonly string[],
 }>;
 
 export type MiniCli<Context extends BaseContext> = CliOptions & {
@@ -161,6 +169,8 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
 
   public readonly enableColors: boolean;
 
+  public readonly categoryOrder: ReadonlyArray<string>;
+
   /**
    * Creates a new Cli and registers all commands passed as parameters.
    *
@@ -176,7 +186,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
     return cli;
   }
 
-  constructor({binaryLabel, binaryName: binaryNameOpt = `...`, binaryVersion, enableColors = getDefaultColorSettings()}: Partial<CliOptions> = {}) {
+  constructor({binaryLabel, binaryName: binaryNameOpt = `...`, binaryVersion, enableColors = getDefaultColorSettings(), categoryOrder = []}: Partial<CliOptions> = {}) {
     this.builder = new CliBuilder({binaryName: binaryNameOpt});
 
     this.binaryLabel = binaryLabel;
@@ -184,6 +194,8 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
     this.binaryVersion = binaryVersion;
 
     this.enableColors = enableColors;
+
+    this.categoryOrder = categoryOrder;
   }
 
   /**
@@ -275,6 +287,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
       binaryName: this.binaryName,
       binaryVersion: this.binaryVersion,
       enableColors: this.enableColors,
+      categoryOrder: this.categoryOrder,
       definitions: () => this.definitions(),
       error: (error, opts) => this.error(error, opts),
       process: input => this.process(input),
@@ -380,7 +393,8 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
     let result = ``;
 
     if (!commandClass) {
-      const commandsByCategories = new Map<string | null, Array<{
+      const formattedCategories = new Map<string | undefined, string | null>();
+      const commandsByCategories = new Map<string | undefined, Array<{
         commandClass: CommandClass<Context>;
         usage: string;
       }>>();
@@ -389,9 +403,12 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
         if (typeof commandClass.usage === `undefined`)
           continue;
 
-        const category = typeof commandClass.usage.category !== `undefined`
-          ? formatMarkdownish(commandClass.usage.category, {format: this.format(colored), paragraphs: false})
+        const category = commandClass.usage.category;
+        const formattedCategory = typeof category !== `undefined`
+          ? formatMarkdownish(category, {format: this.format(colored), paragraphs: false})
           : null;
+
+        formattedCategories.set(category, formattedCategory);
 
         let categoryCommands = commandsByCategories.get(category);
         if (typeof categoryCommands === `undefined`)
@@ -401,9 +418,18 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
         categoryCommands.push({commandClass, usage});
       }
 
+      const categoryOrder = this.categoryOrder;
       const categoryNames = Array.from(commandsByCategories.keys()).sort((a, b) => {
-        if (a === null) return -1;
-        if (b === null) return +1;
+        if (a === undefined) return -1;
+        if (b === undefined) return +1;
+        const aIndex = categoryOrder.indexOf(a);
+        const bIndex = categoryOrder.indexOf(b);
+        // Unspecified categories last
+        if (aIndex >= 0 && bIndex === -1) return -1;
+        if (aIndex === -1 && bIndex >= 0) return +1;
+        if (aIndex >= 0 && bIndex >= 0) {
+          return aIndex > bIndex ? +1 : -1;
+        }
         return a.localeCompare(b, `en`, {usage: `sort`, caseFirst: `upper`});
       });
 
@@ -428,8 +454,8 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
           return a.usage.localeCompare(b.usage, `en`, {usage: `sort`, caseFirst: `upper`});
         });
 
-        const header = categoryName !== null
-          ? categoryName.trim()
+        const header = categoryName !== undefined
+          ? formattedCategories.get(categoryName)!.trim()
           : `General commands`;
 
         result += `\n`;
