@@ -1,4 +1,5 @@
 lib
+bin
 
 /.yarn/*
 !/.yarn/sdks

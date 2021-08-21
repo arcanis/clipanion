@@ -1,0 +1,39 @@
+import chaiAsPromised from 'chai-as-promised';
+import chai, {expect} from 'chai';
+
+import {prompts}      from './bash.test';
+import {makePty}      from './utils';
+
+chai.use(chaiAsPromised);
+
+const spawnZsh = makePty(`zsh`, [`--no-rcs`], {
+  env: prompts,
+  setup: async zsh => {
+    // Setup ZSH's completion system
+    await zsh.exec(`autoload -Uz compinit`);
+    await zsh.exec(`compinit`);
+
+    await zsh.exec(`. <(testbin completion zsh)`);
+  },
+  complete: async (zsh, request) => {
+    const completions = (await zsh.write(`\t`))
+      .join(`\n`)
+      .replaceAll(request.trim(), ``);
+
+    return completions
+      .split(/\s+/)
+      .filter(completion => completion !== ``);
+  },
+});
+
+describe(`e2e`, () => {
+  describe(`shells`, () => {
+    describe(`zsh`, () => {
+      it(`should preserve the order of completions`, async () => {
+        await spawnZsh(async zsh => {
+          expect(await zsh.complete(`testbin foo --number `)).to.deep.equal([`3`, `1`, `4`, `2`]);
+        });
+      });
+    });
+  });
+});

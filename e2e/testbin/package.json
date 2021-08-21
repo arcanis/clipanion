@@ -1,0 +1,35 @@
+{
+  "name": "testbin",
+  "version": "0.0.0",
+  "private": true,
+  "bin": "./sources/boot-cli-dev.js",
+  "publishConfig": {
+    "bin": "./bin/testbin"
+  },
+  "sideEffects": false,
+  "scripts": {
+    "build": "rollup -c",
+    "build:testbin": "run build",
+    "prepack": "rm -rf bin && run build",
+    "postpack": "rm -rf bin"
+  },
+  "files": [
+    "bin"
+  ],
+  "dependencies": {
+    "clipanion": "workspace:^"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^18.0.0",
+    "@rollup/plugin-json": "^4.1.0",
+    "@rollup/plugin-node-resolve": "^10.0.0",
+    "@types/node": "^14.0.13",
+    "esbuild": "npm:esbuild-wasm@^0.11.20",
+    "rollup": "^2.16.1",
+    "rollup-plugin-esbuild": "^3.0.2",
+    "rollup-plugin-executable": "^1.6.3",
+    "rollup-plugin-preserve-shebang": "^1.0.1",
+    "ts-node": "^8.10.2",
+    "tslib": "^2.0.0"
+  }
+}

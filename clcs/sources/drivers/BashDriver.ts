@@ -53,6 +53,7 @@ const BashDriver: ShellDriver = {
     # https://www.gnu.org/software/bash/manual/html_node/Programmable-Completion-Builtins.html
     complete \\
       -F _${binaryName}_completions \\
+      -o nosort \\
       ${binaryName}
   `,
 

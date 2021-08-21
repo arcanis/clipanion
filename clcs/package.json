@@ -17,7 +17,7 @@
   "scripts": {
     "prepack": "rm -rf lib && rollup -c",
     "postpack": "rm -rf lib",
-    "test": "FORCE_COLOR=1 mocha --require ts-node/register --extension ts tests",
+    "test": "FORCE_COLOR=1 mocha --require ts-node/register tests/**/*.test.ts",
     "test:clcs": "run test"
   },
   "files": [
