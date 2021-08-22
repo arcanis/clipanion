@@ -42,7 +42,7 @@ export const makePty = (shell: string, args: string | Array<string>, {complete, 
     encoding: `utf8`,
   });
 
-  console.log(version.stdout.split(`\n`)[0]);
+  console.log(`${shell}: ${(version.error as any)?.code === `ENOENT` ? `not found` : version.stdout.split(`\n`)[0]}`);
   console.log();
 
   return async (cb: PtyCallback) => {
