@@ -11,7 +11,9 @@ const spawnZsh = makePty(`zsh`, [`--no-rcs`], {
   setup: async zsh => {
     // Setup ZSH's completion system
     await zsh.exec(`autoload -Uz compinit`);
-    await zsh.exec(`compinit`);
+    // "This security check is skipped entirely when the -C option is given."
+    // https://zsh.sourceforge.io/Doc/Release/Completion-System.html#Use-of-compinit
+    await zsh.exec(`compinit -C`);
 
     await zsh.exec(`. <(testbin completion zsh)`);
   },
