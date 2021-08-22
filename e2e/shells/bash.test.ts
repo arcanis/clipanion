@@ -6,7 +6,7 @@ import {makePty}      from './utils';
 chai.use(chaiAsPromised);
 
 const shell = process.platform === `win32`
-  ? `gitbash.exe`
+  ? `C:\\Program Files\\Git\\bin\\bash.exe`
   : `bash`;
 
 // https://wiki.archlinux.org/title/Bash/Prompt_customization#Prompts
