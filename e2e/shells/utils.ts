@@ -9,7 +9,7 @@ import {promisify}                from 'util';
 export const sleep = promisify(setTimeout);
 
 // The time we wait for output to be collected after writing to the pty
-const DEFAULT_TIMEOUT = 1000;
+const DEFAULT_TIMEOUT = 2000;
 
 export type Pty = {
   cwd: PortablePath;
