@@ -23,6 +23,10 @@ jobs:
       with:
         node-version: ${{matrix.node-version}}
 
+    - name: Install shells
+      # bash and pwsh are installed by default in GH actions images
+      run: sudo apt install zsh fish
+
     - run: yarn
     - run: yarn tsc
     - run: yarn test
