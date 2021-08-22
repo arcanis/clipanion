@@ -7426,7 +7426,7 @@ fsevents@^1.2.7:
   dependencies:
     bindings: ^1.5.0
     nan: ^2.12.1
-  checksum: b264407498db2cfdcc2a05287334a4160c985a88e4a989e2f2f8dcc6afc8b04a4fcd82c797266442452e11c1fb07d7747d138b078fe4bb1f8f4fd2a6f2484d7e
+  checksum: f2e29b51d2f4ef02d7b2765f998c8d18cc0af729f1253e892cfd797ca931d32e1fb6a6dfd0cb8c29906b96b6fa8f556b1fac0e794a9e86f808230b07048452c6
   languageName: node
   linkType: hard
 
@@ -7435,7 +7435,7 @@ fsevents@^1.2.7:
   resolution: "fsevents@patch:fsevents@npm%3A2.1.3#~builtin<compat/fsevents>::version=2.1.3&hash=1cc4b2"
   dependencies:
     node-gyp: latest
-  checksum: 37502954e1b2cf7d1f555561e45956521afa12e12cbfe05445ffa1f2852a3d8932980cacb808d504b1def84b12b3b7b41c26673180691295001fa7740cc63fba
+  checksum: 15cbcbeb1347063dfdc206c0cd913408a00ca55d9ac5c76ea8b54ce268d87dd3fe2c2663c9a1ba010eb1b7da6f8d8d49f5b003f93a9c6ab72b698196e495936f
   languageName: node
   linkType: hard
 
