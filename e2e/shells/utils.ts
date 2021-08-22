@@ -1,3 +1,5 @@
+require(`string.prototype.replaceall`).shim();
+
 import {npath, PortablePath, xfs} from '@yarnpkg/fslib';
 import * as pty                   from 'node-pty';
 import stripAnsi                  from 'strip-ansi';
