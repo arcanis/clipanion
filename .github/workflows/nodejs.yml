@@ -8,24 +8,31 @@ on:
 
 jobs:
   build:
-
-    runs-on: ubuntu-latest
-
     strategy:
       matrix:
-        node-version: [12.x, 14.x, 16.x]
+        node:
+        - 12
+        - 14
+        - 16
+        platform:
+        - ubuntu-latest
+        - macos-latest
+        # - windows-latest
+
+    name: '${{matrix.platform}} w/ Node.js ${{matrix.node}}.x'
+    runs-on: ${{matrix.platform}}
 
     steps:
     - uses: actions/checkout@v2
 
-    - name: Use Node.js ${{matrix.node-version}}
+    - name: Use Node.js ${{matrix.node}}
       uses: actions/setup-node@v1
       with:
-        node-version: ${{matrix.node-version}}
+        node-version: ${{matrix.node}}
 
     - name: Install shells
       # bash and pwsh are installed by default in GH actions images
-      run: sudo apt install zsh fish
+      run: brew install zsh fish
 
     - run: yarn
     - run: yarn tsc
