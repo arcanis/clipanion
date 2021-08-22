@@ -18,7 +18,11 @@ const spawnPwsh = makePty(`pwsh`, [`-NoProfile`, `-NoLogo`], {
     await pwsh.exec(`testbin completion pwsh | Out-String | Invoke-Expression`);
   },
   complete: async (pwsh, request) => {
-    const [completions] = await pwsh.write(`\t`);
+    const output = await pwsh.write(`\t`);
+
+    const completions = output
+      .slice(0, output.findIndex(value => value.includes(request.trim())))
+      .join(`\n`);
 
     return completions
       .split(/\s+/)
