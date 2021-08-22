@@ -31,10 +31,17 @@ const BEL = `\x07`;
 
 const DEVICE_STATUS_REPORT = `\x1B[6n`;
 
+const debug = (chunk: string) => {
+  console.log({chunk});
+  return chunk;
+};
+
 const clean = (chunk: string) =>
-  stripAnsi(chunk)
-    .replaceAll(BEL, ``)
-    .trim();
+  debug(
+    stripAnsi(chunk)
+      .replaceAll(BEL, ``)
+      .trim()
+  );
 
 export const makePty = (shell: string, args: string | Array<string>, {complete, env, setup}: MakePtyOptions) => {
   const version = spawnSync(shell, [`--version`], {
