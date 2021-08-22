@@ -15,7 +15,12 @@ export const prompts = {
 };
 
 const spawnBash = makePty(`bash`, [`--norc`, `--noprofile`], {
-  env: prompts,
+  env: {
+    ...prompts,
+    // Disables the deprecation warning that appears when using the default installation of bash on macos
+    // https://apple.stackexchange.com/questions/371997/suppressing-the-default-interactive-shell-is-now-zsh-message-in-macos-catalina
+    BASH_SILENCE_DEPRECATION_WARNING: `1`,
+  },
   setup: async bash => {
     await bash.exec(`. <(testbin completion bash)`);
   },
