@@ -444,7 +444,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
       }
     }
 
-    // @ts-ignore
+    // @ts-expect-error
     const commandClass = command !== null && command instanceof Command
       ? command.constructor as CommandClass<Context>
       : command as CommandClass<Context> | null;

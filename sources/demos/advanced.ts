@@ -8,7 +8,7 @@ type Context = {
   stdin: Readable;
   stdout: Writable;
   stderr: Writable;
-}
+};
 
 class YarnDefaultRun extends Command<Context> {
   scriptName = Option.String();

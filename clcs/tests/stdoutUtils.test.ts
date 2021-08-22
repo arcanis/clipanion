@@ -1,4 +1,3 @@
-
 import chaiAsPromised   from 'chai-as-promised';
 import chai, {expect}   from 'chai';
 import getStream        from 'get-stream';
@@ -62,5 +61,3 @@ describe(`clcs`, () => {
     });
   });
 });
-
-

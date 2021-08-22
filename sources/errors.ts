@@ -50,7 +50,7 @@ export class UnknownSyntaxError extends Error {
 
     if (this.candidates.length === 0) {
       this.message = `Command not found, but we're not sure what's the alternative.`;
-    } else if (this.candidates.every(candidate => candidate.reason !== null && candidate.reason === candidates[0].reason) ) {
+    } else if (this.candidates.every(candidate => candidate.reason !== null && candidate.reason === candidates[0].reason)) {
       const [{reason}] = this.candidates;
 
       this.message = `${reason}\n\n${this.candidates.map(({usage}) => `$ ${usage}`).join(`\n`)}`;

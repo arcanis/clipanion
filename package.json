@@ -31,7 +31,7 @@
     "@typescript-eslint/eslint-plugin": "^4.11.1",
     "@typescript-eslint/parser": "^4.11.1",
     "@yarnpkg/core": "^2.3.1",
-    "@yarnpkg/eslint-config": "yarnpkg/berry#workspace=@yarnpkg/eslint-config",
+    "@yarnpkg/eslint-config": "^0.3.0",
     "@yarnpkg/fslib": "^2.3.0",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",

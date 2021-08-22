@@ -761,7 +761,7 @@ describe(`Completion`, () => {
 
             bar = Option.String(`-b,--bar`, {completion: () => [`a`, `b`, `c`]});
 
-            baz = Option.String(`-B,--baz`, {arity: 3})
+            baz = Option.String(`-B,--baz`, {arity: 3});
 
             qux = Option.String(`-q,--qux`, {tolerateBoolean: true, completion: () => [`d`, `e`, `f`]});
 
@@ -830,7 +830,7 @@ describe(`Completion`, () => {
 
             bar = Option.String(`-b,--bar`, {completion: () => [`a`, `b`, `c`]});
 
-            baz = Option.String(`-B,--baz`, {arity: 3})
+            baz = Option.String(`-B,--baz`, {arity: 3});
 
             qux = Option.String(`-q,--qux`, {tolerateBoolean: true, completion: () => [`d`, `e`, `f`]});
 
@@ -922,7 +922,7 @@ describe(`Completion`, () => {
 
             bar = Option.String(`-b,--bar`, {completion: () => [`a`, `b`, `c`]});
 
-            baz = Option.String(`-B,--baz`, {arity: 3})
+            baz = Option.String(`-B,--baz`, {arity: 3});
 
             qux = Option.String(`-q,--qux,--no-opt`, {tolerateBoolean: true, completion: () => [`d`, `e`, `f`]});
 

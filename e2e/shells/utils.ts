@@ -108,4 +108,3 @@ export const makePty = (shell: string, args: string | Array<string>, {complete, 
     });
   });
 };
-
