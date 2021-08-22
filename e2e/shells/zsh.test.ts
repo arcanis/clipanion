@@ -6,7 +6,15 @@ import {makePty}      from './utils';
 
 chai.use(chaiAsPromised);
 
-const spawnZsh = makePty(`zsh`, [`--no-rcs`], {
+const shell = process.platform === `win32`
+  ? null
+  : `zsh`;
+
+const ifNotWin32Describe = process.platform === `win32`
+  ? describe.skip
+  : describe;
+
+const spawnZsh = makePty(shell, [`--no-rcs`], {
   env: prompts,
   setup: async zsh => {
     // Setup ZSH's completion system
@@ -28,7 +36,7 @@ const spawnZsh = makePty(`zsh`, [`--no-rcs`], {
   },
 });
 
-describe(`e2e`, () => {
+ifNotWin32Describe(`e2e`, () => {
   describe(`shells`, () => {
     describe(`zsh`, () => {
       it(`should preserve the order of completions`, async () => {

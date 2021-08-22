@@ -42,7 +42,7 @@ jobs:
         platform:
         - ubuntu-latest
         - macos-latest
-        # - windows-latest
+        - windows-latest
 
     name: ${{matrix.platform}} w/ Node.js ${{matrix.node}}.x
     runs-on: ${{matrix.platform}}
@@ -56,6 +56,7 @@ jobs:
         node-version: ${{matrix.node}}
 
     - name: Install shells
+      if: ${{ matrix.platform != "windows-latest" }}
       # bash and pwsh are installed by default in GH actions
       # images, but the bash version that gets installed on
       # macos is from 2014

@@ -5,7 +5,11 @@ import {makePty}      from './utils';
 
 chai.use(chaiAsPromised);
 
-const spawnPwsh = makePty(`pwsh`, [`-NoProfile`, `-NoLogo`], {
+const shell = process.platform === `win32`
+  ? `pwsh.exe`
+  : `pwsh`;
+
+const spawnPwsh = makePty(shell, [`-NoProfile`, `-NoLogo`], {
   setup: async pwsh => {
     // Disables the prompt
     // Apparently PowerShell really hates empty strings

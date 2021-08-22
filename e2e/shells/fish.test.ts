@@ -5,11 +5,19 @@ import {makePty}      from './utils';
 
 chai.use(chaiAsPromised);
 
+const shell = process.platform === `win32`
+  ? null
+  : `fish`;
+
+const ifNotWin32Describe = process.platform === `win32`
+  ? describe.skip
+  : describe;
+
 // Fish doesn't have a --noprofile / --norc equivalent, but
 // there's a workaround - setting $HOME to an empty folder:
 // https://github.com/fish-shell/fish-shell/issues/3288
 
-const spawnFish = makePty(`fish`, [], {
+const spawnFish = makePty(shell, [], {
   env: {
     // Disables the greeting
     // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -36,7 +44,7 @@ const spawnFish = makePty(`fish`, [], {
   },
 });
 
-describe(`e2e`, () => {
+ifNotWin32Describe(`e2e`, () => {
   describe(`shells`, () => {
     describe(`fish`, () => {
       it(`should preserve the order of completions`, async () => {

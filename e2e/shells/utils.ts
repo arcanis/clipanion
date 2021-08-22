@@ -43,7 +43,10 @@ const clean = (chunk: string) =>
       .trim()
   );
 
-export const makePty = (shell: string, args: string | Array<string>, {complete, env, setup}: MakePtyOptions) => {
+export const makePty = (shell: string | null, args: string | Array<string>, {complete, env, setup}: MakePtyOptions) => {
+  if (shell === null)
+    return () => {};
+
   const version = spawnSync(shell, [`--version`], {
     stdio: `pipe`,
     encoding: `utf8`,

@@ -5,6 +5,10 @@ import {makePty}      from './utils';
 
 chai.use(chaiAsPromised);
 
+const shell = process.platform === `win32`
+  ? `gitbash.exe`
+  : `bash`;
+
 // https://wiki.archlinux.org/title/Bash/Prompt_customization#Prompts
 export const prompts = {
   PS0: ``,
@@ -14,7 +18,7 @@ export const prompts = {
   PS4: ``,
 };
 
-const spawnBash = makePty(`bash`, [`--norc`, `--noprofile`], {
+const spawnBash = makePty(shell, [`--norc`, `--noprofile`], {
   env: {
     ...prompts,
     // Disables the deprecation warning that appears when using the default installation of bash on macos
