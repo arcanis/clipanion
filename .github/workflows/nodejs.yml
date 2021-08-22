@@ -7,7 +7,31 @@ on:
     branches: [master]
 
 jobs:
-  build:
+  chore:
+    name: Testing chores
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@master
+
+    - name: Use Node.js 16.x
+      uses: actions/setup-node@master
+      with:
+        node-version: 16.x
+
+    - name: Install dependencies
+      run: yarn
+      shell: bash
+
+    - name: Check for type errors
+      run: yarn tsc
+      shell: bash
+
+    - name: Check for linting errors (fix w/ "yarn lint --fix")
+      run: yarn lint
+      shell: bash
+
+  test:
     strategy:
       fail-fast: false
       matrix:
@@ -20,14 +44,14 @@ jobs:
         - macos-latest
         # - windows-latest
 
-    name: '${{matrix.platform}} w/ Node.js ${{matrix.node}}.x'
+    name: ${{matrix.platform}} w/ Node.js ${{matrix.node}}.x
     runs-on: ${{matrix.platform}}
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@master
 
     - name: Use Node.js ${{matrix.node}}
-      uses: actions/setup-node@v1
+      uses: actions/setup-node@master
       with:
         node-version: ${{matrix.node}}
 
@@ -36,9 +60,16 @@ jobs:
       # images, but the bash version that gets installed on
       # macos is from 2014
       run: brew install bash zsh fish
+      shell: bash
 
-    - run: yarn
-    - run: yarn tsc
-    - run: yarn test
-    - run: yarn test:e2e
-    - run: yarn lint
+    - name: Install dependencies
+      run: yarn
+      shell: bash
+
+    - name: Run the integration tests
+      run: yarn test
+      shell: bash
+
+    - name: Run the e2e tests
+      run: yarn test:e2e
+      shell: bash
