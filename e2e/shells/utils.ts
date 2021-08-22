@@ -1,6 +1,7 @@
 require(`string.prototype.replaceall`).shim();
 
 import {npath, PortablePath, xfs} from '@yarnpkg/fslib';
+import {spawnSync}                from 'child_process';
 import * as pty                   from 'node-pty';
 import stripAnsi                  from 'strip-ansi';
 import {promisify}                from 'util';
@@ -35,78 +36,88 @@ const clean = (chunk: string) =>
     .replaceAll(BEL, ``)
     .trim();
 
-export const makePty = (shell: string, args: string | Array<string>, {complete, env, setup}: MakePtyOptions) => async (cb: PtyCallback) => {
-  return await xfs.mktempPromise(async tmpHomedir => {
-    return await xfs.mktempPromise(async tmpdir => {
-      const ptyProcess = pty.spawn(shell, args, {
-        // https://invisible-island.net/ncurses/terminfo.src.html#tic-ansi-generic
-        name: `ansi-generic`,
-        cols: 80,
-        rows: 30,
-        cwd: npath.fromPortablePath(tmpdir),
-        env: {
-          HOME: npath.fromPortablePath(tmpHomedir),
-          USERPROFILE: npath.fromPortablePath(tmpHomedir),
-          // Add `testbin` to the PATH
-          PATH: `${npath.dirname(require.resolve(`testbin/bin/testbin`))}${npath.delimiter}${process.env.PATH}`,
-          ...env,
-        },
-      });
+export const makePty = (shell: string, args: string | Array<string>, {complete, env, setup}: MakePtyOptions) => {
+  const version = spawnSync(shell, [`--version`], {
+    stdio: `pipe`,
+    encoding: `utf8`,
+  });
 
-      const chunks: Array<string> = [];
+  console.log(version.stdout.split(`\n`)[0]);
+  console.log();
 
-      const push = (chunk: string) => chunks.push(clean(chunk));
-      const flush = () => chunks.splice(0).filter(chunk => chunk.match(/\S/));
+  return async (cb: PtyCallback) => {
+    return await xfs.mktempPromise(async tmpHomedir => {
+      return await xfs.mktempPromise(async tmpdir => {
+        const ptyProcess = pty.spawn(shell, args, {
+          // https://invisible-island.net/ncurses/terminfo.src.html#tic-ansi-generic
+          name: `ansi-generic`,
+          cols: 80,
+          rows: 30,
+          cwd: npath.fromPortablePath(tmpdir),
+          env: {
+            HOME: npath.fromPortablePath(tmpHomedir),
+            USERPROFILE: npath.fromPortablePath(tmpHomedir),
+            // Add `testbin` to the PATH
+            PATH: `${npath.dirname(require.resolve(`testbin/bin/testbin`))}${npath.delimiter}${process.env.PATH}`,
+            ...env,
+          },
+        });
 
-      ptyProcess.onData(response => {
-        // PowerShell goes crazy if we don't respond to its cursor position request
-        // https://github.com/PowerShell/PSReadLine/issues/1376
-        if (response.includes(DEVICE_STATUS_REPORT))
-          ptyProcess.write(`\x1B[1;1R`);
+        const chunks: Array<string> = [];
 
-        push(response);
-      });
+        const push = (chunk: string) => chunks.push(clean(chunk));
+        const flush = () => chunks.splice(0).filter(chunk => chunk.match(/\S/));
 
-      let killed = false;
+        ptyProcess.onData(response => {
+          // PowerShell goes crazy if we don't respond to its cursor position request
+          // https://github.com/PowerShell/PSReadLine/issues/1376
+          if (response.includes(DEVICE_STATUS_REPORT))
+            ptyProcess.write(`\x1B[1;1R`);
 
-      ptyProcess.onExit(code => {
-        if (!killed) {
-          throw new Error(`${shell} exited with code ${code.exitCode}${code.signal ? ` (signal ${code.signal})` : ``}`);
+          push(response);
+        });
+
+        let killed = false;
+
+        ptyProcess.onExit(code => {
+          if (!killed) {
+            throw new Error(`${shell} exited with code ${code.exitCode}${code.signal ? ` (signal ${code.signal})` : ``}`);
+          }
+        });
+
+        const ptyArg: Pty = {
+          cwd: tmpdir,
+
+          async write(request: string) {
+            ptyProcess.write(request);
+
+            await sleep(DEFAULT_TIMEOUT);
+
+            return flush();
+          },
+
+          async exec(request: string) {
+            await this.write(request);
+
+            return await this.write(`\r`);
+          },
+
+          async complete(request: string) {
+            await this.write(request);
+
+            return await complete(this, request);
+          },
+        };
+
+        await setup?.(ptyArg);
+
+        try {
+          return await cb(ptyArg);
+        } finally {
+          killed = true;
+          ptyProcess.kill();
         }
       });
-
-      const ptyArg: Pty = {
-        cwd: tmpdir,
-
-        async write(request: string) {
-          ptyProcess.write(request);
-
-          await sleep(DEFAULT_TIMEOUT);
-
-          return flush();
-        },
-
-        async exec(request: string) {
-          await this.write(request);
-
-          return await this.write(`\r`);
-        },
-
-        async complete(request: string) {
-          await this.write(request);
-
-          return await complete(this, request);
-        },
-      };
-
-      await setup?.(ptyArg);
-
-      try {
-        return await cb(ptyArg);
-      } finally {
-        killed = true;
-        ptyProcess.kill();
-      }
     });
-  });
+  };
 };
