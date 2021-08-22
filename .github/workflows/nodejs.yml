@@ -33,8 +33,9 @@ jobs:
 
     - name: Install shells
       # bash and pwsh are installed by default in GH actions
-      # images but we want to test the latest versions
-      run: brew install bash zsh fish powershell
+      # images, but the bash version that gets installed on
+      # macos is from 2014
+      run: brew install bash zsh fish
 
     - run: yarn
     - run: yarn tsc
