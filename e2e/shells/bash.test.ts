@@ -26,6 +26,10 @@ const spawnBash = makePty(shell, [`--norc`, `--noprofile`], {
     BASH_SILENCE_DEPRECATION_WARNING: `1`,
   },
   setup: async bash => {
+    // "Ignore-case option to readline disables nosort option to complete"
+    // https://lists.defectivebydesign.org/archive/html/bug-bash/2017-05/msg00034.html
+    await bash.exec(`bind "set completion-ignore-case off"`);
+
     await bash.exec(`. <(testbin completion bash)`);
   },
   complete: async (bash, request) => {
