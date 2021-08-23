@@ -18,3 +18,7 @@ trim_trailing_whitespace = false
 [*.patch]
 trim_trailing_whitespace = false
 insert_final_newline = false
+
+# The file must include the version number only: x.y, with no trailing newline.
+[runtime.txt]
+insert_final_newline = false
