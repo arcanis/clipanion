@@ -65,6 +65,7 @@ export const makePty = (shell: string | null, args: string | Array<string>, {com
           rows: 30,
           cwd: npath.fromPortablePath(tmpdir),
           env: {
+            ...process.env,
             HOME: npath.fromPortablePath(tmpHomedir),
             USERPROFILE: npath.fromPortablePath(tmpHomedir),
             // Add `testbin` to the PATH
