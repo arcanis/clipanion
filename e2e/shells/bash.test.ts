@@ -1,13 +1,9 @@
 import chaiAsPromised from 'chai-as-promised';
 import chai, {expect} from 'chai';
 
-import {makePty}      from './utils';
+import {testPty}      from './utils';
 
 chai.use(chaiAsPromised);
-
-const shell = process.platform === `win32`
-  ? `C:\\Program Files\\Git\\bin\\bash.exe`
-  : `bash`;
 
 // https://wiki.archlinux.org/title/Bash/Prompt_customization#Prompts
 export const prompts = {
@@ -18,7 +14,10 @@ export const prompts = {
   PS4: ``,
 };
 
-const spawnBash = makePty(shell, [`--norc`, `--noprofile`], {
+testPty({
+  posix: `bash`,
+  win32: `C:\\Program Files\\Git\\bin\\bash.exe`,
+}, [`--norc`, `--noprofile`], {
   env: {
     ...prompts,
     // Disables the deprecation warning that appears when using the default installation of bash on macos
@@ -41,16 +40,10 @@ const spawnBash = makePty(shell, [`--norc`, `--noprofile`], {
       .split(/\s+/)
       .filter(completion => completion !== ``);
   },
-});
-
-describe(`e2e`, () => {
-  describe(`shells`, () => {
-    describe(`bash`, () => {
-      it(`should preserve the order of completions`, async () => {
-        await spawnBash(async bash => {
-          expect(await bash.complete(`testbin foo --number `)).to.deep.equal([`3`, `1`, `4`, `2`]);
-        });
-      });
+}, spawnBash => {
+  it(`should preserve the order of completions`, async () => {
+    await spawnBash(async bash => {
+      expect(await bash.complete(`testbin foo --number `)).to.deep.equal([`3`, `1`, `4`, `2`]);
     });
   });
 });

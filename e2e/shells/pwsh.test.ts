@@ -1,15 +1,14 @@
 import chaiAsPromised from 'chai-as-promised';
 import chai, {expect} from 'chai';
 
-import {makePty}      from './utils';
+import {testPty}      from './utils';
 
 chai.use(chaiAsPromised);
 
-const shell = process.platform === `win32`
-  ? `pwsh.exe`
-  : `pwsh`;
-
-const spawnPwsh = makePty(shell, [`-NoProfile`, `-NoLogo`], {
+testPty({
+  posix: `pwsh`,
+  win32: `pwsh.exe`,
+}, [`-NoProfile`, `-NoLogo`], {
   setup: async pwsh => {
     // Disables the prompt
     // Apparently PowerShell really hates empty strings
@@ -32,16 +31,10 @@ const spawnPwsh = makePty(shell, [`-NoProfile`, `-NoLogo`], {
       .split(/\s+/)
       .filter(completion => completion !== ``);
   },
-});
-
-describe(`e2e`, () => {
-  describe(`shells`, () => {
-    describe(`pwsh`, async () => {
-      it(`should preserve the order of completions`, async () => {
-        await spawnPwsh(async pwsh => {
-          expect(await pwsh.complete(`testbin foo --number `)).to.deep.equal([`3`, `1`, `4`, `2`]);
-        });
-      });
+}, spawnPwsh => {
+  it(`should preserve the order of completions`, async () => {
+    await spawnPwsh(async pwsh => {
+      expect(await pwsh.complete(`testbin foo --number `)).to.deep.equal([`3`, `1`, `4`, `2`]);
     });
   });
 });

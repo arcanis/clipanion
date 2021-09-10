@@ -43,10 +43,7 @@ const clean = (chunk: string) =>
       .trim()
   );
 
-export const makePty = (shell: string | null, args: string | Array<string>, {complete, env, setup}: MakePtyOptions) => {
-  if (shell === null)
-    return () => {};
-
+export const makePty = (shell: string, args: string | Array<string>, {complete, env, setup}: MakePtyOptions) => {
   const version = spawnSync(shell, [`--version`], {
     stdio: `pipe`,
     encoding: `utf8`,
@@ -132,3 +129,37 @@ export const makePty = (shell: string | null, args: string | Array<string>, {com
     });
   };
 };
+
+type PlatformShell = string | null;
+
+type ShellByPlatform = {
+  posix: PlatformShell;
+  win32: PlatformShell;
+};
+
+export const testPty = ({posix, win32}: ShellByPlatform, args: string | Array<string>, opts: MakePtyOptions, cb: (pty: ReturnType<typeof makePty>) => void, describeOverride?: Mocha.PendingSuiteFunction) => {
+  const shell = process.platform === `win32`
+    ? win32
+    : posix;
+
+  const maybeDescribe = describeOverride ?? (
+    shell === null
+      ? describe.skip
+      : describe
+  );
+
+  maybeDescribe(`e2e`, () => {
+    maybeDescribe(`shells`, () => {
+      maybeDescribe(shell!, () => {
+        const pty = makePty(shell!, args, opts);
+        cb(pty);
+      });
+    });
+  });
+};
+
+testPty.only = (shellByPlatform: ShellByPlatform, args: string | Array<string>, opts: MakePtyOptions, cb: (pty: ReturnType<typeof makePty>) => void) =>
+  testPty(shellByPlatform, args, opts, cb, describe.only);
+
+testPty.skip = (shellByPlatform: ShellByPlatform, args: string | Array<string>, opts: MakePtyOptions, cb: (pty: ReturnType<typeof makePty>) => void) =>
+  testPty(shellByPlatform, args, opts, cb, describe.skip);

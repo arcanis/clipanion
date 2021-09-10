@@ -2,19 +2,14 @@ import chaiAsPromised from 'chai-as-promised';
 import chai, {expect} from 'chai';
 
 import {prompts}      from './bash.test';
-import {makePty}      from './utils';
+import {testPty}      from './utils';
 
 chai.use(chaiAsPromised);
 
-const shell = process.platform === `win32`
-  ? null
-  : `zsh`;
-
-const ifNotWin32Describe = process.platform === `win32`
-  ? describe.skip
-  : describe;
-
-const spawnZsh = makePty(shell, [`--no-rcs`], {
+testPty({
+  posix: `zsh`,
+  win32: null,
+}, [`--no-rcs`], {
   env: prompts,
   setup: async zsh => {
     // Setup ZSH's completion system
@@ -34,16 +29,10 @@ const spawnZsh = makePty(shell, [`--no-rcs`], {
       .split(/\s+/)
       .filter(completion => completion !== ``);
   },
-});
-
-ifNotWin32Describe(`e2e`, () => {
-  describe(`shells`, () => {
-    describe(`zsh`, () => {
-      it(`should preserve the order of completions`, async () => {
-        await spawnZsh(async zsh => {
-          expect(await zsh.complete(`testbin foo --number `)).to.deep.equal([`3`, `1`, `4`, `2`]);
-        });
-      });
+}, spawnZsh => {
+  it(`should preserve the order of completions`, async () => {
+    await spawnZsh(async zsh => {
+      expect(await zsh.complete(`testbin foo --number `)).to.deep.equal([`3`, `1`, `4`, `2`]);
     });
   });
 });
