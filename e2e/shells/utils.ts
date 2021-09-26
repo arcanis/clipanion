@@ -142,11 +142,9 @@ export const testPty = ({posix, win32}: ShellByPlatform, args: string | Array<st
     ? win32
     : posix;
 
-  const maybeDescribe = describeOverride ?? (
-    shell === null
-      ? describe.skip
-      : describe
-  );
+  const maybeDescribe = shell === null
+    ? describe.skip
+    : describeOverride ?? describe;
 
   maybeDescribe(`e2e`, () => {
     maybeDescribe(`shells`, () => {
