@@ -150,7 +150,7 @@ export const testPty = ({posix, win32}: ShellByPlatform, args: string | Array<st
 
   maybeDescribe(`e2e`, () => {
     maybeDescribe(`shells`, () => {
-      maybeDescribe(shell!, () => {
+      maybeDescribe((shell ?? posix ?? win32)!, () => {
         const pty = makePty(shell!, args, opts);
         cb(pty);
       });
