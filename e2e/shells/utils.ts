@@ -143,12 +143,13 @@ export const testPty = ({posix, win32}: ShellByPlatform, args: string | Array<st
     : posix;
 
   const maybeDescribe = shell === null
-    ? describe.skip
+    // Mocha still executes code inside a `describe.skip` block, it just skips the `it`s
+    ? () => {}
     : describeOverride ?? describe;
 
   maybeDescribe(`e2e`, () => {
     maybeDescribe(`shells`, () => {
-      maybeDescribe((shell ?? posix ?? win32)!, () => {
+      maybeDescribe(shell!, () => {
         const pty = makePty(shell!, args, opts);
         cb(pty);
       });
