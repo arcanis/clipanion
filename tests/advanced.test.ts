@@ -1,10 +1,10 @@
-import chaiAsPromised                                             from 'chai-as-promised';
-import chai, {expect}                                             from 'chai';
-import getStream                                                  from 'get-stream';
-import {PassThrough}                                              from 'stream';
-import * as t                                                     from 'typanion';
+import chaiAsPromised                                                          from 'chai-as-promised';
+import chai, {expect}                                                          from 'chai';
+import getStream                                                               from 'get-stream';
+import {PassThrough}                                                           from 'stream';
+import * as t                                                                  from 'typanion';
 
-import {Cli, CommandClass, Command, CliOptions, Option, Builtins} from '../sources/advanced';
+import {Cli, CommandClass, Command, CliOptions, Option, Builtins, BaseContext} from '../sources/advanced';
 
 chai.use(chaiAsPromised);
 
@@ -1197,5 +1197,44 @@ describe(`Advanced`, () => {
     const cli = Cli.from([FooCommand], {enableCapture: true});
 
     await expect(runCli(cli, [])).to.eventually.equal(`foo\n`);
+  });
+
+  it(`shouldn't require the context if empty`, async () => {
+    class FooCommand extends Command {
+      async execute() {
+      }
+    }
+
+    const cli = Cli.from([FooCommand]);
+
+    // This is a type-only test
+    // eslint-disable-next-line no-constant-condition
+    await expect(cli.run([])).to.eventually.be.fulfilled;
+  });
+
+  it(`should require the context if custom`, async () => {
+    type CustomContext = BaseContext & {
+      cwd: string;
+    };
+
+    class FooCommand extends Command<CustomContext> {
+      async execute() {
+        return this.context.cwd === `/` ? 42 : 0;
+      }
+    }
+
+    const cli = Cli.from<CustomContext>([FooCommand]);
+
+    // This is a type-only test
+    // eslint-disable-next-line no-constant-condition
+    if (0) {
+      // @ts-expect-error
+      cli.run([]);
+      // @ts-expect-error
+      cli.run([], {});
+    }
+
+    await expect(cli.run([], {cwd: `/`})).to.eventually.equal(42);
+    await expect(cli.run([], {...Cli.defaultContext, cwd: `/`})).to.eventually.equal(42);
   });
 });

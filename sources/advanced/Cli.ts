@@ -1,4 +1,5 @@
 import {AsyncLocalStorage}                                      from 'async_hooks';
+import {Context}                                                from 'mocha';
 import {Readable, Writable}                                     from 'stream';
 
 import {HELP_COMMAND_INDEX}                                     from '../constants';
@@ -11,6 +12,8 @@ import {HelpCommand}                                            from './HelpComm
 import {CommandOption}                                          from './options/utils';
 
 const errorCommandSymbol = Symbol(`clipanion/errorCommand`);
+
+type OptionalIfEmpty<T> = keyof T extends never ? T | undefined : T;
 
 /**
  * The base context of the CLI.
@@ -46,6 +49,17 @@ export type BaseContext = {
 export type CliContext<Context extends BaseContext> = {
   commandClass: CommandClass<Context>;
 };
+
+export type UserContextKeys<Context extends BaseContext> = Exclude<keyof Context, keyof BaseContext>;
+export type UserContext<Context extends BaseContext> = Pick<Context, UserContextKeys<Context>>;
+
+export type PartialContext<Context extends BaseContext> = UserContextKeys<Context> extends never
+  ? Partial<Pick<Context, keyof BaseContext>> | undefined | void
+  : Partial<Pick<Context, keyof BaseContext>> & UserContext<Context>;
+
+// We shouldn't need that (Context should be assignable to PartialContext),
+// but TS is a little too simple to remember that
+export type RunContext<Context extends BaseContext> = Context | PartialContext<Context>;
 
 export type CliOptions = Readonly<{
   /**
@@ -146,7 +160,7 @@ function getDefaultColorSettings() {
 /**
  * @template Context The context shared by all commands. Contexts are a set of values, defined when calling the `run`/`runExit` functions from the CLI instance, that will be made available to the commands via `this.context`.
  */
-export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<Context> {
+export class Cli<Context extends BaseContext = BaseContext> implements Omit<MiniCli<Context>, `run`> {
   /**
    * The default context of the CLI.
    *
@@ -263,8 +277,13 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
     }
   }
 
-  async run(input: Command<Context> | Array<string>, context: Context) {
+  async run(input: Command<Context> | Array<string>, userContext: RunContext<Context>) {
     let command: Command<Context>;
+
+    const context = {
+      ...Cli.defaultContext,
+      ...userContext,
+    } as Context;
 
     if (!Array.isArray(input)) {
       command = input;
@@ -292,7 +311,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
       definitions: () => this.definitions(),
       error: (error, opts) => this.error(error, opts),
       process: input => this.process(input),
-      run: (input, subContext?) => this.run(input, {...context, ...subContext}),
+      run: (input, subContext?) => this.run(input, {...context, ...subContext} as Context),
       usage: (command, opts) => this.usage(command, opts),
     };
 
@@ -317,9 +336,9 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
    * @param input An array containing the name of the command and its arguments.
    *
    * @example
-   * cli.runExit(process.argv.slice(2), Cli.defaultContext)
+   * cli.runExit(process.argv.slice(2))
    */
-  async runExit(input: Command<Context> | Array<string>, context: Context) {
+  async runExit(input: Command<Context> | Array<string>, context: RunContext<Context>) {
     process.exitCode = await this.run(input, context);
   }
 

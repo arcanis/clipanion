@@ -51,5 +51,5 @@ const cli = new Cli({
 })
 
 cli.register(HelloCommand);
-cli.runExit(args, Cli.defaultContext);
+cli.runExit(args);
 ```
