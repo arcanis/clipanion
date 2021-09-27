@@ -1,3 +1,4 @@
+import {AsyncLocalStorage}                                      from 'async_hooks';
 import {Readable, Writable}                                     from 'stream';
 
 import {HELP_COMMAND_INDEX}                                     from '../constants';
@@ -67,6 +68,16 @@ export type CliOptions = Readonly<{
    * Shown at the top of the usage information.
    */
   binaryVersion?: string,
+
+  /**
+   * If `true`, the Cli will hook into the process standard streams to catch
+   * the output produced by console.log and redirect them into the context
+   * streams. Note: stdin isn't captured at the moment.
+   *
+   * @default
+   * false
+   */
+  enableCapture: boolean,
 
   /**
    * If `true`, the Cli will use colors in the output.
@@ -159,6 +170,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
   public readonly binaryName: string;
   public readonly binaryVersion?: string;
 
+  public readonly enableCapture: boolean;
   public readonly enableColors: boolean;
 
   /**
@@ -176,13 +188,14 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
     return cli;
   }
 
-  constructor({binaryLabel, binaryName: binaryNameOpt = `...`, binaryVersion, enableColors = getDefaultColorSettings()}: Partial<CliOptions> = {}) {
+  constructor({binaryLabel, binaryName: binaryNameOpt = `...`, binaryVersion, enableCapture = false, enableColors = getDefaultColorSettings()}: Partial<CliOptions> = {}) {
     this.builder = new CliBuilder({binaryName: binaryNameOpt});
 
     this.binaryLabel = binaryLabel;
     this.binaryName = binaryNameOpt;
     this.binaryVersion = binaryVersion;
 
+    this.enableCapture = enableCapture;
     this.enableColors = enableColors;
   }
 
@@ -274,6 +287,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
       binaryLabel: this.binaryLabel,
       binaryName: this.binaryName,
       binaryVersion: this.binaryVersion,
+      enableCapture: this.enableCapture,
       enableColors: this.enableColors,
       definitions: () => this.definitions(),
       error: (error, opts) => this.error(error, opts),
@@ -282,9 +296,13 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
       usage: (command, opts) => this.usage(command, opts),
     };
 
+    const activate = this.enableCapture
+      ? getCaptureActivator(context)
+      : noopCaptureActivator;
+
     let exitCode;
     try {
-      exitCode = await command.validateAndExecute().catch(error => command.catch(error).then(() => 0));
+      exitCode = await activate(() => command.validateAndExecute().catch(error => command.catch(error).then(() => 0)));
     } catch (error) {
       context.stdout.write(this.error(error, {command}));
       return 1;
@@ -556,4 +574,43 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
   protected format(colored: boolean = this.enableColors): ColorFormat {
     return colored ? richFormat : textFormat;
   }
+}
+
+let gContextStorage: AsyncLocalStorage<BaseContext> | undefined;
+
+function getCaptureActivator(context: BaseContext) {
+  let contextStorage = gContextStorage;
+  if (typeof contextStorage === `undefined`) {
+    if (context.stdout === process.stdout && context.stderr === process.stderr)
+      return noopCaptureActivator;
+
+    const {AsyncLocalStorage: LazyAsyncLocalStorage} = require(`async_hooks`);
+    contextStorage = gContextStorage = new LazyAsyncLocalStorage();
+
+    const origStdoutWrite = process.stdout._write;
+    process.stdout._write = function (chunk, encoding, cb) {
+      const context = contextStorage!.getStore();
+      if (typeof context === `undefined`)
+        return origStdoutWrite.call(this, chunk, encoding, cb);
+
+      return context.stdout.write(chunk, encoding, cb);
+    };
+
+    const origStderrWrite = process.stderr._write;
+    process.stderr._write = function (chunk, encoding, cb) {
+      const context = contextStorage!.getStore();
+      if (typeof context === `undefined`)
+        return origStderrWrite.call(this, chunk, encoding, cb);
+
+      return context.stderr.write(chunk, encoding, cb);
+    };
+  }
+
+  return <T>(fn: () => Promise<T>) => {
+    return contextStorage!.run(context, fn);
+  };
+}
+
+function noopCaptureActivator(fn: () => Promise<number>) {
+  return fn();
 }

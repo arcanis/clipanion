@@ -308,6 +308,7 @@ describe(`Advanced`, () => {
       binaryLabel: `My CLI`,
       binaryName: `my-cli`,
       binaryVersion: `1.0.0`,
+      enableCapture: false,
       enableColors: false,
     };
 
@@ -1172,5 +1173,29 @@ describe(`Advanced`, () => {
 
     await expect(runCli(cli, [`--foo=42`])).to.eventually.equal(`Running FooCommand\n42\nfalse\n`);
     await expect(runCli(cli, [`--foo`])).to.eventually.equal(`Running FooCommand\ntrue\nfalse\n`);
+  });
+
+  it(`should capture stdout if requested`, async () => {
+    class FooCommand extends Command {
+      async execute() {
+        console.log(`foo`);
+      }
+    }
+
+    const cli = Cli.from([FooCommand], {enableCapture: true});
+
+    await expect(runCli(cli, [])).to.eventually.equal(`foo\n`);
+  });
+
+  it(`should capture stderr if requested`, async () => {
+    class FooCommand extends Command {
+      async execute() {
+        console.error(`foo`);
+      }
+    }
+
+    const cli = Cli.from([FooCommand], {enableCapture: true});
+
+    await expect(runCli(cli, [])).to.eventually.equal(`foo\n`);
   });
 });
