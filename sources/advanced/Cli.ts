@@ -393,7 +393,6 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
     let result = ``;
 
     if (!commandClass) {
-      const formattedCategories = new Map<string | undefined, string | null>();
       const commandsByCategories = new Map<string | undefined, Array<{
         commandClass: CommandClass<Context>;
         usage: string;
@@ -404,11 +403,6 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
           continue;
 
         const category = commandClass.usage.category;
-        const formattedCategory = typeof category !== `undefined`
-          ? formatMarkdownish(category, {format: this.format(colored), paragraphs: false})
-          : null;
-
-        formattedCategories.set(category, formattedCategory);
 
         let categoryCommands = commandsByCategories.get(category);
         if (typeof categoryCommands === `undefined`)
@@ -455,7 +449,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
         });
 
         const header = categoryName !== undefined
-          ? formattedCategories.get(categoryName)!.trim()
+          ? formatMarkdownish(categoryName, {format: this.format(colored), paragraphs: false}).trim()
           : `General commands`;
 
         result += `\n`;
