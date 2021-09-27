@@ -1,5 +1,4 @@
 import {AsyncLocalStorage}                                      from 'async_hooks';
-import {Context}                                                from 'mocha';
 import {Readable, Writable}                                     from 'stream';
 
 import {HELP_COMMAND_INDEX}                                     from '../constants';
@@ -12,8 +11,6 @@ import {HelpCommand}                                            from './HelpComm
 import {CommandOption}                                          from './options/utils';
 
 const errorCommandSymbol = Symbol(`clipanion/errorCommand`);
-
-type OptionalIfEmpty<T> = keyof T extends never ? T | undefined : T;
 
 /**
  * The base context of the CLI.
