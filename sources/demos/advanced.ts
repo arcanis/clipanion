@@ -1,14 +1,10 @@
-import {Readable, Writable}             from 'stream';
-import * as t                           from 'typanion';
+import * as t                                        from 'typanion';
 
-import {Option, Cli, Command, Builtins} from '../advanced';
+import {Option, Cli, Command, Builtins, BaseContext} from '../advanced';
 
-type Context = {
+type Context = BaseContext & {
   cwd: string;
-  stdin: Readable;
-  stdout: Writable;
-  stderr: Writable;
-}
+};
 
 class YarnDefaultRun extends Command<Context> {
   scriptName = Option.String();

@@ -1,5 +1,6 @@
 import {AsyncLocalStorage}                                      from 'async_hooks';
 import {Readable, Writable}                                     from 'stream';
+import tty                                                      from 'tty';
 
 import {HELP_COMMAND_INDEX}                                     from '../constants';
 import {CliBuilder, CommandBuilder}                             from '../core';
@@ -41,22 +42,27 @@ export type BaseContext = {
    * process.stderr
    */
   stderr: Writable;
+
+  /**
+   * Whether colors should be enabled.
+   */
+  colorDepth: number;
 };
 
 export type CliContext<Context extends BaseContext> = {
   commandClass: CommandClass<Context>;
 };
 
-export type UserContextKeys<Context extends BaseContext> = Exclude<keyof Context, keyof BaseContext>;
-export type UserContext<Context extends BaseContext> = Pick<Context, UserContextKeys<Context>>;
+export type UserContextKeys<BaseContext, Context extends BaseContext> = Exclude<keyof Context, keyof BaseContext>;
+export type UserContext<BaseContext, Context extends BaseContext> = Pick<Context, UserContextKeys<BaseContext, Context>>;
 
-export type PartialContext<Context extends BaseContext> = UserContextKeys<Context> extends never
+export type PartialContext<BaseContext, Context extends BaseContext> = UserContextKeys<BaseContext, Context> extends never
   ? Partial<Pick<Context, keyof BaseContext>> | undefined | void
-  : Partial<Pick<Context, keyof BaseContext>> & UserContext<Context>;
+  : Partial<Pick<Context, keyof BaseContext>> & UserContext<BaseContext, Context>;
 
 // We shouldn't need that (Context should be assignable to PartialContext),
 // but TS is a little too simple to remember that
-export type RunContext<Context extends BaseContext> = Context | PartialContext<Context>;
+export type RunContext<BaseContext, Context extends BaseContext> = Context | PartialContext<BaseContext, Context>;
 
 export type CliOptions = Readonly<{
   /**
@@ -91,12 +97,10 @@ export type CliOptions = Readonly<{
   enableCapture: boolean,
 
   /**
-   * If `true`, the Cli will use colors in the output.
-   *
-   * @default
-   * process.env.FORCE_COLOR ?? process.stdout.isTTY
+   * If `true`, the Cli will use colors in the output. If `false`, it won't.
+   * If `undefined`, Clipanion will infer the correct value from the env.
    */
-  enableColors: boolean,
+  enableColors?: boolean,
 }>;
 
 export type MiniCli<Context extends BaseContext> = CliOptions & {
@@ -142,16 +146,16 @@ export type MiniCli<Context extends BaseContext> = CliOptions & {
   usage(command?: CommandClass<Context> | Command<Context> | null, opts?: {detailed?: boolean, prefix?: string}): string;
 };
 
-function getDefaultColorSettings() {
+function getDefaultColorDepth() {
   if (process.env.FORCE_COLOR === `0`)
-    return false;
+    return 1;
   if (process.env.FORCE_COLOR === `1`)
-    return true;
+    return 8;
 
   if (typeof process.stdout !== `undefined` && process.stdout.isTTY)
-    return true;
+    return 8;
 
-  return false;
+  return 1;
 }
 
 /**
@@ -167,6 +171,9 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
     stdin: process.stdin,
     stdout: process.stdout,
     stderr: process.stderr,
+    colorDepth: `getColorDepth` in tty.WriteStream.prototype
+      ? tty.WriteStream.prototype.getColorDepth()
+      : getDefaultColorDepth(),
   };
 
   private readonly builder: CliBuilder<CliContext<Context>>;
@@ -182,7 +189,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
   public readonly binaryVersion?: string;
 
   public readonly enableCapture: boolean;
-  public readonly enableColors: boolean;
+  public readonly enableColors?: boolean;
 
   /**
    * Creates a new Cli and registers all commands passed as parameters.
@@ -199,7 +206,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
     return cli;
   }
 
-  constructor({binaryLabel, binaryName: binaryNameOpt = `...`, binaryVersion, enableCapture = false, enableColors = getDefaultColorSettings()}: Partial<CliOptions> = {}) {
+  constructor({binaryLabel, binaryName: binaryNameOpt = `...`, binaryVersion, enableCapture = false, enableColors}: Partial<CliOptions> = {}) {
     this.builder = new CliBuilder({binaryName: binaryNameOpt});
 
     this.binaryLabel = binaryLabel;
@@ -274,7 +281,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
     }
   }
 
-  async run(input: Command<Context> | Array<string>, userContext: RunContext<Context>) {
+  async run(input: Command<Context> | Array<string>, userContext: RunContext<BaseContext, Context>) {
     let command: Command<Context>;
 
     const context = {
@@ -282,19 +289,21 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
       ...userContext,
     } as Context;
 
+    const colored = this.enableColors ?? context.colorDepth > 1;
+
     if (!Array.isArray(input)) {
       command = input;
     } else {
       try {
         command = this.process(input);
       } catch (error) {
-        context.stdout.write(this.error(error));
+        context.stdout.write(this.error(error, {colored}));
         return 1;
       }
     }
 
     if (command.help) {
-      context.stdout.write(this.usage(command, {detailed: true}));
+      context.stdout.write(this.usage(command, {colored, detailed: true}));
       return 0;
     }
 
@@ -320,7 +329,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
     try {
       exitCode = await activate(() => command.validateAndExecute().catch(error => command.catch(error).then(() => 0)));
     } catch (error) {
-      context.stdout.write(this.error(error, {command}));
+      context.stdout.write(this.error(error, {colored, command}));
       return 1;
     }
 
@@ -335,7 +344,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
    * @example
    * cli.runExit(process.argv.slice(2))
    */
-  async runExit(input: Command<Context> | Array<string>, context: RunContext<Context>) {
+  async runExit(input: Command<Context> | Array<string>, context: RunContext<BaseContext, Context>) {
     process.exitCode = await this.run(input, context);
   }
 
@@ -587,8 +596,8 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
     return this.builder.getBuilderByIndex(n).usage(opts);
   }
 
-  protected format(colored: boolean = this.enableColors): ColorFormat {
-    return colored ? richFormat : textFormat;
+  protected format(colored: boolean | undefined): ColorFormat {
+    return colored ?? this.enableColors ?? Cli.defaultContext.colorDepth > 1 ? richFormat : textFormat;
   }
 }
 

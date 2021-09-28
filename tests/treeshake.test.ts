@@ -18,7 +18,6 @@ describe(`Tree shaking`, () => {
       await xfs.writeJsonPromise(`${tempDir}/package.json` as PortablePath, {name: `test-treeshake`});
       await xfs.writeFilePromise(`${tempDir}/yarn.lock` as PortablePath, ``);
 
-
       const added = await execUtils.execvp(`yarn`, [`add`, `./dist.tgz`], {cwd: tempDir});
       expect(added.code).to.eq(0);
 
