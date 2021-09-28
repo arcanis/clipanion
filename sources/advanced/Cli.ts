@@ -53,16 +53,16 @@ export type CliContext<Context extends BaseContext> = {
   commandClass: CommandClass<Context>;
 };
 
-export type UserContextKeys<BaseContext, Context extends BaseContext> = Exclude<keyof Context, keyof BaseContext>;
-export type UserContext<BaseContext, Context extends BaseContext> = Pick<Context, UserContextKeys<BaseContext, Context>>;
+export type UserContextKeys<Context extends BaseContext> = Exclude<keyof Context, keyof BaseContext>;
+export type UserContext<Context extends BaseContext> = Pick<Context, UserContextKeys<Context>>;
 
-export type PartialContext<BaseContext, Context extends BaseContext> = UserContextKeys<BaseContext, Context> extends never
+export type PartialContext<Context extends BaseContext> = UserContextKeys<Context> extends never
   ? Partial<Pick<Context, keyof BaseContext>> | undefined | void
-  : Partial<Pick<Context, keyof BaseContext>> & UserContext<BaseContext, Context>;
+  : Partial<Pick<Context, keyof BaseContext>> & UserContext<Context>;
 
 // We shouldn't need that (Context should be assignable to PartialContext),
 // but TS is a little too simple to remember that
-export type RunContext<BaseContext, Context extends BaseContext> = Context | PartialContext<BaseContext, Context>;
+export type RunContext<Context extends BaseContext> = Context | PartialContext<Context>;
 
 export type CliOptions = Readonly<{
   /**
@@ -281,7 +281,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
     }
   }
 
-  async run(input: Command<Context> | Array<string>, userContext: RunContext<BaseContext, Context>) {
+  async run(input: Command<Context> | Array<string>, userContext: RunContext<Context>) {
     let command: Command<Context>;
 
     const context = {
@@ -344,7 +344,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
    * @example
    * cli.runExit(process.argv.slice(2))
    */
-  async runExit(input: Command<Context> | Array<string>, context: RunContext<BaseContext, Context>) {
+  async runExit(input: Command<Context> | Array<string>, context: RunContext<Context>) {
     process.exitCode = await this.run(input, context);
   }
 
