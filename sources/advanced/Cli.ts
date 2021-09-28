@@ -13,6 +13,9 @@ import {CommandOption}                                          from './options/
 
 const errorCommandSymbol = Symbol(`clipanion/errorCommand`);
 
+type MakeOptional<T, Keys extends keyof T> = Omit<T, Keys> & Partial<Pick<T, Keys>>;
+type VoidIfEmpty<T> = keyof T extends never ? void : never;
+
 /**
  * The base context of the CLI.
  *
@@ -281,7 +284,9 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
     }
   }
 
-  async run(input: Command<Context> | Array<string>, userContext: RunContext<Context>) {
+  async run(input: Command<Context> | Array<string>, context: VoidIfEmpty<Omit<Context, keyof BaseContext>>): Promise<number>;
+  async run(input: Command<Context> | Array<string>, context: MakeOptional<Context, keyof BaseContext>): Promise<number>;
+  async run(input: Command<Context> | Array<string>, userContext: any) {
     let command: Command<Context>;
 
     const context = {
@@ -344,7 +349,9 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
    * @example
    * cli.runExit(process.argv.slice(2))
    */
-  async runExit(input: Command<Context> | Array<string>, context: RunContext<Context>) {
+  async runExit(input: Command<Context> | Array<string>, context: VoidIfEmpty<Omit<Context, keyof BaseContext>>): Promise<void>;
+  async runExit(input: Command<Context> | Array<string>, context: MakeOptional<Context, keyof BaseContext>): Promise<void>;
+  async runExit(input: Command<Context> | Array<string>, context: any) {
     process.exitCode = await this.run(input, context);
   }
 
