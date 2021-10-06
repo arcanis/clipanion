@@ -24,7 +24,7 @@ export class HelloCommand extends Command {
     [`my-command`],
   ];
 
-  static usage = {
+  static usage = Command.Usage({
     category: `My category`,
     description: `A small description of the command.`,
     details: `
@@ -39,7 +39,7 @@ export class HelloCommand extends Command {
       `A second example`,
       `$0 my-command --with-parameter`,
     ]],
-  };
+  });
 
   p = Option.Boolean(`--with-parameter`);
 
