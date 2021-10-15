@@ -224,6 +224,10 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
    * Registers a command inside the CLI.
    */
   register(commandClass: CommandClass<Context>) {
+    if (this.registrations.has(commandClass)) {
+      throw new RangeError(`${commandClass.name} has already been registered`);
+    }
+
     const specs = new Map<string, CommandOption<any>>();
 
     const command = new commandClass();
