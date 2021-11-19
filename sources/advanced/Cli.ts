@@ -121,6 +121,13 @@ export type MiniCli<Context extends BaseContext> = CliOptions & {
   error(error: Error, opts?: {command?: Command<Context> | null}): string;
 
   /**
+   * Returns a rich color format if colors are enabled, or a plain text format otherwise.
+   *
+   * @param colored Forcefully enable or disable colors.
+   */
+  format(colored?: boolean): ColorFormat;
+
+  /**
    * Compiles a command and its arguments using the `CommandBuilder`.
    *
    * @param input An array containing the name of the command and its arguments
@@ -321,6 +328,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
       enableColors: this.enableColors,
       definitions: () => this.definitions(),
       error: (error, opts) => this.error(error, opts),
+      format: colored => this.format(colored),
       process: input => this.process(input),
       run: (input, subContext?) => this.run(input, {...context, ...subContext} as Context),
       usage: (command, opts) => this.usage(command, opts),
@@ -591,6 +599,10 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
     return result;
   }
 
+  format(colored?: boolean): ColorFormat {
+    return colored ?? this.enableColors ?? Cli.defaultContext.colorDepth > 1 ? richFormat : textFormat;
+  }
+
   protected getUsageByRegistration(klass: CommandClass<Context>, opts?: {detailed?: boolean; inlineOptions?: boolean}) {
     const record = this.registrations.get(klass);
     if (typeof record === `undefined`)
@@ -601,10 +613,6 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
 
   protected getUsageByIndex(n: number, opts?: {detailed?: boolean; inlineOptions?: boolean}) {
     return this.builder.getBuilderByIndex(n).usage(opts);
-  }
-
-  protected format(colored: boolean | undefined): ColorFormat {
-    return colored ?? this.enableColors ?? Cli.defaultContext.colorDepth > 1 ? richFormat : textFormat;
   }
 }
 
