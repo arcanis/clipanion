@@ -35,6 +35,13 @@ function dedent(text: string) {
     .join(`\n`);
 }
 
+/**
+ * Formats markdown text to be displayed to the console. Not all markdown features are supported.
+ *
+ * @param text The markdown text to format.
+ * @param opts.format The format to use.
+ * @param opts.paragraphs Whether to cut the text into paragraphs of 80 characters at most.
+ */
 export function formatMarkdownish(text: string, {format, paragraphs}: {format: ColorFormat, paragraphs: boolean}) {
   // Enforce \n as newline character
   text = text.replace(/\r\n?/g, `\n`);
@@ -74,7 +81,7 @@ export function formatMarkdownish(text: string, {format, paragraphs}: {format: C
     return format.code($1 + $2 + $1);
   });
 
-  // Highlight the code segments
+  // Highlight the bold segments
   text = text.replace(/(\*\*)((?:.|[\n])*?)\1/g, ($0, $1, $2) => {
     return format.bold($1 + $2 + $1);
   });
