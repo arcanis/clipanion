@@ -49,7 +49,7 @@
     "demo": "node --require ts-node/register sources/demos/advanced.ts"
   },
   "publishConfig": {
-    "main": "lib/advanced/index"
+    "main": "lib/advanced/index.js"
   },
   "files": [
     "lib"
