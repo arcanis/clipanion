@@ -553,6 +553,30 @@ describe(`Core`, () => {
     ]);
   });
 
+  it(`should interpret options when they appear between required positionals proxy`, () => {
+    const cli = makeCli([
+      b => {
+        b.addPath([`foo`]);
+        b.addOption({names: [`-x`]});
+        b.addPositional();
+        b.addPositional();
+        b.addProxy();
+      },
+    ]);
+
+    const {options, positionals} = cli.process([`foo`, `pos1`, `-x`, `pos2`, `proxy`]);
+
+    expect(options).to.deep.equal([
+      {name: `-x`, value: true},
+    ]);
+
+    expect(positionals).to.deep.equal([
+      {value: `pos1`, extra: false},
+      {value: `pos2`, extra: false},
+      {value: `proxy`, extra: NoLimits},
+    ]);
+  });
+
   it(`should ignore options when they appear in a proxy extra`, () => {
     const cli = makeCli([
       b => {

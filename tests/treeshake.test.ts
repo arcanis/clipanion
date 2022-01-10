@@ -26,7 +26,8 @@ describe(`Tree shaking`, () => {
 
         const result = await rollup({
           input: npath.fromPortablePath(`${tempDir}/index.js`),
-          plugins: [nodeResolve()],
+          plugins: [nodeResolve({preferBuiltins: true})],
+          external: [`tty`],
         });
 
         const {output} = await result.generate({format: `esm`});
