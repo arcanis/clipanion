@@ -66,10 +66,6 @@ export type PartialContext<Context extends BaseContext> = UserContextKeys<Contex
   ? Partial<Pick<Context, keyof BaseContext>> | undefined | void
   : Partial<Pick<Context, keyof BaseContext>> & UserContext<Context>;
 
-// We shouldn't need that (Context should be assignable to PartialContext),
-// but TS is a little too simple to remember that
-export type RunContext<Context extends BaseContext> = Context | PartialContext<Context>;
-
 export type CliOptions = Readonly<{
   /**
    * The label of the binary.
