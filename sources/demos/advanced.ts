@@ -1,13 +1,9 @@
-import {Readable, Writable}             from 'stream';
-import * as t                           from 'typanion';
+import * as t                                        from 'typanion';
 
-import {Option, Cli, Command, Builtins} from '../advanced';
+import {Option, Cli, Command, Builtins, BaseContext} from '../advanced';
 
-type Context = {
+type Context = BaseContext & {
   cwd: string;
-  stdin: Readable;
-  stdout: Writable;
-  stderr: Writable;
 };
 
 class YarnDefaultRun extends Command<Context> {
@@ -161,7 +157,4 @@ cli.register(YarnWorkspacesForeachCommand);
 
 cli.runExit(process.argv.slice(2), {
   cwd: process.cwd(),
-  stdin: process.stdin,
-  stdout: process.stdout,
-  stderr: process.stderr,
 });

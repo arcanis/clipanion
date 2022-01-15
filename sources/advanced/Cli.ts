@@ -1,5 +1,7 @@
+import {AsyncLocalStorage}                                              from 'async_hooks';
 import {CompletionResult, SingleOrArray}                                from 'clcs';
 import {Readable, Writable}                                             from 'stream';
+import tty                                                              from 'tty';
 
 import {CompletionType, HELP_COMMAND_INDEX}                             from '../constants';
 import {CliBuilder, PartialCompletionRequest, CommandBuilder, RunState} from '../core';
@@ -11,6 +13,9 @@ import {HelpCommand}                                                    from './
 import {CommandOption}                                                  from './options/utils';
 
 const errorCommandSymbol = Symbol(`clipanion/errorCommand`);
+
+type MakeOptional<T, Keys extends keyof T> = Omit<T, Keys> & Partial<Pick<T, Keys>>;
+type VoidIfEmpty<T> = keyof T extends never ? void : never;
 
 type TypeOrFactory<T> = T | (() => T);
 
@@ -43,11 +48,27 @@ export type BaseContext = {
    * process.stderr
    */
   stderr: Writable;
+
+  /**
+   * Whether colors should be enabled.
+   */
+  colorDepth: number;
 };
 
 export type CliContext<Context extends BaseContext> = {
   commandClass: CommandClass<Context>;
 };
+
+export type UserContextKeys<Context extends BaseContext> = Exclude<keyof Context, keyof BaseContext>;
+export type UserContext<Context extends BaseContext> = Pick<Context, UserContextKeys<Context>>;
+
+export type PartialContext<Context extends BaseContext> = UserContextKeys<Context> extends never
+  ? Partial<Pick<Context, keyof BaseContext>> | undefined | void
+  : Partial<Pick<Context, keyof BaseContext>> & UserContext<Context>;
+
+// We shouldn't need that (Context should be assignable to PartialContext),
+// but TS is a little too simple to remember that
+export type RunContext<Context extends BaseContext> = Context | PartialContext<Context>;
 
 export type CliOptions = Readonly<{
   /**
@@ -72,12 +93,20 @@ export type CliOptions = Readonly<{
   binaryVersion?: string,
 
   /**
-   * If `true`, the Cli will use colors in the output.
+   * If `true`, the Cli will hook into the process standard streams to catch
+   * the output produced by console.log and redirect them into the context
+   * streams. Note: stdin isn't captured at the moment.
    *
    * @default
-   * process.env.FORCE_COLOR ?? process.stdout.isTTY
+   * false
    */
-  enableColors: boolean,
+  enableCapture: boolean,
+
+  /**
+   * If `true`, the Cli will use colors in the output. If `false`, it won't.
+   * If `undefined`, Clipanion will infer the correct value from the env.
+   */
+  enableColors?: boolean,
 }>;
 
 export type MiniCli<Context extends BaseContext> = CliOptions & {
@@ -93,6 +122,13 @@ export type MiniCli<Context extends BaseContext> = CliOptions & {
    * @param opts.command The command whose usage will be included in the formatted error.
    */
   error(error: Error, opts?: {command?: Command<Context> | null}): string;
+
+  /**
+   * Returns a rich color format if colors are enabled, or a plain text format otherwise.
+   *
+   * @param colored Forcefully enable or disable colors.
+   */
+  format(colored?: boolean): ColorFormat;
 
   /**
    * Compiles a command and its arguments using the `CommandBuilder`.
@@ -133,22 +169,22 @@ export type MiniCli<Context extends BaseContext> = CliOptions & {
   usage(command?: CommandClass<Context> | Command<Context> | null, opts?: {detailed?: boolean, prefix?: string}): string;
 };
 
-function getDefaultColorSettings() {
+function getDefaultColorDepth() {
   if (process.env.FORCE_COLOR === `0`)
-    return false;
+    return 1;
   if (process.env.FORCE_COLOR === `1`)
-    return true;
+    return 8;
 
   if (typeof process.stdout !== `undefined` && process.stdout.isTTY)
-    return true;
+    return 8;
 
-  return false;
+  return 1;
 }
 
 /**
  * @template Context The context shared by all commands. Contexts are a set of values, defined when calling the `run`/`runExit` functions from the CLI instance, that will be made available to the commands via `this.context`.
  */
-export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<Context> {
+export class Cli<Context extends BaseContext = BaseContext> implements Omit<MiniCli<Context>, `run`> {
   /**
    * The default context of the CLI.
    *
@@ -158,6 +194,9 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
     stdin: process.stdin,
     stdout: process.stdout,
     stderr: process.stderr,
+    colorDepth: `getColorDepth` in tty.WriteStream.prototype
+      ? tty.WriteStream.prototype.getColorDepth()
+      : getDefaultColorDepth(),
   };
 
   private readonly builder: CliBuilder<CliContext<Context>>;
@@ -172,7 +211,8 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
   public readonly binaryName: string;
   public readonly binaryVersion?: string;
 
-  public readonly enableColors: boolean;
+  public readonly enableCapture: boolean;
+  public readonly enableColors?: boolean;
 
   /**
    * Creates a new Cli and registers all commands passed as parameters.
@@ -188,13 +228,14 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
     return cli;
   }
 
-  constructor({binaryLabel, binaryName: binaryNameOpt = `...`, binaryVersion, enableColors = getDefaultColorSettings()}: Partial<CliOptions> = {}) {
+  constructor({binaryLabel, binaryName: binaryNameOpt = `...`, binaryVersion, enableCapture = false, enableColors}: Partial<CliOptions> = {}) {
     this.builder = new CliBuilder({binaryName: binaryNameOpt});
 
     this.binaryLabel = binaryLabel;
     this.binaryName = binaryNameOpt;
     this.binaryVersion = binaryVersion;
 
+    this.enableCapture = enableCapture;
     this.enableColors = enableColors;
   }
 
@@ -203,9 +244,11 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
       binaryLabel: this.binaryLabel,
       binaryName: this.binaryName,
       binaryVersion: this.binaryVersion,
+      enableCapture: this.enableCapture,
       enableColors: this.enableColors,
       definitions: () => this.definitions(),
       error: (error, opts) => this.error(error, opts),
+      format: colored => this.format(colored),
       process: input => this.process(input),
       complete: (request, subContext?) => this.complete(request, {...context, ...subContext}),
       run: (input, subContext?) => this.run(input, {...context, ...subContext}),
@@ -302,8 +345,17 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
     return command;
   }
 
-  async run(input: Command<Context> | Array<string>, context: Context) {
+  async run(input: Command<Context> | Array<string>, context: VoidIfEmpty<Omit<Context, keyof BaseContext>>): Promise<number>;
+  async run(input: Command<Context> | Array<string>, context: MakeOptional<Context, keyof BaseContext>): Promise<number>;
+  async run(input: Command<Context> | Array<string>, userContext: any) {
     let command: Command<Context>;
+
+    const context = {
+      ...Cli.defaultContext,
+      ...userContext,
+    } as Context;
+
+    const colored = this.enableColors ?? context.colorDepth > 1;
 
     if (!Array.isArray(input)) {
       command = input;
@@ -311,23 +363,27 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
       try {
         command = this.process(input);
       } catch (error) {
-        context.stdout.write(this.error(error));
+        context.stdout.write(this.error(error, {colored}));
         return 1;
       }
     }
 
     if (command.help) {
-      context.stdout.write(this.usage(command, {detailed: true}));
+      context.stdout.write(this.usage(command, {colored, detailed: true}));
       return 0;
     }
 
     this.populateCommand(command, context);
 
+    const activate = this.enableCapture
+      ? getCaptureActivator(context)
+      : noopCaptureActivator;
+
     let exitCode;
     try {
-      exitCode = await command.validateAndExecute().catch(error => command.catch(error).then(() => 0));
+      exitCode = await activate(() => command.validateAndExecute().catch(error => command.catch(error).then(() => 0)));
     } catch (error) {
-      context.stdout.write(this.error(error, {command}));
+      context.stdout.write(this.error(error, {colored, command}));
       return 1;
     }
 
@@ -340,9 +396,11 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
    * @param input An array containing the name of the command and its arguments.
    *
    * @example
-   * cli.runExit(process.argv.slice(2), Cli.defaultContext)
+   * cli.runExit(process.argv.slice(2))
    */
-  async runExit(input: Command<Context> | Array<string>, context: Context) {
+  async runExit(input: Command<Context> | Array<string>, context: VoidIfEmpty<Omit<Context, keyof BaseContext>>): Promise<void>;
+  async runExit(input: Command<Context> | Array<string>, context: MakeOptional<Context, keyof BaseContext>): Promise<void>;
+  async runExit(input: Command<Context> | Array<string>, context: any) {
     process.exitCode = await this.run(input, context);
   }
 
@@ -614,6 +672,10 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
     return result;
   }
 
+  format(colored?: boolean): ColorFormat {
+    return colored ?? this.enableColors ?? Cli.defaultContext.colorDepth > 1 ? richFormat : textFormat;
+  }
+
   protected getUsageByRegistration(klass: CommandClass<Context>, opts?: {detailed?: boolean; inlineOptions?: boolean}) {
     const record = this.registrations.get(klass);
     if (typeof record === `undefined`)
@@ -625,8 +687,43 @@ export class Cli<Context extends BaseContext = BaseContext> implements MiniCli<C
   protected getUsageByIndex(n: number, opts?: {detailed?: boolean; inlineOptions?: boolean}) {
     return this.builder.getBuilderByIndex(n).usage(opts);
   }
+}
 
-  protected format(colored: boolean = this.enableColors): ColorFormat {
-    return colored ? richFormat : textFormat;
+let gContextStorage: AsyncLocalStorage<BaseContext> | undefined;
+
+function getCaptureActivator(context: BaseContext) {
+  let contextStorage = gContextStorage;
+  if (typeof contextStorage === `undefined`) {
+    if (context.stdout === process.stdout && context.stderr === process.stderr)
+      return noopCaptureActivator;
+
+    const {AsyncLocalStorage: LazyAsyncLocalStorage} = require(`async_hooks`);
+    contextStorage = gContextStorage = new LazyAsyncLocalStorage();
+
+    const origStdoutWrite = process.stdout._write;
+    process.stdout._write = function (chunk, encoding, cb) {
+      const context = contextStorage!.getStore();
+      if (typeof context === `undefined`)
+        return origStdoutWrite.call(this, chunk, encoding, cb);
+
+      return context.stdout.write(chunk, encoding, cb);
+    };
+
+    const origStderrWrite = process.stderr._write;
+    process.stderr._write = function (chunk, encoding, cb) {
+      const context = contextStorage!.getStore();
+      if (typeof context === `undefined`)
+        return origStderrWrite.call(this, chunk, encoding, cb);
+
+      return context.stderr.write(chunk, encoding, cb);
+    };
   }
+
+  return <T>(fn: () => Promise<T>) => {
+    return contextStorage!.run(context, fn);
+  };
+}
+
+function noopCaptureActivator(fn: () => Promise<number>) {
+  return fn();
 }

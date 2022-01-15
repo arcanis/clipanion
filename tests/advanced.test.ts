@@ -1,12 +1,12 @@
-import chaiAsPromised                               from 'chai-as-promised';
-import chai, {expect}                               from 'chai';
-import getStream                                    from 'get-stream';
-import {PassThrough}                                from 'stream';
-import * as t                                       from 'typanion';
+import chaiAsPromised                                            from 'chai-as-promised';
+import chai, {expect}                                            from 'chai';
+import getStream                                                 from 'get-stream';
+import {PassThrough}                                             from 'stream';
+import * as t                                                    from 'typanion';
 
-import {Cli, Command, CliOptions, Option, Builtins} from '../sources/advanced';
+import {Cli, Command, CliOptions, Option, Builtins, BaseContext} from '../sources/advanced';
 
-import {prefix, log, runCli}                        from './utils';
+import {prefix, log, runCli}                                     from './utils';
 
 chai.use(chaiAsPromised);
 
@@ -444,6 +444,7 @@ describe(`Advanced`, () => {
       binaryLabel: `My CLI`,
       binaryName: `my-cli`,
       binaryVersion: `1.0.0`,
+      enableCapture: false,
       enableColors: false,
     };
 
@@ -1355,5 +1356,68 @@ describe(`Advanced`, () => {
 
     expect(stdoutOutput).to.contain(`non-error rejection`);
     expect(stderrOutput).to.equal(``);
+  });
+
+  it(`should capture stdout if requested`, async () => {
+    class FooCommand extends Command {
+      async execute() {
+        console.log(`foo`);
+      }
+    }
+
+    const cli = Cli.from([FooCommand], {enableCapture: true});
+
+    await expect(runCli(cli, [])).to.eventually.equal(`foo\n`);
+  });
+
+  it(`should capture stderr if requested`, async () => {
+    class FooCommand extends Command {
+      async execute() {
+        console.error(`foo`);
+      }
+    }
+
+    const cli = Cli.from([FooCommand], {enableCapture: true});
+
+    await expect(runCli(cli, [])).to.eventually.equal(`foo\n`);
+  });
+
+  it(`shouldn't require the context if empty`, async () => {
+    class FooCommand extends Command {
+      async execute() {
+      }
+    }
+
+    const cli = Cli.from([FooCommand]);
+
+    // This is a type-only test
+    // eslint-disable-next-line no-constant-condition
+    await expect(cli.run([])).to.eventually.be.fulfilled;
+  });
+
+  it(`should require the context if custom`, async () => {
+    type CustomContext = BaseContext & {
+      cwd: string;
+    };
+
+    class FooCommand extends Command<CustomContext> {
+      async execute() {
+        return this.context.cwd === `/` ? 42 : 0;
+      }
+    }
+
+    const cli = Cli.from<CustomContext>([FooCommand]);
+
+    // This is a type-only test
+    // eslint-disable-next-line no-constant-condition
+    if (0) {
+      // @ts-expect-error
+      cli.run([]);
+      // @ts-expect-error
+      cli.run([], {});
+    }
+
+    await expect(cli.run([], {cwd: `/`})).to.eventually.equal(42);
+    await expect(cli.run([], {...Cli.defaultContext, cwd: `/`})).to.eventually.equal(42);
   });
 });

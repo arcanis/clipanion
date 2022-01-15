@@ -1004,7 +1004,7 @@ export class CommandBuilder<Context> {
       for (let t = 0; t < this.arity.leading.length; ++t) {
         const nextLeadingNode = injectNode(machine, makeNode());
 
-        if (!this.arity.proxy)
+        if (!this.arity.proxy || t + 1 !== this.arity.leading.length)
           this.registerOptions(machine, nextLeadingNode);
 
         if (this.arity.trailing.length > 0 || t + 1 !== this.arity.leading.length)
@@ -1044,7 +1044,7 @@ export class CommandBuilder<Context> {
           for (let t = 0; t < this.arity.extra.length; ++t) {
             const nextExtraNode = injectNode(machine, makeNode());
 
-            if (!this.arity.proxy)
+            if (!this.arity.proxy || t > 0)
               this.registerOptions(machine, nextExtraNode);
 
             const {completion} = this.arity.extra[t];

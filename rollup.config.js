@@ -16,6 +16,7 @@ export default {
     },
   ],
   external: [`clcs`, `typanion`],
+  preferBuiltins: true,
   preserveModules: true,
   plugins: [
     ts({

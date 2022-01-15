@@ -16,6 +16,7 @@ new Cli(opts: {...})
 | `binaryLabel` | `string` | Tool name, as shown in the help message |
 | `binaryName` | `string`| Binary name, as shown in the usage line |
 | `binaryVersion` | `string` | Tool version, as shown in `--version` |
+| `enableCapture` | `boolean` | If set, redirect stdout/stderr into the command streams |
 | `enableColors` | `boolean` | Overrides the automatic color detection for error messages |
 
 ## `Cli#process`
@@ -38,7 +39,7 @@ Turn the given argument into a command that will be immediately executed and ret
 ## `Cli#runExit`
 
 ```ts
-cli.runExit(input: string[], context: Context)
+cli.runExit(input: string[], context?: Context)
 ```
 
 Same thing as `Cli#run`, but catches the result of the command and sets `process.exitCode` accordingly. Note that it won't directly call `process.exit`, so the process may stay alive if the event loop isn't empty.

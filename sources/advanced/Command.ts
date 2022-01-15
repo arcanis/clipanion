@@ -155,7 +155,7 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
     const commandClass = this.constructor as CommandClass<Context>;
     const cascade = commandClass.schema;
 
-    if (typeof cascade !== `undefined`) {
+    if (Array.isArray(cascade)) {
       const {isDict, isUnknown, applyCascade} = await import(`typanion`);
       const schema = applyCascade(isDict(isUnknown()), cascade);
 
@@ -169,6 +169,8 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
       for (const [, op] of coercions) {
         op();
       }
+    } else if (cascade != null) {
+      throw new Error(`Invalid command schema`);
     }
 
     const exitCode = await this.execute();

@@ -19,7 +19,6 @@ describe.skip(`Tree shaking`, () => {
       await xfs.writeJsonPromise(`${tempDir}/package.json` as PortablePath, {name: `test-treeshake`});
       await xfs.writeFilePromise(`${tempDir}/yarn.lock` as PortablePath, ``);
 
-
       const added = await execUtils.execvp(`yarn`, [`add`, `./dist.tgz`], {cwd: tempDir});
       expect(added.code).to.eq(0);
 
@@ -28,7 +27,8 @@ describe.skip(`Tree shaking`, () => {
 
         const result = await rollup({
           input: npath.fromPortablePath(`${tempDir}/index.js`),
-          plugins: [nodeResolve()],
+          plugins: [nodeResolve({preferBuiltins: true})],
+          external: [`tty`],
         });
 
         const {output} = await result.generate({format: `esm`});
