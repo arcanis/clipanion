@@ -182,9 +182,9 @@ function getDefaultColorDepth() {
 }
 
 /**
- * @template Context The context shared by all commands. Contexts are a set of values, defined when calling the `run`/`runExit` functions from the CLI instance, that will be made available to the commands via `this.context`.
+ * @template Context The context shared by all commands. Contexts are a set of values, defined when calling the `run` / `runExit` / `complete` functions from the CLI instance, that will be made available to the commands via `this.context` in the case of the `run` functions and via `command.context` in the case of `complete`.
  */
-export class Cli<Context extends BaseContext = BaseContext> implements Omit<MiniCli<Context>, `run`> {
+export class Cli<Context extends BaseContext = BaseContext> implements Omit<MiniCli<Context>, `complete` | `run`> {
   /**
    * The default context of the CLI.
    *
@@ -404,7 +404,9 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
     process.exitCode = await this.run(input, context);
   }
 
-  async complete(request: PartialCompletionRequest, context: Context): Promise<Array<CompletionResult>> {
+  async complete(request: PartialCompletionRequest, context: VoidIfEmpty<Omit<Context, keyof BaseContext>>): Promise<Array<CompletionResult>>;
+  async complete(request: PartialCompletionRequest, context: MakeOptional<Context, keyof BaseContext>): Promise<Array<CompletionResult>>;
+  async complete(request: PartialCompletionRequest, context: any) {
     const {complete, contexts} = this.builder.compile();
     const states = complete(request);
 

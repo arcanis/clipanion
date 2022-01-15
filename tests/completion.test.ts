@@ -1,12 +1,12 @@
-import chaiAsPromised                 from 'chai-as-promised';
-import chaiSpies                      from 'chai-spies';
-import chai, {expect}                 from 'chai';
+import chaiAsPromised                      from 'chai-as-promised';
+import chaiSpies                           from 'chai-spies';
+import chai, {expect}                      from 'chai';
 
-import {CompletionFunction}           from '../sources/advanced/options';
-import {BaseContext, Command, Option} from '../sources/advanced';
-import {identity}                     from '../sources/core';
+import {CompletionFunction}                from '../sources/advanced/options';
+import {BaseContext, Cli, Command, Option} from '../sources/advanced';
+import {identity}                          from '../sources/core';
 
-import {completeCli, prefix}          from './utils';
+import {completeCli, prefix}               from './utils';
 
 chai.use(chaiAsPromised);
 chai.use(chaiSpies);
@@ -2621,6 +2621,44 @@ describe(`Completion`, () => {
           current: `foo `,
           prefix: `foo `,
         })).to.deep.equal([`test`]);
+      });
+
+      it(`shouldn't require the context if base`, async () => {
+        class FooCommand extends Command {
+          async execute() {
+          }
+        }
+
+        const cli = Cli.from([FooCommand]);
+
+        // This is a type-only test
+        await expect(cli.complete({current: ``, prefix: ``})).to.eventually.be.fulfilled;
+      });
+
+      it(`should require the context if custom`, async () => {
+        type CustomContext = BaseContext & {
+          cwd: string;
+        };
+
+        class FooCommand extends Command<CustomContext> {
+          async execute() {
+            return this.context.cwd === `/` ? 42 : 0;
+          }
+        }
+
+        const cli = Cli.from<CustomContext>([FooCommand]);
+
+        // This is a type-only test
+        // eslint-disable-next-line no-constant-condition
+        if (0) {
+          // @ts-expect-error
+          cli.complete({current: ``, prefix: ``});
+          // @ts-expect-error
+          cli.complete({current: ``, prefix: ``}, {});
+        }
+
+        await expect(cli.complete({current: ``, prefix: ``}, {cwd: `/`})).to.eventually.deep.equal([]);
+        await expect(cli.complete({current: ``, prefix: ``}, {...Cli.defaultContext, cwd: `/`})).to.eventually.deep.equal([]);
       });
     });
 

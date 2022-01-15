@@ -1382,7 +1382,7 @@ describe(`Advanced`, () => {
     await expect(runCli(cli, [])).to.eventually.equal(`foo\n`);
   });
 
-  it(`shouldn't require the context if empty`, async () => {
+  it(`shouldn't require the context if base`, async () => {
     class FooCommand extends Command {
       async execute() {
       }
@@ -1391,7 +1391,6 @@ describe(`Advanced`, () => {
     const cli = Cli.from([FooCommand]);
 
     // This is a type-only test
-    // eslint-disable-next-line no-constant-condition
     await expect(cli.run([])).to.eventually.be.fulfilled;
   });
 
