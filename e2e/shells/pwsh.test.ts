@@ -24,7 +24,7 @@ testPty({
     const output = (await pwsh.write(`\t`)).join(`\n`);
     console.log({pwshCompleteOutput: output});
     /*
-     * pwsh MenuCompletion emit varies slightly between posix and windows.
+     * pwsh MenuComplete emit varies slightly between posix and windows.
      * It emits the list of completions and re-emits the request, but possibly
      * in a different order.
      * These tests are not sophisticated enough to emulate ansi escape sequences and
@@ -41,7 +41,7 @@ testPty({
      *   3
      */
     const requestStart = output.indexOf(request.trim());
-    const requestEnd = output.indexOf(`\r\n`, requestStart) + 2;
+    const requestEnd = output.indexOf(`\n`, requestStart) + 1;
     const before = output.slice(0, requestStart);
     const after = requestEnd > requestStart ? output.slice(requestEnd) : ``;
 

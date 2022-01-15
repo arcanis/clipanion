@@ -6,6 +6,8 @@ import {testPty}      from './utils';
 chai.use(chaiAsPromised);
 
 // https://wiki.archlinux.org/title/Bash/Prompt_customization#Prompts
+// For an unknown reason, setting PS1 to an empty string was suppressing
+// completion output when running tests locally.
 export const prompts = {
   PS0: ``,
   PS1: `>`,
@@ -34,7 +36,7 @@ testPty({
   complete: async (bash, request) => {
     const completions = (await bash.write(`\t\t`))
       .join(`\n`)
-      .replaceAll(`>${request.trim()}`, ``);
+      .replaceAll(`>${request.trimEnd()}`, ``);
 
     return completions
       .split(/\s+/)
