@@ -8,7 +8,7 @@ chai.use(chaiAsPromised);
 // https://wiki.archlinux.org/title/Bash/Prompt_customization#Prompts
 export const prompts = {
   PS0: ``,
-  PS1: ``,
+  PS1: `>`,
   PS2: ``,
   PS3: ``,
   PS4: ``,
@@ -34,7 +34,7 @@ testPty({
   complete: async (bash, request) => {
     const completions = (await bash.write(`\t\t`))
       .join(`\n`)
-      .replaceAll(request.trim(), ``);
+      .replaceAll(`>${request.trim()}`, ``);
 
     return completions
       .split(/\s+/)
