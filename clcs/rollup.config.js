@@ -15,6 +15,7 @@ export default {
       format: `cjs`,
     },
   ],
+  preferBuiltins: true,
   preserveModules: true,
   plugins: [
     ts({
