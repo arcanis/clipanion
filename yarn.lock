@@ -1174,6 +1174,7 @@ __metadata:
     string.prototype.replaceall: ^1.0.5
     ts-node: ^8.10.2
     tslib: ^2.0.0
+    typescript: ^4.3.5
   languageName: unknown
   linkType: soft
 
@@ -4636,6 +4637,7 @@ resolve@^2.0.0-next.3:
     rollup-plugin-preserve-shebang: ^1.0.1
     ts-node: ^8.10.2
     tslib: ^2.0.0
+    typescript: ^4.3.5
   bin:
     testbin: ./sources/boot-cli-dev.js
   languageName: unknown
