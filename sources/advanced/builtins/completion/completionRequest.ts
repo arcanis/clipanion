@@ -35,7 +35,8 @@ export function CompletionRequestCommand({paths = [[`completion`, `request`]]}: 
     // This command is invoked by the shell which shouldn't suggest errors as completions,
     // so we write them to stderr and filter it out in `clcs`.
     async catch(error: any) {
-      this.context.stderr.write(this.cli.error(error, {command: this}));
+      const colored = this.cli.enableColors ?? this.context.colorDepth > 1;
+      this.context.stderr.write(this.cli.error(error, {colored, command: this}));
     }
   };
 }

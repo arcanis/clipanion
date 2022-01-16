@@ -115,9 +115,10 @@ export type MiniCli<Context extends BaseContext> = CliOptions & {
    * Formats errors using colors.
    *
    * @param error The error to format. If `error.name` is `'Error'`, it is replaced with `'Internal Error'`.
+   * @param opts.colored Forcefully enable or disable colors.
    * @param opts.command The command whose usage will be included in the formatted error.
    */
-  error(error: Error, opts?: {command?: Command<Context> | null}): string;
+  error(error: Error, opts?: {colored?: boolean, command?: Command<Context> | null}): string;
 
   /**
    * Returns a rich color format if colors are enabled, or a plain text format otherwise.
