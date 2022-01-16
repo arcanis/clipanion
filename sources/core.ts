@@ -307,7 +307,7 @@ function normalizePartialCompletionRequest(request: PartialCompletionRequest): C
     if (`current` in request && `suffix` in request) {
       return {
         ...request,
-        prefix: request.current.slice(0, request.suffix.length),
+        prefix: request.current.slice(0, -request.suffix.length),
       };
     }
 
