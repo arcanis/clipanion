@@ -10,8 +10,8 @@
   "scripts": {
     "build": "rollup -c",
     "build:testbin": "run build",
-    "prepack": "rm -rf bin && run build",
-    "postpack": "rm -rf bin"
+    "prepack": "rm -rf bin/testbin && run build",
+    "postpack": "rm -rf bin/testbin"
   },
   "files": [
     "bin"
