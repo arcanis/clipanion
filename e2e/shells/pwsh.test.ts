@@ -21,12 +21,31 @@ testPty({
     await pwsh.exec(`testbin completion pwsh | Out-String | Invoke-Expression`);
   },
   complete: async (pwsh, request) => {
-    const output = await pwsh.write(`\t`);
+    const output = (await pwsh.write(`\t`)).join(`\n`);
+    console.log({pwshCompleteOutput: output});
+    /*
+     * pwsh MenuComplete emit varies slightly between posix and windows.
+     * It emits the list of completions and re-emits the request, but possibly
+     * in a different order.
+     * These tests are not sophisticated enough to emulate ansi escape sequences and
+     * discern precisely what the user sees.
+     * So we use a heuristic: we parse whatever comes before and whatever comes
+     * after the re-emitted request, and return whichever one is bigger.
+     *
+     * For example, on Windows, we receive this (ANSI escapes omitted, whitespace changed):
+     *   testbin foo --number 3
+     *   3 1 4 2
+     * On Posix we receive this (ANSI escapes omitted, whitespace changed):
+     *   3 1 4 2
+     *   testbin foo --number 3
+     *   3
+     */
+    const requestStart = output.indexOf(request.trim());
+    const requestEnd = output.indexOf(`\n`, requestStart) + 1;
+    const before = output.slice(0, requestStart);
+    const after = requestEnd > requestStart ? output.slice(requestEnd) : ``;
 
-    const completions = output
-      .slice(0, output.findIndex(value => value.includes(request.trim())))
-      .join(`\n`);
-
+    const completions = before.length > after.length ? before : after;
     return completions
       .split(/\s+/)
       .filter(completion => completion !== ``);
