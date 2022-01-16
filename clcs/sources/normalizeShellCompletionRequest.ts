@@ -14,8 +14,6 @@ export function normalizeShellCompletionRequest(
     shellCompletionRequest.input += ` `;
 
   const [binaryName, ...input] = shellCompletionRequest.input.split(` `);
-  if (typeof binaryName === `undefined`)
-    throw new Error(`Expected binaryName to be defined`);
 
   const normalizedInput = input.join(` `);
   const normalizedCursorPosition = cursorPosition - (binaryName.length + 1);
