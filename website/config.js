@@ -15,7 +15,7 @@ module.exports = {
   },
 
   sidebar: {
-    General: [`overview`, `getting-started`, `paths`, `options`, `contexts`, `validation`, `help`, `tips`],
+    General: [`overview`, `getting-started`, `paths`, `options`, `contexts`, `validation`, `help`, `tips`, `completion`],
     API: [`api/cli`, `api/builtins`, `api/option`],
   },
 
