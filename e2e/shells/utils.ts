@@ -40,7 +40,7 @@ const clean = (chunk: string) =>
   debug(
     stripAnsi(chunk)
       .replaceAll(BEL, ``)
-      .replaceAll(/\r\n|\r|\n/, `\n`)
+      .replaceAll(/\r\n|\r|\n/g, `\n`)
       .trim()
   );
 
