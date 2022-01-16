@@ -4,12 +4,15 @@ import chai, {expect}                      from 'chai';
 
 import {CompletionFunction}                from '../sources/advanced/options';
 import {BaseContext, Cli, Command, Option} from '../sources/advanced';
-import {identity}                          from '../sources/core';
 
 import {completeCli, prefix}               from './utils';
 
 chai.use(chaiAsPromised);
 chai.use(chaiSpies);
+
+function identity<T>(arg: T) {
+  return arg;
+}
 
 describe(`Completion`, () => {
   describe(`Argument types`, () => {

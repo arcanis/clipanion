@@ -11,10 +11,6 @@ import {
 
 declare const console: any;
 
-export function identity<T>(arg: T) {
-  return arg;
-}
-
 // ------------------------------------------------------------------------
 
 export function debug(str: string) {
