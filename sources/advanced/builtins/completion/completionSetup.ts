@@ -21,7 +21,7 @@ export function CompletionSetupCommand({paths = [[`completion`, `setup`]], compl
 
     async execute() {
       return await setupShellConfigurationFile({
-        getCompletionProviderCommand: [this.cli.binaryName, ...completionProviderCommandPaths[0] ?? []].join(` `),
+        completionProviderCommand: [this.cli.binaryName, ...completionProviderCommandPaths[0] ?? []].join(` `),
         shellName: this.shellName,
       });
     }

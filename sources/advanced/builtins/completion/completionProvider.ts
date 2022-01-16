@@ -22,7 +22,7 @@ export function CompletionProviderCommand({paths = [[`completion`]], completionR
     async execute() {
       return await processCompletionProviderRequest({
         binaryName: this.cli.binaryName,
-        requestCompletionCommand: [this.cli.binaryName, ...completionRequestCommandPaths[0] ?? []].join(` `),
+        completionRequestCommand: [this.cli.binaryName, ...completionRequestCommandPaths[0] ?? []].join(` `),
         shellName: this.shellName,
         stdout: this.context.stdout,
       });

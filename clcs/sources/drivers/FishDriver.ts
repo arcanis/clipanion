@@ -17,15 +17,15 @@ const FishDriver: ShellDriver = {
   // https://fishshell.com/docs/current/tutorial.html#startup-where-s-bashrc
   getShellConfigurationFile: () => path.join(homedir(), `.config/fish/config.fish`),
 
-  getCompletionBlock: ({getCompletionProviderCommand}) =>
-    `${getCompletionProviderCommand} ${FishDriver.shellName} | source`,
+  getCompletionBlock: ({completionProviderCommand}) =>
+    `${completionProviderCommand} ${FishDriver.shellName} | source`,
 
   // Completion system documentation: https://fishshell.com/docs/current/cmds/complete.html
-  getCompletionProvider: ({binaryName, requestCompletionCommand}) => `
+  getCompletionProvider: ({binaryName, completionRequestCommand}) => `
     complete \\
       --command ${binaryName} \\
       --arguments '( \\
-        ${requestCompletionCommand} ${FishDriver.shellName} \\
+        ${completionRequestCommand} ${FishDriver.shellName} \\
         -- \\
         # entire command line buffer, including any displayed autosuggestion
         (commandline -pb) \\

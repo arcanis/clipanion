@@ -100,7 +100,7 @@ export interface GetCompletionBlockOptions {
    * The command that will be executed to get the completion provider.
    * It doesn't necessarily have to call the binary the completion is registered for.
    */
-  getCompletionProviderCommand: string;
+  completionProviderCommand: string;
 }
 
 /**
@@ -116,7 +116,7 @@ export interface GetCompletionProviderOptions {
    * The command that will be executed to request completion.
    * It doesn't necessarily have to call the binary the completion is registered for.
    */
-  requestCompletionCommand: string;
+  completionRequestCommand: string;
 }
 
 /**

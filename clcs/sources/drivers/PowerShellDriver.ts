@@ -32,14 +32,14 @@ const PowerShellDriver: ShellDriver = {
       // https://docs.microsoft.com/en-us/powershell/scripting/whats-new/what-s-new-in-powershell-core-60#filesystem
       : path.join(homedir(), `.config/powershell/Microsoft.PowerShell_profile.ps1`),
 
-  getCompletionBlock: ({getCompletionProviderCommand}) =>
-    `${getCompletionProviderCommand} ${PowerShellDriver.shellName} | Out-String | Invoke-Expression`,
+  getCompletionBlock: ({completionProviderCommand}) =>
+    `${completionProviderCommand} ${PowerShellDriver.shellName} | Out-String | Invoke-Expression`,
 
   // Completion system documentation: https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/register-argumentcompleter
-  getCompletionProvider: ({binaryName, requestCompletionCommand}) => `
+  getCompletionProvider: ({binaryName, completionRequestCommand}) => `
     Register-ArgumentCompleter -Native -CommandName ${binaryName} -ScriptBlock {
       param($wordToComplete, $commandAst, $cursorPosition)
-        $results = ${requestCompletionCommand} ${PowerShellDriver.shellName} "--" "$commandAst" "$cursorPosition" 2>$null | ConvertFrom-Json
+        $results = ${completionRequestCommand} ${PowerShellDriver.shellName} "--" "$commandAst" "$cursorPosition" 2>$null | ConvertFrom-Json
         $results |
           # select completions that match the original word
           ? { $_.CompletionText -like "$wordToComplete*" } |

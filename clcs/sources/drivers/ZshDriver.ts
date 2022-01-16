@@ -32,21 +32,21 @@ const ZshDriver: ShellDriver = {
   // http://zsh.sourceforge.net/Guide/zshguide02.html#l9
   getShellConfigurationFile: () => path.join(homedir(), `.zshrc`),
 
-  getCompletionBlock: ({getCompletionProviderCommand}) =>
-    `. <(${getCompletionProviderCommand} ${ZshDriver.shellName})`,
+  getCompletionBlock: ({completionProviderCommand}) =>
+    `. <(${completionProviderCommand} ${ZshDriver.shellName})`,
 
   // Completion system documentation: http://zsh.sourceforge.net/Doc/Release/Completion-System.html
   //
   // Variables used:
   // - $words is an array corresponding to the words on the command line
   // - $CURSOR is the index of the cursor into the command line buffer
-  getCompletionProvider: ({binaryName, requestCompletionCommand}) => `
+  getCompletionProvider: ({binaryName, completionRequestCommand}) => `
     _${binaryName}_completions() {
       # "The array [...] contains the possible completions [...]"
       local results=(
         # split by newline
         \${(@f)"$( \\
-          ${requestCompletionCommand} ${ZshDriver.shellName} -- "$words" "$CURSOR" 2>/dev/null \\
+          ${completionRequestCommand} ${ZshDriver.shellName} -- "$words" "$CURSOR" 2>/dev/null \\
         )"}
       )
 

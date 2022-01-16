@@ -21,7 +21,7 @@ export function CompletionCleanupCommand({paths = [[`completion`, `cleanup`]], c
 
     async execute() {
       return await cleanupShellConfigurationFile({
-        getCompletionProviderCommand: [this.cli.binaryName, ...completionProviderCommandPaths[0] ?? []].join(` `),
+        completionProviderCommand: [this.cli.binaryName, ...completionProviderCommandPaths[0] ?? []].join(` `),
         shellName: this.shellName,
       });
     }
