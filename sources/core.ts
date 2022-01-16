@@ -551,13 +551,13 @@ export const tests = {
   isNotOptionLike: (state: RunState, {segment}: Current) => {
     return state.ignoreOptions || segment === `-` || !segment.startsWith(`-`);
   },
-  isOption: (state: RunState, {segment}: Current, name: string, hidden?: boolean) => {
+  isOption: (state: RunState, {segment}: Current, name: string) => {
     return !state.ignoreOptions && segment === name;
   },
-  isLongOption: (state: RunState, {segment}: Current, name: string, hidden?: boolean) => {
+  isLongOption: (state: RunState, {segment}: Current, name: string) => {
     return !state.ignoreOptions && segment === name && LONG_OPTION_REGEX.test(name);
   },
-  isShortOption: (state: RunState, {segment}: Current, name: string, hidden?: boolean) => {
+  isShortOption: (state: RunState, {segment}: Current, name: string) => {
     return !state.ignoreOptions && segment === name && SHORT_OPTION_REGEX.test(name);
   },
   isBatchOption: (state: RunState, {segment}: Current, names: Array<string>) => {
@@ -1164,17 +1164,13 @@ export class CommandBuilder<Context> {
     ]], node, [`setCompletion`, CompletionType.OptionName, ({prefix}) => this.getOptionNameCompletionResults({negated: prefix.startsWith(`--no-`)}), this.cliIndex]);
 
     for (const option of this.options) {
-      const longestName = option.names.reduce((longestName, name) => {
-        return name.length > longestName.length ? name : longestName;
-      }, ``);
-
       if (option.arity === 0) {
         for (const name of option.names) {
-          registerDynamic(machine, node, [`isLongOption`, name, option.hidden || name !== longestName], node, [`chain`, [
+          registerDynamic(machine, node, [`isLongOption`, name], node, [`chain`, [
             [`setCompletion`, CompletionType.OptionName, ({prefix}: CompletionRequest) => this.getOptionNameCompletionResults({negated: prefix.startsWith(`--no-`)}), this.cliIndex],
             `pushTrue`,
           ]]);
-          registerDynamic(machine, node, [`isShortOption`, name, option.hidden || name !== longestName], node, [`chain`, [
+          registerDynamic(machine, node, [`isShortOption`, name], node, [`chain`, [
             [`setBatchCompletion`, this],
             `pushTrue`,
           ]]);
@@ -1189,7 +1185,7 @@ export class CommandBuilder<Context> {
 
         // We register transitions from the starting node to this new node
         for (const name of option.names) {
-          registerDynamic(machine, node, [`isOption`, name, option.hidden || name !== longestName], lastNode, [`chain`, [
+          registerDynamic(machine, node, [`isOption`, name], lastNode, [`chain`, [
             [`setCompletion`, CompletionType.OptionName, ({prefix}: CompletionRequest) => this.getOptionNameCompletionResults({negated: prefix.startsWith(`--no-`)}), this.cliIndex],
             `pushUndefined`,
           ]]);
