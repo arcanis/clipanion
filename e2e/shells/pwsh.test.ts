@@ -22,7 +22,7 @@ testPty({
   },
   complete: async (pwsh, request) => {
     const output = (await pwsh.write(`\t`)).join(`\n`);
-    console.log({pwshCompleteOutput: output});
+
     /*
      * pwsh MenuComplete emit varies slightly between posix and windows.
      * It emits the list of completions and re-emits the request, but possibly
