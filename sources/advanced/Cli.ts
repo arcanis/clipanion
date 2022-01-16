@@ -424,6 +424,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
 
     const results: Array<Result> = [];
 
+    // The async push is fine because we sort the results before returning them to guarantee consistent ordering.
     await Promise.all(states.map(async state => {
       if (state.completion === null)
         return;
