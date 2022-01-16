@@ -87,12 +87,12 @@ export async function debugCompletionRequest(
 
   const maxCompletionTextLength = Math.max(format(COMPLETION_TEXT).length, ...prettyResults.map(({completionText}) => completionText.length));
   const maxListItemTextLength = Math.max(format(LIST_ITEM_TEXT).length, ...prettyResults.map(({listItemText}) => listItemText.length));
-  const maxDescriptionTextLength = Math.max(format(DESCRIPTION).length, ...prettyResults.map(({description}) => description?.length ?? 0));
+  const maxDescriptionTextLength = Math.max(format(DESCRIPTION).length, ...prettyResults.map(({description}) => description.length));
 
   console.log(`| ${padText(COMPLETION_TEXT, maxCompletionTextLength)} | ${padText(LIST_ITEM_TEXT, maxListItemTextLength)} | ${padText(DESCRIPTION, maxDescriptionTextLength)} |`);
   console.log(`| ${repeatText(`-`, maxCompletionTextLength)} | ${repeatText(`-`, maxListItemTextLength)} | ${repeatText(`-`, maxDescriptionTextLength)} |`);
 
   for (const result of prettyResults) {
-    console.log(`| ${result.completionText.padEnd(maxCompletionTextLength)} | ${result.listItemText.padEnd(maxListItemTextLength)} | ${(result.description ?? ``).padEnd(maxDescriptionTextLength)} |`);
+    console.log(`| ${result.completionText.padEnd(maxCompletionTextLength)} | ${result.listItemText.padEnd(maxListItemTextLength)} | ${(result.description).padEnd(maxDescriptionTextLength)} |`);
   }
 }
