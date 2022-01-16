@@ -62,5 +62,4 @@ const PowerShellDriver: ShellDriver = {
     ),
 };
 
-// eslint-disable-next-line arca/no-default-export
 export {PowerShellDriver};

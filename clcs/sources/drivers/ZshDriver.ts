@@ -71,5 +71,4 @@ const ZshDriver: ShellDriver = {
       .join(`\n`),
 };
 
-// eslint-disable-next-line arca/no-default-export
 export {ZshDriver};
