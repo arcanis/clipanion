@@ -79,7 +79,7 @@ export type PartialCommand<T extends Command<any>> = {
 /**
  * A completion function that returns completion results based on a completion request.
  *
- * @template T The type of the partial command. Can be automatically inferred if the completion function is wrapped in a `Command.prototype.completion` (i.e. `this.completion` inside a command class body).
+ * @template T The type of the partial command.
  *
  * @param request The normalized completion request.
  * @param command The partial command populated with all cli arguments that can be parsed.
