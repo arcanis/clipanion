@@ -7,7 +7,7 @@ chai.use(chaiAsPromised);
 
 // https://wiki.archlinux.org/title/Bash/Prompt_customization#Prompts
 // For an unknown reason, setting PS1 to an empty string was suppressing
-// completion output when running tests locally.
+// completion output when running tests locally on Windows.
 export const prompts = {
   PS0: ``,
   PS1: `>`,
