@@ -59,13 +59,22 @@ export const completeCli = async (cli: Cli | (() => Array<CommandClass>), reques
   }
 
   const stream = new PassThrough();
+  const promise = getStream(stream);
 
-  // We don't dedupe results in clipanion because clcs already does it, but it's easier for us to write tests when string results are deduped
-  return [...new Set(await finalCli.complete(request, {
+  const completions = await finalCli.complete(request, {
     stdin: process.stdin,
     stdout: stream,
     stderr: stream,
-  }))];
+  });
+
+  stream.end();
+
+  const output = await promise;
+
+  // We don't dedupe results in clipanion because clcs already does it, but it's easier for us to write tests when string results are deduped
+  return Object.assign([...new Set(completions)], {
+    output,
+  });
 };
 
 export const prefix = `\u001b[1m$ \u001b[22m`;

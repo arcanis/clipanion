@@ -402,7 +402,16 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
 
   async complete(request: PartialCompletionRequest, context: VoidIfEmpty<Omit<Context, keyof BaseContext>>): Promise<Array<CompletionResult>>;
   async complete(request: PartialCompletionRequest, context: MakeOptional<Context, keyof BaseContext>): Promise<Array<CompletionResult>>;
-  async complete(request: PartialCompletionRequest, context: any) {
+  async complete(request: PartialCompletionRequest, userContext: any) {
+    const context = {
+      ...Cli.defaultContext,
+      ...userContext,
+    } as Context;
+
+    const activate = this.enableCapture
+      ? getCaptureActivator(context)
+      : noopCaptureActivator;
+
     const {complete, contexts} = this.builder.compile();
     const states = complete(request);
 
@@ -424,7 +433,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
 
       this.populateCommand(partialCommand, context);
 
-      const completionResult = await fn.call(undefined, completionRequest, partialCommand);
+      const completionResult = await activate(async () => fn.call(undefined, completionRequest, partialCommand));
       const completionResults = Array.isArray(completionResult) ? completionResult : [completionResult];
 
       for (const result of completionResults) {
@@ -722,6 +731,6 @@ function getCaptureActivator(context: BaseContext) {
   };
 }
 
-function noopCaptureActivator(fn: () => Promise<number>) {
+function noopCaptureActivator<T>(fn: () => Promise<T>) {
   return fn();
 }

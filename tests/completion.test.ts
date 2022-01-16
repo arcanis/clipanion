@@ -2701,6 +2701,54 @@ describe(`Completion`, () => {
         }
       });
 
+      it(`should capture stdout if requested`, async () => {
+        class FooCommand extends Command {
+          static paths = [
+            [`foo`],
+          ];
+
+          bar = Option.String(`--bar`, {
+            completion: () => {
+              console.log(`foo`);
+              return [];
+            },
+          });
+
+          async execute() {}
+        }
+
+        const cli = Cli.from([FooCommand], {enableCapture: true});
+
+        await expect(completeCli(cli, {
+          current: `foo --bar `,
+          prefix: `foo --bar `,
+        })).to.eventually.have.property(`output`).that.equals(`foo\n`);
+      });
+
+      it(`should capture stderr if requested`, async () => {
+        class FooCommand extends Command {
+          static paths = [
+            [`foo`],
+          ];
+
+          bar = Option.String(`--bar`, {
+            completion: () => {
+              console.error(`foo`);
+              return [];
+            },
+          });
+
+          async execute() {}
+        }
+
+        const cli = Cli.from([FooCommand], {enableCapture: true});
+
+        await expect(completeCli(cli, {
+          current: `foo --bar `,
+          prefix: `foo --bar `,
+        })).to.eventually.have.property(`output`).that.equals(`foo\n`);
+      });
+
       describe(`PartialCommand`, () => {
         it(`should populate command.{cli,context}`, async () => {
           class FooCommand extends Command {
@@ -2717,7 +2765,7 @@ describe(`Completion`, () => {
 
           const spy = chai.spy(identity<CompletionFunction<FooCommand>>((request, command) => {
             expect(command.cli).to.be.an(`object`);
-            expect(command.context).to.be.an(`object`).with.keys([`stdin`, `stdout`, `stderr`]);
+            expect(command.context).to.be.an(`object`).with.keys([`stdin`, `stdout`, `stderr`, `colorDepth`]);
 
             return [];
           }));
