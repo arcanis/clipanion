@@ -41,7 +41,7 @@ const ZshDriver: ShellDriver = {
   // - $words is an array corresponding to the words on the command line
   // - $CURSOR is the index of the cursor into the command line buffer
   getCompletionProvider: ({binaryName, requestCompletionCommand}) => `
-    _${binaryName}() {
+    _${binaryName}_completions() {
       # "The array [...] contains the possible completions [...]"
       local results=(
         # split by newline
@@ -56,7 +56,7 @@ const ZshDriver: ShellDriver = {
     }
 
     # http://zsh.sourceforge.net/Doc/Release/Completion-System.html#Functions-4
-    compdef _${binaryName} ${binaryName}
+    compdef _${binaryName}_completions ${binaryName}
   `,
 
   getReply: completionResults =>
