@@ -740,9 +740,9 @@ export const reducers = {
     const binding = `${name}=`;
 
     if (cursorPosition! < binding.length) {
-      const completionWrapperFn = ({prefix}: CompletionRequest) =>
+      const completionWrapperFn = () =>
         builder
-          .getOptionNameCompletionResults({onlyBound: true, negated: prefix.startsWith(`--no-`)})
+          .getOptionNameCompletionResults({onlyBound: true})
           .map(completionResult => ({
             ...completionResult,
             completionText: `${completionResult.completionText}=${value}`,
@@ -1106,7 +1106,7 @@ export class CommandBuilder<Context> {
         description: option.description,
       });
 
-      if (negated && !onlyBatch && option.arity === 0 && option.longNames.length > 0) {
+      if (negated && option.arity === 0 && option.longNames.length > 0) {
         const name = option.longNames.find(name => !name.startsWith(`--no-`));
         if (typeof name !== `undefined`) {
           completions.push({
