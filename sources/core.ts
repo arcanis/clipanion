@@ -1044,7 +1044,6 @@ export class CommandBuilder<Context> {
               this.registerOptions(machine, nextExtraNode);
 
             const {completion} = this.arity.extra[t];
-
             registerDynamic(machine, lastExtraNode, positionalArgument, nextExtraNode, [`chain`, [
               ...completion ? [[`setCompletion`, CompletionType.Positional, completion, this.cliIndex]] : [],
               `pushExtra`,
