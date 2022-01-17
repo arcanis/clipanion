@@ -6,5 +6,7 @@ export {processCompletionProviderRequest} from './processCompletionProviderReque
 export {processCompletionRequest} from './processCompletionRequest';
 export {debugCompletionRequest} from './debugCompletionRequest';
 
+export {validateBinaryName} from './validators';
+
 export * from './types';
 export * as stdoutUtils from './stdoutUtils';

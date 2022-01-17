@@ -1,8 +1,8 @@
-import {setupShellConfigurationFile} from 'clcs';
+import {setupShellConfigurationFile, validateBinaryName} from 'clcs';
 
-import {Command}                     from '../../Command';
-import * as Option                   from '../../options';
-import {BuiltinOptions}              from '../utils';
+import {Command}                                         from '../../Command';
+import * as Option                                       from '../../options';
+import {BuiltinOptions}                                  from '../utils';
 
 export type CompletionSetupCommandOptions = BuiltinOptions & {
   completionProviderCommandPaths?: Array<Array<string>>;
@@ -20,6 +20,9 @@ export function CompletionSetupCommand({paths = [[`completion`, `setup`]], compl
     shellName = Option.String({required: false});
 
     async execute() {
+      // We make sure that we don't register a completion provider for an invalid binary before writing to the shell configuration file.
+      validateBinaryName(this.cli.binaryName);
+
       return await setupShellConfigurationFile({
         completionProviderCommand: [this.cli.binaryName, ...completionProviderCommandPaths[0] ?? []].join(` `),
         shellName: this.shellName,
