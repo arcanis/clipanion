@@ -333,7 +333,9 @@ function normalizePartialCompletionRequest(request: PartialCompletionRequest): C
 function completeMachine(machine: StateMachine, request: PartialCompletionRequest) {
   const normalizedRequest = normalizePartialCompletionRequest(request);
 
-  const branches = runMachineInternal(machine, [...normalizedRequest.current.split(` `), END_OF_INPUT], {completionCursorPosition: normalizedRequest.prefix.length});
+  const branches = runMachineInternal(machine, [...normalizedRequest.current.split(` `), END_OF_INPUT], {
+    completionCursorPosition: normalizedRequest.prefix.length,
+  });
 
   return aggregateHelpStates(branches.map(({state}) => {
     return state;

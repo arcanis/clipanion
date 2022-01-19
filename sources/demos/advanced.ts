@@ -22,7 +22,7 @@ const isPositiveInteger = t.applyCascade(t.isNumber(), [
 
 class YarnInstall extends Command<Context> {
   frozenLockfile = Option.Boolean(`--frozen-lockfile`, false);
-  maxRetries = Option.String(`--max-retries`, `0`, {validator: isPositiveInteger});
+  //maxRetries = Option.String(`--max-retries`, `0`, {validator: isPositiveInteger});
 
   static paths = [Command.Default, [`install`]];
   async execute() {
@@ -70,9 +70,7 @@ export default class YarnAdd extends Command<Context> {
   ];
 
   static usage = Command.Usage({
-    description: `
-      add dependencies to the project
-    `,
+    description: `add dependencies to the project`,
     details: `
       This command adds a package to the package.json for the nearest workspace.
 
@@ -139,13 +137,14 @@ class YarnWorkspacesForeachCommand extends Command<Context> {
 
 const cli = new Cli<Context>({
   binaryLabel: `Yarn Project Manager`,
-  binaryName: `yarn`,
+  binaryName: `demo`,
   binaryVersion: `0.0.0`,
 });
 
 cli.register(Builtins.DefinitionsCommand);
 cli.register(Builtins.HelpCommand);
 cli.register(Builtins.VersionCommand);
+cli.register(Builtins.CompletionCommands);
 
 cli.register(YarnDefaultRun);
 cli.register(YarnInstall);
