@@ -272,7 +272,7 @@ export function runMachineInternal(machine: StateMachine, input: Array<string>, 
 
     branches = trimSmallerBranches(nextBranches);
 
-    cursorPosition += segment.length + 1;
+    cursorPosition += segment.length + /* space separator */ 1;
   }
 
   if (branches.length > 0) {
