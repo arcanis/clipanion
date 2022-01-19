@@ -192,7 +192,7 @@ export function runMachineInternal(machine: StateMachine, input: Array<string>, 
 
   const isCompletionMode = typeof completionCursorPosition !== `undefined`;
 
-  let cursorPosition = -(START_OF_INPUT.length + 1);
+  let cursorPosition = -(START_OF_INPUT.length + /* space separator */ 1);
 
   const tokens = [START_OF_INPUT, ...input];
   for (let t = 0; t < tokens.length; ++t) {
