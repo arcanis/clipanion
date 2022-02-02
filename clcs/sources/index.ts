@@ -6,6 +6,7 @@ export {processCompletionProviderRequest} from './processCompletionProviderReque
 export {processCompletionRequest} from './processCompletionRequest';
 export {debugCompletionRequest} from './debugCompletionRequest';
 
+export {getSupportedShells} from './drivers';
 export {validateBinaryName} from './validators';
 
 export * from './types';
