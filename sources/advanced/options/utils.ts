@@ -35,7 +35,7 @@ export type WithArity<Type, Arity extends number> = Arity extends 0
 export type CommandOption<T> = {
   [isOptionSymbol]: true,
   definition: <Context extends BaseContext>(builder: CommandBuilder<CliContext<Context>>, key: string) => void,
-  transformer: <Context extends BaseContext>(builder: CommandBuilder<CliContext<Context>>, key: string, state: RunState) => T,
+  transformer: <Context extends BaseContext>(builder: CommandBuilder<CliContext<Context>>, key: string, state: RunState, context: Context) => T,
 };
 
 export type CommandOptionReturn<T> = T;

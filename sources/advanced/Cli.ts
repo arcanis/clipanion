@@ -1,6 +1,6 @@
 import {AsyncLocalStorage}                                      from 'async_hooks';
 import {Readable, Writable}                                     from 'stream';
-import tty                                                      from 'tty';
+import ttyType                                                  from 'tty';
 
 import {HELP_COMMAND_INDEX}                                     from '../constants';
 import {CliBuilder, CommandBuilder}                             from '../core';
@@ -16,12 +16,25 @@ const errorCommandSymbol = Symbol(`clipanion/errorCommand`);
 type MakeOptional<T, Keys extends keyof T> = Omit<T, Keys> & Partial<Pick<T, Keys>>;
 type VoidIfEmpty<T> = keyof T extends never ? void : never;
 
+let tty: typeof ttyType | undefined;
+try {
+  tty = require(`tty`) as typeof ttyType;
+} catch {}
+
 /**
  * The base context of the CLI.
  *
  * All Contexts have to extend it.
  */
 export type BaseContext = {
+  /**
+   * Environment variables.
+   *
+   * @default
+   * process.env
+   */
+  env: Record<string, string | undefined>;
+
   /**
    * The input stream of the CLI.
    *
@@ -134,7 +147,7 @@ export type MiniCli<Context extends BaseContext> = CliOptions & {
    *
    * @returns The compiled `Command`, with its properties populated with the arguments.
    */
-  process(input: Array<string>): Command<Context>;
+  process(input: Array<string>, context?: Partial<Context>): Command<Context>;
 
   /**
    * Runs a command.
@@ -171,17 +184,18 @@ function getDefaultColorDepth() {
 /**
  * @template Context The context shared by all commands. Contexts are a set of values, defined when calling the `run`/`runExit` functions from the CLI instance, that will be made available to the commands via `this.context`.
  */
-export class Cli<Context extends BaseContext = BaseContext> implements Omit<MiniCli<Context>, `run`> {
+export class Cli<Context extends BaseContext = BaseContext> implements Omit<MiniCli<Context>, `process` | `run`> {
   /**
    * The default context of the CLI.
    *
    * Contains the stdio of the current `process`.
    */
   static defaultContext = {
+    env: process.env,
     stdin: process.stdin,
     stdout: process.stdout,
     stderr: process.stderr,
-    colorDepth: `getColorDepth` in tty.WriteStream.prototype
+    colorDepth: tty && `getColorDepth` in tty.WriteStream.prototype
       ? tty.WriteStream.prototype.getColorDepth()
       : getDefaultColorDepth(),
   };
@@ -259,13 +273,23 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
     });
   }
 
-  process(input: Array<string>) {
+  process(input: Array<string>, context: VoidIfEmpty<Omit<Context, keyof BaseContext>>): Command<Context>;
+  process(input: Array<string>, context: MakeOptional<Context, keyof BaseContext>): Command<Context>;
+  process(input: Array<string>, userContext: any) {
     const {contexts, process} = this.builder.compile();
     const state = process(input);
 
+    const context = {
+      ...Cli.defaultContext,
+      ...userContext,
+    } as Context;
+
     switch (state.selectedIndex) {
       case HELP_COMMAND_INDEX: {
-        return HelpCommand.from<Context>(state, contexts);
+        const command = HelpCommand.from<Context>(state, contexts);
+        command.context = context;
+
+        return command;
       } break;
 
       default: {
@@ -276,14 +300,15 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
           throw new Error(`Assertion failed: Expected the command class to have been registered.`);
 
         const command = new commandClass();
+        command.context = context;
         command.path = state.path;
 
         try {
           for (const [key, {transformer}] of record.specs.entries())
-            (command as any)[key] = transformer(record.builder, key, state);
+            (command as any)[key] = transformer(record.builder, key, state, context);
 
           return command;
-        } catch (error) {
+        } catch (error: any) {
           error[errorCommandSymbol] = command;
           throw error;
         }
@@ -307,7 +332,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
       command = input;
     } else {
       try {
-        command = this.process(input);
+        command = this.process(input, context);
       } catch (error) {
         context.stdout.write(this.error(error, {colored}));
         return 1;
@@ -329,7 +354,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
       definitions: () => this.definitions(),
       error: (error, opts) => this.error(error, opts),
       format: colored => this.format(colored),
-      process: input => this.process(input),
+      process: (input, subContext?) => this.process(input, {...context, ...subContext}),
       run: (input, subContext?) => this.run(input, {...context, ...subContext} as Context),
       usage: (command, opts) => this.usage(command, opts),
     };

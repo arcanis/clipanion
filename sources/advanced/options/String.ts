@@ -5,12 +5,14 @@ import {NoLimits}                                                               
 import {applyValidator, CommandOptionReturn, GeneralOptionFlags, makeCommandOption, rerouteArguments, WithArity} from "./utils";
 
 export type StringOptionNoBoolean<T, Arity extends number = 1> = GeneralOptionFlags & {
+  env?: string,
   validator?: StrictValidator<unknown, T>,
   tolerateBoolean?: false,
   arity?: Arity,
 };
 
 export type StringOptionTolerateBoolean<T> = GeneralOptionFlags & {
+  env?: string,
   validator?: StrictValidator<unknown, T>,
   tolerateBoolean: boolean,
   arity?: 0,
@@ -52,9 +54,14 @@ function StringOption<T = string, Arity extends number = 1>(descriptor: string, 
       });
     },
 
-    transformer(builder, key, state) {
+    transformer(builder, key, state, context) {
       let usedName;
       let currentValue = initialValue;
+
+      if (typeof opts.env !== `undefined` && context.env[opts.env]) {
+        usedName = opts.env;
+        currentValue = context.env[opts.env];
+      }
 
       for (const {name, value} of state.options) {
         if (!nameSet.has(name))
