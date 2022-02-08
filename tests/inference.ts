@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import * as t            from 'typanion';
+import * as t                 from 'typanion';
 
-import {Command, Option} from '..';
+import {Cli, Command, Option} from '..';
 
 type AssertEqual<T, Expected> = [T, Expected] extends [Expected, T] ? true : false;
 
@@ -121,3 +121,51 @@ class MyCommand extends Command {
     assertEqual<Array<string>>()(this.proxy, true);
   }
 }
+
+Cli.runExit(class FooCommand extends Command {
+  async execute() {}
+});
+
+Cli.runExit(class FooCommand extends Command {
+  async execute() {}
+}, {
+  stdin: process.stdin,
+});
+
+Cli.runExit({
+  binaryLabel: `Foo`,
+}, class FooCommand extends Command {
+  async execute() {}
+});
+
+Cli.runExit({
+  binaryLabel: `Foo`,
+}, class FooCommand extends Command {
+  async execute() {}
+}, {
+  stdin: process.stdin,
+});
+
+Cli.runExit(class FooCommand extends Command {
+  async execute() {}
+}, []);
+
+Cli.runExit(class FooCommand extends Command {
+  async execute() {}
+}, [], {
+  stdin: process.stdin,
+});
+
+Cli.runExit({
+  binaryLabel: `Foo`,
+}, class FooCommand extends Command {
+  async execute() {}
+}, []);
+
+Cli.runExit({
+  binaryLabel: `Foo`,
+}, class FooCommand extends Command {
+  async execute() {}
+}, [], {
+  stdin: process.stdin,
+});

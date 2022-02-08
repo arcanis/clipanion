@@ -5,6 +5,15 @@ title: Cli
 
 The `Cli` class is the main way you'll interact with your cli.
 
+## `Cli.runExit` / `Cli.run`
+
+```ts
+Cli.run(opts?: {...}, commands: Command | Command[], argv?: string[], context?: Context)
+Cli.runExit(opts?: {...}, commands: Command | Command[], argv?: string[], context?: Context)
+```
+
+Those static method abstracts all the functions below under simple helpers that decrease the amount of boilerplate needed to boot your CLI.
+
 ## `new Cli`
 
 ```ts
