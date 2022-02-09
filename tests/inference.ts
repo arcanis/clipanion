@@ -122,47 +122,47 @@ class MyCommand extends Command {
   }
 }
 
-Cli.runExit(class FooCommand extends Command {
+runExit(class FooCommand extends Command {
   async execute() {}
 });
 
-Cli.runExit(class FooCommand extends Command {
-  async execute() {}
-}, {
-  stdin: process.stdin,
-});
-
-Cli.runExit({
-  binaryLabel: `Foo`,
-}, class FooCommand extends Command {
-  async execute() {}
-});
-
-Cli.runExit({
-  binaryLabel: `Foo`,
-}, class FooCommand extends Command {
+runExit(class FooCommand extends Command {
   async execute() {}
 }, {
   stdin: process.stdin,
 });
 
-Cli.runExit(class FooCommand extends Command {
+runExit({
+  binaryLabel: `Foo`,
+}, class FooCommand extends Command {
+  async execute() {}
+});
+
+runExit({
+  binaryLabel: `Foo`,
+}, class FooCommand extends Command {
+  async execute() {}
+}, {
+  stdin: process.stdin,
+});
+
+runExit(class FooCommand extends Command {
   async execute() {}
 }, []);
 
-Cli.runExit(class FooCommand extends Command {
+runExit(class FooCommand extends Command {
   async execute() {}
 }, [], {
   stdin: process.stdin,
 });
 
-Cli.runExit({
+runExit({
   binaryLabel: `Foo`,
 }, class FooCommand extends Command {
   async execute() {}
 }, []);
 
-Cli.runExit({
+runExit({
   binaryLabel: `Foo`,
 }, class FooCommand extends Command {
   async execute() {}

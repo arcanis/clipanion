@@ -177,6 +177,111 @@ function getDefaultColorDepth() {
   return 1;
 }
 
+export async function runExit<Context extends BaseContext = BaseContext>(commandClasses: RunCommandNoContext<Context>): Promise<void>;
+export async function runExit<Context extends BaseContext = BaseContext>(commandClasses: RunCommand<Context>, context: RunContext<Context>): Promise<void>;
+
+export async function runExit<Context extends BaseContext = BaseContext>(options: Partial<CliOptions>, commandClasses: RunCommandNoContext<Context>): Promise<void>;
+export async function runExit<Context extends BaseContext = BaseContext>(options: Partial<CliOptions>, commandClasses: RunCommand<Context>, context: RunContext<Context>): Promise<void>;
+
+export async function runExit<Context extends BaseContext = BaseContext>(commandClasses: RunCommandNoContext<Context>, argv: Array<string>): Promise<void>;
+export async function runExit<Context extends BaseContext = BaseContext>(commandClasses: RunCommand<Context>, argv: Array<string>, context: RunContext<Context>): Promise<void>;
+
+export async function runExit<Context extends BaseContext = BaseContext>(options: Partial<CliOptions>, commandClasses: RunCommandNoContext<Context>, argv: Array<string>): Promise<void>;
+export async function runExit<Context extends BaseContext = BaseContext>(options: Partial<CliOptions>, commandClasses: RunCommand<Context>, argv: Array<string>, context: RunContext<Context>): Promise<void>;
+
+export async function runExit(...args: Array<any>) {
+  const {
+    resolvedOptions,
+    resolvedCommandClasses,
+    resolvedArgv,
+    resolvedContext,
+  } = resolveRunParameters(args);
+
+  const cli = Cli.from(resolvedCommandClasses, resolvedOptions);
+  return cli.runExit(resolvedArgv, resolvedContext);
+}
+
+export async function run<Context extends BaseContext = BaseContext>(commandClasses: RunCommandNoContext<Context>): Promise<number>;
+export async function run<Context extends BaseContext = BaseContext>(commandClasses: RunCommand<Context>, context: RunContext<Context>): Promise<number>;
+
+export async function run<Context extends BaseContext = BaseContext>(options: Partial<CliOptions>, commandClasses: RunCommandNoContext<Context>): Promise<number>;
+export async function run<Context extends BaseContext = BaseContext>(options: Partial<CliOptions>, commandClasses: RunCommand<Context>, context: RunContext<Context>): Promise<number>;
+
+export async function run<Context extends BaseContext = BaseContext>(commandClasses: RunCommandNoContext<Context>, argv: Array<string>): Promise<number>;
+export async function run<Context extends BaseContext = BaseContext>(commandClasses: RunCommand<Context>, argv: Array<string>, context: RunContext<Context>): Promise<number>;
+
+export async function run<Context extends BaseContext = BaseContext>(options: Partial<CliOptions>, commandClasses: RunCommandNoContext<Context>, argv: Array<string>): Promise<number>;
+export async function run<Context extends BaseContext = BaseContext>(options: Partial<CliOptions>, commandClasses: RunCommand<Context>, argv: Array<string>, context: RunContext<Context>): Promise<number>;
+
+export async function run(...args: Array<any>) {
+  const {
+    resolvedOptions,
+    resolvedCommandClasses,
+    resolvedArgv,
+    resolvedContext,
+  } = resolveRunParameters(args);
+
+  const cli = Cli.from(resolvedCommandClasses, resolvedOptions);
+  return cli.run(resolvedArgv, resolvedContext);
+}
+
+function resolveRunParameters(args: Array<any>) {
+  let resolvedOptions: any;
+  let resolvedCommandClasses: any;
+  let resolvedArgv: any;
+  let resolvedContext: any;
+
+  switch (args.length) {
+    case 1: {
+      resolvedCommandClasses = args[0];
+    } break;
+
+    case 2: {
+      if (args[0] && (args[0].prototype instanceof Command) || Array.isArray(args[0])) {
+        resolvedCommandClasses = args[0];
+        if (Array.isArray(args[1])) {
+          resolvedArgv = args[1];
+        } else {
+          resolvedContext = args[1];
+        }
+      } else {
+        resolvedOptions = args[0];
+        resolvedCommandClasses = args[1];
+      }
+    } break;
+
+    case 3: {
+      if (Array.isArray(args[2])) {
+        resolvedOptions = args[0];
+        resolvedCommandClasses = args[1];
+        resolvedArgv = args[2];
+      } else if (args[1] && (args[1].prototype instanceof Command) || Array.isArray(args[1])) {
+        resolvedOptions = args[0];
+        resolvedCommandClasses = args[1];
+        resolvedContext = args[2];
+      } else {
+        resolvedCommandClasses = args[0];
+        resolvedArgv = args[1];
+        resolvedContext = args[2];
+      }
+    } break;
+
+    default: {
+      resolvedOptions = args[0];
+      resolvedCommandClasses = args[1];
+      resolvedArgv = args[2];
+      resolvedContext = args[3];
+    } break;
+  }
+
+  return {
+    resolvedOptions,
+    resolvedCommandClasses,
+    resolvedArgv,
+    resolvedContext,
+  };
+}
+
 /**
  * @template Context The context shared by all commands. Contexts are a set of values, defined when calling the `run`/`runExit` functions from the CLI instance, that will be made available to the commands via `this.context`.
  */
@@ -227,111 +332,6 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
       cli.register(commandClass);
 
     return cli;
-  }
-
-  static async runExit<Context extends BaseContext = BaseContext>(commandClasses: RunCommandNoContext<Context>): Promise<void>;
-  static async runExit<Context extends BaseContext = BaseContext>(commandClasses: RunCommand<Context>, context: RunContext<Context>): Promise<void>;
-
-  static async runExit<Context extends BaseContext = BaseContext>(options: Partial<CliOptions>, commandClasses: RunCommandNoContext<Context>): Promise<void>;
-  static async runExit<Context extends BaseContext = BaseContext>(options: Partial<CliOptions>, commandClasses: RunCommand<Context>, context: RunContext<Context>): Promise<void>;
-
-  static async runExit<Context extends BaseContext = BaseContext>(commandClasses: RunCommandNoContext<Context>, argv: Array<string>): Promise<void>;
-  static async runExit<Context extends BaseContext = BaseContext>(commandClasses: RunCommand<Context>, argv: Array<string>, context: RunContext<Context>): Promise<void>;
-
-  static async runExit<Context extends BaseContext = BaseContext>(options: Partial<CliOptions>, commandClasses: RunCommandNoContext<Context>, argv: Array<string>): Promise<void>;
-  static async runExit<Context extends BaseContext = BaseContext>(options: Partial<CliOptions>, commandClasses: RunCommand<Context>, argv: Array<string>, context: RunContext<Context>): Promise<void>;
-
-  static async runExit(...args: Array<any>) {
-    const {
-      resolvedOptions,
-      resolvedCommandClasses,
-      resolvedArgv,
-      resolvedContext,
-    } = Cli.resolveRunParameters(args);
-
-    const cli = Cli.from(resolvedCommandClasses, resolvedOptions);
-    return cli.runExit(resolvedArgv, resolvedContext);
-  }
-
-  static async run<Context extends BaseContext = BaseContext>(commandClasses: RunCommandNoContext<Context>): Promise<number>;
-  static async run<Context extends BaseContext = BaseContext>(commandClasses: RunCommand<Context>, context: RunContext<Context>): Promise<number>;
-
-  static async run<Context extends BaseContext = BaseContext>(options: Partial<CliOptions>, commandClasses: RunCommandNoContext<Context>): Promise<number>;
-  static async run<Context extends BaseContext = BaseContext>(options: Partial<CliOptions>, commandClasses: RunCommand<Context>, context: RunContext<Context>): Promise<number>;
-
-  static async run<Context extends BaseContext = BaseContext>(commandClasses: RunCommandNoContext<Context>, argv: Array<string>): Promise<number>;
-  static async run<Context extends BaseContext = BaseContext>(commandClasses: RunCommand<Context>, argv: Array<string>, context: RunContext<Context>): Promise<number>;
-
-  static async run<Context extends BaseContext = BaseContext>(options: Partial<CliOptions>, commandClasses: RunCommandNoContext<Context>, argv: Array<string>): Promise<number>;
-  static async run<Context extends BaseContext = BaseContext>(options: Partial<CliOptions>, commandClasses: RunCommand<Context>, argv: Array<string>, context: RunContext<Context>): Promise<number>;
-
-  static async run(...args: Array<any>) {
-    const {
-      resolvedOptions,
-      resolvedCommandClasses,
-      resolvedArgv,
-      resolvedContext,
-    } = Cli.resolveRunParameters(args);
-
-    const cli = Cli.from(resolvedCommandClasses, resolvedOptions);
-    return cli.run(resolvedArgv, resolvedContext);
-  }
-
-  private static resolveRunParameters(args: Array<any>) {
-    let resolvedOptions: any;
-    let resolvedCommandClasses: any;
-    let resolvedArgv: any;
-    let resolvedContext: any;
-
-    switch (args.length) {
-      case 1: {
-        resolvedCommandClasses = args[0];
-      } break;
-
-      case 2: {
-        if (args[0] && (args[0].prototype instanceof Command) || Array.isArray(args[0])) {
-          resolvedCommandClasses = args[0];
-          if (Array.isArray(args[1])) {
-            resolvedArgv = args[1];
-          } else {
-            resolvedContext = args[1];
-          }
-        } else {
-          resolvedOptions = args[0];
-          resolvedCommandClasses = args[1];
-        }
-      } break;
-
-      case 3: {
-        if (Array.isArray(args[2])) {
-          resolvedOptions = args[0];
-          resolvedCommandClasses = args[1];
-          resolvedArgv = args[2];
-        } else if (args[1] && (args[1].prototype instanceof Command) || Array.isArray(args[1])) {
-          resolvedOptions = args[0];
-          resolvedCommandClasses = args[1];
-          resolvedContext = args[2];
-        } else {
-          resolvedCommandClasses = args[0];
-          resolvedArgv = args[1];
-          resolvedContext = args[2];
-        }
-      } break;
-
-      default: {
-        resolvedOptions = args[0];
-        resolvedCommandClasses = args[1];
-        resolvedArgv = args[2];
-        resolvedContext = args[3];
-      } break;
-    }
-
-    return {
-      resolvedOptions,
-      resolvedCommandClasses,
-      resolvedArgv,
-      resolvedContext,
-    };
   }
 
   constructor({binaryLabel, binaryName: binaryNameOpt = `...`, binaryVersion, enableCapture = false, enableColors}: Partial<CliOptions> = {}) {
