@@ -1,7 +1,16 @@
 {
   "name": "clipanion",
   "description": "Type-safe CLI library / framework with no runtime dependencies",
-  "keywords": ["cli", "typescript", "parser", "parsing", "argument", "args", "option", "command"],
+  "keywords": [
+    "cli",
+    "typescript",
+    "parser",
+    "parsing",
+    "argument",
+    "args",
+    "option",
+    "command"
+  ],
   "version": "3.2.0-rc.6",
   "main": "sources/advanced/index.ts",
   "license": "MIT",

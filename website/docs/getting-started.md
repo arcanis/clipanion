@@ -35,7 +35,7 @@ Note that `execute` is using `this.context.stdout.write` rather than `console.lo
 
 ## Execute your CLI
 
-Now that your command is ready, all you have to do is setup the CLI engine that will "serve" this command. To do that, instantiate a new CLI, register your command into it, then apply it on the process arguments:
+Now that your command is ready, all you have to do is setup the CLI engine that will "serve" this command. To do that, you can instantiate a new CLI, register your command into it, then apply it on the process arguments:
 
 ```ts
 import {Cli} from 'clipanion';
@@ -52,4 +52,17 @@ const cli = new Cli({
 
 cli.register(HelloCommand);
 cli.runExit(args);
+```
+
+Or you can use the `Cli.runExit` helper which abstracts all that for you:
+
+```ts
+import {Cli} from 'clipanion';
+
+import {HelloCommand} from './HelloCommand';
+
+Cli.runExit({
+    binaryLabel: `My Application`,
+    binaryVersion: `1.0.0`,
+}, HelloCommand);
 ```
