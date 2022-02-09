@@ -235,11 +235,14 @@ Option.String(optionNames: string, default?: string, opts?: {...})
 | --- | --- | --- |
 | `arity` | `number` | Number of arguments for the option |
 | `description` | `string`| Short description for the help message |
+| `env` | `string` | Name of an environment variable |
 | `hidden` | `boolean` | Hide the option from any usage list |
 | `tolerateBoolean` | `boolean` | Accept the option even if no argument is provided |
 | `required` | `boolean` | Whether at least a single occurrence of the option is required or not |
 
 Specifies that the command accepts an option that takes arguments (by default one, unless overriden via `arity`). If no default value is provided, the option will start as `undefined`.
+
+If `env` is set and the specified environment variable is non-empty, it'll override the default value if necessary. Note that explicit options still take precedence over env values.
 
 ```ts
 class TestCommand extends Command {

@@ -428,6 +428,48 @@ describe(`Advanced`, () => {
     expect(cli.usage(CommandA)).to.equal(`\u001b[1m$ \u001b[22m... clean <workspaceNames> <workspaceNames> ...\n`);
   });
 
+  it(`supports populating strings with environment variables`, async () => {
+    class CommandA extends Command {
+      foo = Option.String(`--foo`, {env: `TEST_FOO`});
+
+      async execute() {
+        log(this, [`foo`]);
+      }
+    }
+
+    const cli = Cli.from([CommandA]);
+
+    expect(cli.process([], {env: {TEST_FOO: `bar`}})).to.contain({foo: `bar`});
+  });
+
+  it(`overrides defaults with environment variables`, async () => {
+    class CommandA extends Command {
+      foo = Option.String(`--foo`, `foo`, {env: `TEST_FOO`});
+
+      async execute() {
+        log(this, [`foo`]);
+      }
+    }
+
+    const cli = Cli.from([CommandA]);
+
+    expect(cli.process([], {env: {TEST_FOO: `bar`}})).to.contain({foo: `bar`});
+  });
+
+  it(`overrides environment variables with options`, async () => {
+    class CommandA extends Command {
+      foo = Option.String(`--foo`, {env: `TEST_FOO`});
+
+      async execute() {
+        log(this, [`foo`]);
+      }
+    }
+
+    const cli = Cli.from([CommandA]);
+
+    expect(cli.process([`--foo=qux`], {env: {TEST_FOO: `bar`}})).to.contain({foo: `qux`});
+  });
+
   it(`supports strings that act like booleans if not bound to a value`, async () => {
     class CommandA extends Command {
       enableDebugger = Option.String(`--break`, false, {tolerateBoolean: true});

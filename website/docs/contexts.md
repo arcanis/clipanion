@@ -7,9 +7,11 @@ In Clipanion commands have what we call a *context*. Under this fancy word is si
 
 ```ts
 interface BaseContext {
+    env: Record<string, string | undefined>;
     stdin: Readable;
     stdout: Writable;
     stderr: Writable;
+    colorDepth: number;
 }
 ```
 
