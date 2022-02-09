@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import * as t                 from 'typanion';
+import * as t            from 'typanion';
 
-import {Cli, Command, Option} from '..';
+import {runExit}         from '../sources/advanced/Cli';
+import {Command, Option} from '..';
 
 type AssertEqual<T, Expected> = [T, Expected] extends [Expected, T] ? true : false;
 
