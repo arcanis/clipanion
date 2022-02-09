@@ -76,15 +76,15 @@ export type PartialContext<Context extends BaseContext> = UserContextKeys<Contex
   ? Partial<Pick<Context, keyof BaseContext>> | undefined | void
   : Partial<Pick<Context, keyof BaseContext>> & UserContext<Context>;
 
-export type RunContext<Context extends BaseContext> =
+export type RunContext<Context extends BaseContext = BaseContext> =
   & Partial<Pick<Context, keyof BaseContext>>
   & UserContext<Context>;
 
-export type RunCommand<Context extends BaseContext> =
+export type RunCommand<Context extends BaseContext = BaseContext> =
   | Array<CommandClass<Context>>
   | CommandClass<Context>;
 
-export type RunCommandNoContext<Context extends BaseContext> =
+export type RunCommandNoContext<Context extends BaseContext = BaseContext> =
   UserContextKeys<Context> extends never
     ? RunCommand<Context>
     : never;
@@ -244,6 +244,9 @@ function resolveRunParameters(args: Array<any>) {
   let resolvedArgv: any;
   let resolvedContext: any;
 
+  if (typeof process !== `undefined` && typeof process.argv !== `undefined`)
+    resolvedArgv = process.argv.slice(2);
+
   switch (args.length) {
     case 1: {
       resolvedCommandClasses = args[0];
@@ -268,13 +271,13 @@ function resolveRunParameters(args: Array<any>) {
         resolvedOptions = args[0];
         resolvedCommandClasses = args[1];
         resolvedArgv = args[2];
-      } else if (args[1] && (args[1].prototype instanceof Command) || Array.isArray(args[1])) {
-        resolvedOptions = args[0];
-        resolvedCommandClasses = args[1];
-        resolvedContext = args[2];
-      } else {
+      } else if (args[0] && (args[0].prototype instanceof Command) || Array.isArray(args[0])) {
         resolvedCommandClasses = args[0];
         resolvedArgv = args[1];
+        resolvedContext = args[2];
+      } else {
+        resolvedOptions = args[0];
+        resolvedCommandClasses = args[1];
         resolvedContext = args[2];
       }
     } break;
@@ -286,6 +289,9 @@ function resolveRunParameters(args: Array<any>) {
       resolvedContext = args[3];
     } break;
   }
+
+  if (typeof resolvedArgv === `undefined`)
+    throw new Error(`The argv parameter must be provided when running Clipanion outside of a Node context`);
 
   return {
     resolvedOptions,

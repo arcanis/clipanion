@@ -1,8 +1,9 @@
 import {nodeResolve}              from '@rollup/plugin-node-resolve';
 import {execUtils}                from '@yarnpkg/core';
 import {xfs, PortablePath, npath} from '@yarnpkg/fslib';
-import {expect}                   from 'chai';
 import {rollup}                   from 'rollup';
+
+import {expect}                   from '../expect';
 
 describe(`Tree shaking`, () => {
   it(`should only keep the command Options used in the bundle`, async function () {

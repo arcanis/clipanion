@@ -55,7 +55,7 @@
   "scripts": {
     "prepack": "rm -rf lib && rollup -c",
     "postpack": "rm -rf lib",
-    "test": "FORCE_COLOR=1 mocha --require ts-node/register --extension ts tests",
+    "test": "FORCE_COLOR=1 mocha --require ts-node/register --extension ts tests/specs",
     "lint": "eslint --max-warnings 0 .",
     "demo": "node --require ts-node/register sources/demos/advanced.ts"
   },

@@ -1,52 +1,8 @@
-import chaiAsPromised                                                          from 'chai-as-promised';
-import chai, {expect}                                                          from 'chai';
-import getStream                                                               from 'get-stream';
-import {PassThrough}                                                           from 'stream';
-import * as t                                                                  from 'typanion';
+import * as t                                                    from 'typanion';
 
-import {Cli, CommandClass, Command, CliOptions, Option, Builtins, BaseContext} from '../sources/advanced';
-
-chai.use(chaiAsPromised);
-
-const log = <T extends Command>(command: T, properties: Array<keyof T> = []) => {
-  command.context.stdout.write(`Running ${command.constructor.name}\n`);
-
-  for (const property of properties) {
-    command.context.stdout.write(`${JSON.stringify(command[property])}\n`);
-  }
-};
-
-const runCli = async (cli: Cli | (() => Array<CommandClass>), args: Array<string>) => {
-  let finalCli;
-
-  if (typeof cli === `function`) {
-    finalCli = new Cli();
-
-    for (const command of cli()) {
-      finalCli.register(command);
-    }
-  } else {
-    finalCli = cli;
-  }
-
-  const stream = new PassThrough();
-  const promise = getStream(stream);
-
-  const exitCode = await finalCli.run(args, {
-    stdin: process.stdin,
-    stdout: stream,
-    stderr: stream,
-  });
-
-  stream.end();
-
-  const output = await promise;
-
-  if (exitCode !== 0)
-    throw new Error(output);
-
-  return output;
-};
+import {Cli, Command, CliOptions, Option, Builtins, BaseContext} from '../../sources/advanced';
+import {expect}                                                  from '../expect';
+import {log, runCli}                                             from '../tools';
 
 const prefix = `\u001b[1m$ \u001b[22m`;
 

@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import * as t            from 'typanion';
 
-import {runExit}         from '../sources/advanced/Cli';
-import {Command, Option} from '..';
+import {runExit}         from '../../sources/advanced/Cli';
+import {Command, Option} from '../../sources/advanced';
 
 type AssertEqual<T, Expected> = [T, Expected] extends [Expected, T] ? true : false;
 
@@ -123,50 +123,52 @@ class MyCommand extends Command {
   }
 }
 
-runExit(class FooCommand extends Command {
-  async execute() {}
-});
+if (eval(`false`)) {
+  runExit(class FooCommand extends Command {
+    async execute() {}
+  });
 
-runExit(class FooCommand extends Command {
-  async execute() {}
-}, {
-  stdin: process.stdin,
-});
+  runExit(class FooCommand extends Command {
+    async execute() {}
+  }, {
+    stdin: process.stdin,
+  });
 
-runExit({
-  binaryLabel: `Foo`,
-}, class FooCommand extends Command {
-  async execute() {}
-});
+  runExit({
+    binaryLabel: `Foo`,
+  }, class FooCommand extends Command {
+    async execute() {}
+  });
 
-runExit({
-  binaryLabel: `Foo`,
-}, class FooCommand extends Command {
-  async execute() {}
-}, {
-  stdin: process.stdin,
-});
+  runExit({
+    binaryLabel: `Foo`,
+  }, class FooCommand extends Command {
+    async execute() {}
+  }, {
+    stdin: process.stdin,
+  });
 
-runExit(class FooCommand extends Command {
-  async execute() {}
-}, []);
+  runExit(class FooCommand extends Command {
+    async execute() {}
+  }, []);
 
-runExit(class FooCommand extends Command {
-  async execute() {}
-}, [], {
-  stdin: process.stdin,
-});
+  runExit(class FooCommand extends Command {
+    async execute() {}
+  }, [], {
+    stdin: process.stdin,
+  });
 
-runExit({
-  binaryLabel: `Foo`,
-}, class FooCommand extends Command {
-  async execute() {}
-}, []);
+  runExit({
+    binaryLabel: `Foo`,
+  }, class FooCommand extends Command {
+    async execute() {}
+  }, []);
 
-runExit({
-  binaryLabel: `Foo`,
-}, class FooCommand extends Command {
-  async execute() {}
-}, [], {
-  stdin: process.stdin,
-});
+  runExit({
+    binaryLabel: `Foo`,
+  }, class FooCommand extends Command {
+    async execute() {}
+  }, [], {
+    stdin: process.stdin,
+  });
+}
