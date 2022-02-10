@@ -674,17 +674,33 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
         result += `${this.format(colored).bold(prefix)}${usage}\n`;
 
         if (options.length > 0) {
-          result += `\n`;
-          result += `${richFormat.header(`Options`)}\n`;
+
+          const optionsByCategory = new Map<string | null, (typeof options)[number][]>();
+          for(const option of options) {
+            let category = optionsByCategory.get(option.category);
+            if(!category) {
+              category = [];
+              optionsByCategory.set(option.category, category);
+            }
+            category.push(option);
+          }
+          const categoryOrder = optionsByCategory.keys();
 
           const maxDefinitionLength = options.reduce((length, option) => {
             return Math.max(length, option.definition.length);
           }, 0);
 
-          result += `\n`;
+          for(const categoryName of categoryOrder) {
+            const category = optionsByCategory.get(categoryName)!;
+            const headerName = categoryName === null ? `Options` : categoryName;
+            result += `\n`;
+            result += `${richFormat.header(headerName)}\n`;
 
-          for (const {definition, description} of options) {
-            result += `  ${this.format(colored).bold(definition.padEnd(maxDefinitionLength))}    ${formatMarkdownish(description, {format: this.format(colored), paragraphs: false})}`;
+            result += `\n`;
+
+            for (const {definition, description} of category) {
+              result += `  ${this.format(colored).bold(definition.padEnd(maxDefinitionLength))}    ${formatMarkdownish(description, {format: this.format(colored), paragraphs: false})}`;
+            }
           }
         }
 

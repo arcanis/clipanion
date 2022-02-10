@@ -51,6 +51,7 @@ function StringOption<T = string, Arity extends number = 1>(descriptor: string, 
         hidden: opts.hidden,
         description: opts.description,
         required: opts.required,
+        category: opts.category,
       });
     },
 

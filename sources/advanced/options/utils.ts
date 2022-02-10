@@ -10,6 +10,7 @@ export type GeneralOptionFlags = {
   description?: string,
   hidden?: boolean,
   required?: boolean;
+  category?: string;
 };
 
 // https://stackoverflow.com/a/52490977

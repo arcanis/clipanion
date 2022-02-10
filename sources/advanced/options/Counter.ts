@@ -30,6 +30,7 @@ export function Counter(descriptor: string, initialValueBase: CounterFlags | num
         hidden: opts.hidden,
         description: opts.description,
         required: opts.required,
+        category: opts.category,
       });
     },
 

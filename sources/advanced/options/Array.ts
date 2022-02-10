@@ -32,6 +32,7 @@ export function Array<Arity extends number = 1>(descriptor: string, initialValue
         hidden: opts?.hidden,
         description: opts?.description,
         required: opts.required,
+        category: opts.category,
       });
     },
 

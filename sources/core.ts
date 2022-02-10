@@ -710,6 +710,7 @@ export type OptDefinition = {
   hidden: boolean;
   required: boolean;
   allowBinding: boolean;
+  category: string | null;
 };
 
 export class CommandBuilder<Context> {
@@ -768,7 +769,7 @@ export class CommandBuilder<Context> {
     this.arity.proxy = true;
   }
 
-  addOption({names, description, arity = 0, hidden = false, required = false, allowBinding = true}: Partial<OptDefinition> & {names: Array<string>}) {
+  addOption({names, description, arity = 0, hidden = false, required = false, allowBinding = true, category = null}: Partial<OptDefinition> & {names: Array<string>}) {
     if (!allowBinding && arity > 1)
       throw new Error(`The arity cannot be higher than 1 when the option only supports the --arg=value syntax`);
     if (!Number.isInteger(arity))
@@ -777,7 +778,7 @@ export class CommandBuilder<Context> {
       throw new Error(`The arity must be positive, got ${arity}`);
 
     this.allOptionNames.push(...names);
-    this.options.push({names, description, arity, hidden, required, allowBinding});
+    this.options.push({names, description, arity, hidden, required, allowBinding, category});
   }
 
   setContext(context: Context) {
@@ -791,13 +792,14 @@ export class CommandBuilder<Context> {
       definition: string;
       description: string;
       required: boolean;
+      category: string | null;
     }> = [];
 
     if (this.paths.length > 0)
       segments.push(...this.paths[0]);
 
     if (detailed) {
-      for (const {names, arity, hidden, description, required} of this.options) {
+      for (const {names, arity, hidden, description, required, category} of this.options) {
         if (hidden)
           continue;
 
@@ -808,7 +810,7 @@ export class CommandBuilder<Context> {
         const definition = `${names.join(`,`)}${args.join(``)}`;
 
         if (!inlineOptions && description) {
-          detailedOptionList.push({definition, description, required});
+          detailedOptionList.push({definition, description, required, category});
         } else {
           segments.push(required ? `<${definition}>` : `[${definition}]`);
         }
