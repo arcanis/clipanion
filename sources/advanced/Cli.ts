@@ -512,6 +512,11 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
     process.exitCode = await this.run(input, context);
   }
 
+  suggest(input: Array<string>, partial: boolean) {
+    const {suggest} = this.builder.compile();
+    return suggest(input, partial);
+  }
+
   definitions({colored = false}: {colored?: boolean} = {}): Array<Definition> {
     const data: Array<Definition> = [];
 
