@@ -680,7 +680,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
 
         if (options.length > 0) {
           result += `\n`;
-          result += `${richFormat.header(`Options`)}\n`;
+          result += `${this.format(colored).header(`Options`)}\n`;
 
           const maxDefinitionLength = options.reduce((length, option) => {
             return Math.max(length, option.definition.length);
