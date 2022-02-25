@@ -1,6 +1,6 @@
 import * as t                                        from 'typanion';
 
-import {Option, Cli, Command, Builtins, BaseContext} from '../advanced';
+import {Option, Cli, Command, Builtins, BaseContext} from '../sources/advanced';
 
 type Context = BaseContext & {
   cwd: string;

@@ -1,11 +1,10 @@
-import {AsyncLocalStorage}                                      from 'async_hooks';
 import {Readable, Writable}                                     from 'stream';
-import ttyType                                                  from 'tty';
 
 import {HELP_COMMAND_INDEX}                                     from '../constants';
 import {CliBuilder, CommandBuilder}                             from '../core';
 import {ErrorMeta}                                              from '../errors';
 import {formatMarkdownish, ColorFormat, richFormat, textFormat} from '../format';
+import * as platform                                            from '../platform';
 
 import {CommandClass, Command, Definition}                      from './Command';
 import {HelpCommand}                                            from './HelpCommand';
@@ -15,11 +14,6 @@ const errorCommandSymbol = Symbol(`clipanion/errorCommand`);
 
 type MakeOptional<T, Keys extends keyof T> = Omit<T, Keys> & Partial<Pick<T, Keys>>;
 type VoidIfEmpty<T> = keyof T extends never ? void : never;
-
-let tty: typeof ttyType | undefined;
-try {
-  tty = require(`tty`) as typeof ttyType;
-} catch {}
 
 /**
  * The base context of the CLI.
@@ -178,18 +172,6 @@ export type MiniCli<Context extends BaseContext> = CliOptions & {
   usage(command?: CommandClass<Context> | Command<Context> | null, opts?: {detailed?: boolean, prefix?: string}): string;
 };
 
-function getDefaultColorDepth() {
-  if (process.env.FORCE_COLOR === `0`)
-    return 1;
-  if (process.env.FORCE_COLOR === `1`)
-    return 8;
-
-  if (typeof process.stdout !== `undefined` && process.stdout.isTTY)
-    return 8;
-
-  return 1;
-}
-
 export async function runExit<Context extends BaseContext = BaseContext>(commandClasses: RunCommandNoContext<Context>): Promise<void>;
 export async function runExit<Context extends BaseContext = BaseContext>(commandClasses: RunCommand<Context>, context: RunContext<Context>): Promise<void>;
 
@@ -315,9 +297,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
     stdin: process.stdin,
     stdout: process.stdout,
     stderr: process.stderr,
-    colorDepth: tty && `getColorDepth` in tty.WriteStream.prototype
-      ? tty.WriteStream.prototype.getColorDepth()
-      : getDefaultColorDepth(),
+    colorDepth: platform.getDefaultColorDepth(),
   };
 
   private readonly builder: CliBuilder<CliContext<Context>>;
@@ -484,7 +464,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
     };
 
     const activate = this.enableCapture
-      ? getCaptureActivator(context)
+      ? platform.getCaptureActivator(context) ?? noopCaptureActivator
       : noopCaptureActivator;
 
     let exitCode;
@@ -763,41 +743,6 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
   protected getUsageByIndex(n: number, opts?: {detailed?: boolean; inlineOptions?: boolean}) {
     return this.builder.getBuilderByIndex(n).usage(opts);
   }
-}
-
-let gContextStorage: AsyncLocalStorage<BaseContext> | undefined;
-
-function getCaptureActivator(context: BaseContext) {
-  let contextStorage = gContextStorage;
-  if (typeof contextStorage === `undefined`) {
-    if (context.stdout === process.stdout && context.stderr === process.stderr)
-      return noopCaptureActivator;
-
-    const {AsyncLocalStorage: LazyAsyncLocalStorage} = require(`async_hooks`);
-    contextStorage = gContextStorage = new LazyAsyncLocalStorage();
-
-    const origStdoutWrite = process.stdout._write;
-    process.stdout._write = function (chunk, encoding, cb) {
-      const context = contextStorage!.getStore();
-      if (typeof context === `undefined`)
-        return origStdoutWrite.call(this, chunk, encoding, cb);
-
-      return context.stdout.write(chunk, encoding, cb);
-    };
-
-    const origStderrWrite = process.stderr._write;
-    process.stderr._write = function (chunk, encoding, cb) {
-      const context = contextStorage!.getStore();
-      if (typeof context === `undefined`)
-        return origStderrWrite.call(this, chunk, encoding, cb);
-
-      return context.stderr.write(chunk, encoding, cb);
-    };
-  }
-
-  return <T>(fn: () => Promise<T>) => {
-    return contextStorage!.run(context, fn);
-  };
 }
 
 function noopCaptureActivator(fn: () => Promise<number>) {
