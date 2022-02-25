@@ -1,4 +1,5 @@
-import ts from '@rollup/plugin-typescript';
+import ts   from '@rollup/plugin-typescript';
+import copy from 'rollup-plugin-copy';
 
 // eslint-disable-next-line arca/no-default-export
 export default {
@@ -15,11 +16,19 @@ export default {
       format: `cjs`,
     },
   ],
-  preferBuiltins: true,
   preserveModules: true,
+  external: [
+    `typanion`,
+  ],
   plugins: [
     ts({
       tsconfig: `tsconfig.dist.json`,
+      include: `./sources/**/*`,
+    }),
+    copy({
+      targets: [
+        {src: `./sources/platform/package.json`, dest: `./lib/platform/`},
+      ],
     }),
   ],
 };

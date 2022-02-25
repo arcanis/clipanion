@@ -3,6 +3,7 @@
   "compilerOptions": {
     "noEmit": false,
     "rootDir": "sources",
+    "stripInternal": true,
     "outDir": "lib",
     "types": [
       "node"

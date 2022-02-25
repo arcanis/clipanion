@@ -1,0 +1,4 @@
+{
+    "main": "./node",
+    "browser": "./browser"
+}
