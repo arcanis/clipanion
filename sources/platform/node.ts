@@ -1,12 +1,7 @@
 import {AsyncLocalStorage} from 'async_hooks';
-import ttyType             from 'tty';
+import tty                 from 'tty';
 
 import {BaseContext}       from '../advanced/Cli';
-
-let tty: typeof ttyType | undefined;
-try {
-  tty = require(`tty`) as typeof ttyType;
-} catch {}
 
 export function getDefaultColorDepth() {
   if (tty && `getColorDepth` in tty.WriteStream.prototype)

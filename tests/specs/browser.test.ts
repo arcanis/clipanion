@@ -5,7 +5,7 @@ import {rollup}                   from 'rollup';
 
 import {expect}                   from '../expect';
 
-describe(`Tree shaking`, () => {
+describe(`Browser support`, () => {
   it(`should only keep the command Options used in the bundle`, async function () {
     this.timeout(20000);
 
@@ -24,26 +24,27 @@ describe(`Tree shaking`, () => {
       const added = await execUtils.execvp(`yarn`, [`add`, `./${rndName}.tgz`], {cwd: tempDir});
       expect(added.code).to.eq(0);
 
-      const buildCode = async (code: string) => {
-        await xfs.writeFilePromise(`${tempDir}/index.js` as PortablePath, code);
+      await xfs.writeFilePromise(`${tempDir}/index.js` as PortablePath, `import { Cli } from 'clipanion';\n`);
 
-        const result = await rollup({
-          input: npath.fromPortablePath(`${tempDir}/index.js`),
-          plugins: [nodeResolve({preferBuiltins: true})],
-          external: [`tty`],
-        });
+      const warnings: Array<any> = [];
 
-        const {output} = await result.generate({format: `esm`});
-        return output[0].code;
-      };
+      await rollup({
+        input: npath.fromPortablePath(`${tempDir}/index.js`),
+        plugins: [nodeResolve({preferBuiltins: true, browser: true})],
+        onwarn: warning => warnings.push(warning),
+      });
 
-      const singleCode = await buildCode(`import { Option } from 'clipanion';\nOption.Array();\n`);
-      const multiCode = await buildCode(`import { Option } from 'clipanion';\nOption.Counter();\nOption.Array();\n`);
+      expect(warnings).to.deep.equal([]);
 
-      // We expect the output when referencing multiple symbols to be quite a
-      // bit more than the number of extra characters (with some buffer to
-      // account with the transpilation overhead)
-      expect(multiCode.length).to.be.greaterThan(singleCode.length + 20);
+      await rollup({
+        input: npath.fromPortablePath(`${tempDir}/index.js`),
+        plugins: [nodeResolve({preferBuiltins: true})],
+        onwarn: warning => warnings.push(warning),
+      });
+
+      expect(warnings).to.have.length(1);
+      expect(warnings).to.have.nested.property(`[0].code`, `UNRESOLVED_IMPORT`);
+      expect(warnings).to.have.nested.property(`[0].source`, `tty`);
     });
   });
 });
