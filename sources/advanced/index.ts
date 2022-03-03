@@ -10,10 +10,3 @@ export {run, runExit} from './Cli';
 
 export * as Builtins from './builtins';
 export * as Option from './options';
-
-/**
- * foo
- */
-export function foo() {
-  return 42;
-}
