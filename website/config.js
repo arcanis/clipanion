@@ -20,7 +20,8 @@ module.exports = {
   },
 
   index: {
-    getStarted: `/docs`,
+    overview: `/docs`,
+    getStarted: `/docs/getting-started`,
     features: [{
       title: `Type Safe`,
       description: `Clipanion provides type inference for the options you declare: no duplicated types to write and keep in sync.`,
