@@ -7,7 +7,9 @@ By default Clipanion mounts all commands as top-level, meaning that they are sel
 
 To help with that, Clipanion supports giving each command one or multiple *paths*. A path is a list of fixed strings that must be found in order for the command to be selected as an execution candidate. Paths are declared using the static `paths` property from each command class:
 
-```ts
+```ts twoslash
+import {Command} from 'clipanion';
+// ---cut---
 class InstallCommand extends Command {
     static paths = [[`install`], [`i`]];
     async execute() {
@@ -19,6 +21,8 @@ class InstallCommand extends Command {
 In the example above, we declared a command that accepts any of two paths: `install`, or `i`. If we wanted the command to also trigger when *no* path is set (just like the default behavior), we'd use the `Command.Default` special path:
 
 ```ts
+import {Command} from 'clipanion';
+// ---cut---
 class InstallCommand extends Command {
     static paths = [[`install`], [`i`], Command.Default];
     async execute() {
@@ -36,6 +40,8 @@ You could also use an empty array instead of the `Command.Default` helper, but u
 It's possible for a path to overlap another one, as long as they aren't strictly identical:
 
 ```ts
+import {Command} from 'clipanion';
+// ---cut---
 class FooCommand extends Command {
     static paths = [[`foo`]];
     async execute() {

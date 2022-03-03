@@ -7,7 +7,9 @@ title: Tips & Tricks
 
 Because they're just plain old ES6 classes, commands can easily extend each other and inherit options:
 
-```ts
+```ts twoslash
+import {Command, Option} from 'clipanion';
+// ---cut---
 abstract class BaseCommand extends Command {
     cwd = Option.String(`--cwd`, {hidden: true});
 
@@ -26,7 +28,9 @@ class FooCommand extends BaseCommand {
 
 Positionals can also be inherited. They will be consumed in order starting from the superclass:
 
-```ts
+```ts twoslash
+import {Command, Option} from 'clipanion';
+// ---cut---
 abstract class BaseCommand extends Command {
     foo = Option.String();
 
@@ -52,13 +56,16 @@ hello world
 
 Adding options to existing commands can be achieved via inheritance and required options:
 
-```ts
+```ts twoslash
+import {Command, Option} from 'clipanion';
+// ---cut---
 class GreetCommand extends Command {
+  static paths = [[`greet`]];
+
   name = Option.String();
 
   greeting = Option.String(`--greeting`, `Hello`);
 
-  static paths = [[`greet`]];
   async execute(): Promise<number | void> {
     this.context.stdout.write(`${this.greeting} ${this.name}!\n`);
   }
@@ -95,10 +102,12 @@ To add an option to an existing command, you need to know its `Command` class. T
 
 Many commands have the following form:
 
-```ts
+```ts twoslash
+import {Command} from 'clipanion';
+// ---cut---
 import {uniqBy} from 'lodash';
 
-export class MyCommand extends Command {
+class MyCommand extends Command {
     async execute() {
         // ...
     }
@@ -109,8 +118,10 @@ While it works just fine, if you have a lot of commands that each have their own
 
 To solve this problem you can move your imports inside the body of the `execute` function - thus making sure they'll only be evaluated if actually relevant:
 
-```ts
-export class MyCommand extends Command {
+```ts twoslash
+import {Command} from 'clipanion';
+// ---cut---
+class MyCommand extends Command {
     async execute() {
         const {uniqBy} = await import(`lodash`);
         // ...

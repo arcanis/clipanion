@@ -9,10 +9,12 @@ While static types go a long way towards stable CLIs, you often need a tighter c
 
 The `Option.String` declarator accepts a `validator` option. You can use it with the Clipanion predicates to enforce a specific shape for your option:
 
-```ts
+```ts twoslash
+import {Command, Option} from 'clipanion';
+// ---cut---
 import * as t from 'typanion';
 
-class PowerCommand {
+class PowerCommand extends Command {
     a = Option.String({validator: t.isNumber()});
     b = Option.String({validator: t.isNumber()});
 
@@ -22,13 +24,35 @@ class PowerCommand {
 }
 ```
 
-As you can see, TypeScript correctly inferred that both `this.a` and `this.b` are numbers (coercing them from their original strings), and passing anything else at runtime will now trigger validation errors.
+As you can see by hovering them, TypeScript correctly inferred that both `this.a` and `this.b` are numbers (coercing them from their original strings), and passing anything else at runtime will now trigger validation errors. You can apply additional rules by using the Typanion predicates, for example here to validate that something is a valid port:
+
+
+```ts twoslash
+import {Command, Option} from 'clipanion';
+// ---cut---
+import * as t from 'typanion';
+
+const isPort = t.applyCascade(t.isNumber(), [
+    t.isInteger(),
+    t.isInInclusiveRange(1, 65535),
+]);
+
+class ServeCommand extends Command {
+    port = Option.String({validator: isPort});
+
+    async execute() {
+        this.context.stdout.write(`Listening on ${this.port}\n`);
+    }
+}
+```
 
 ## Validating Commands
 
 While option-level validation is typically enough, in some cases you need to also enforce constraints in your application about the final shape. For instance, imagine a command where `--foo` cannot be used if `--bar` is used. For this kind of requirements, you can leverage the `static schema` declaration:
 
-```ts
+```ts twoslash
+import {Command, Option} from 'clipanion';
+// ---cut---
 import * as t from 'typanion';
 
 class MyCommand extends Command {
@@ -38,7 +62,13 @@ class MyCommand extends Command {
     static schema = [
         t.hasMutuallyExclusiveKeys([`foo`, `bar`]),
     ];
+
+    async execute() {
+        // ...
+    }
 }
 ```
 
 This schema will be run before executing the command, and will ensure that if any of `foo` and `bar` is true, then the other necessarily isn't.
+
+Note however that `schema` doesn't contribute to the type inference, so checking whether one value is set won't magically refine the type for the other values.

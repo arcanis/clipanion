@@ -13,34 +13,54 @@ yarn add clipanion
 
 ## Your first command
 
-Create a command file, let's say `HelloCommand.ts` (we'll be using TypeScript here, but it's mostly the same if you use regular JavaScript, with the exception of the import style):
+Create a command file, let's say `HelloCommand.ts` (we'll be using TypeScript here, but it's mostly the same if you use regular JavaScript, perhaps with the exception of the import style):
 
-```ts
+```ts twoslash
 import {Command, Option} from 'clipanion';
 
 export class HelloCommand extends Command {
-    name = Option.String();
+  name = Option.String();
 
-    async execute() {
-        this.context.stdout.write(`Hello ${this.name}!\n`);
-    }
+  async execute() {
+    this.context.stdout.write(`Hello ${this.name}!\n`);
+  }
 }
 ```
 
 That's it for your first command. You just have declare a class, extend from the base `Command` class, declare your options as regular properties, and implement an `async execute` member function.
 
 :::info
-Note that `execute` is using `this.context.stdout.write` rather than `console.log`. While optional, keeping this convention is a good practice as commands may want to call each other with different types of streams (for example to buffer the output of another command).
+Note that `execute` is using `this.context.stdout.write` rather than `console.log`. While optional, keeping this convention can be seen as a good practice, allowing commands to call each other while buffering their outputs.
 :::
 
 ## Execute your CLI
 
-Now that your command is ready, all you have to do is setup the CLI engine that will "serve" this command. To do that, you can instantiate a new CLI, register your command into it, then apply it on the process arguments:
+Commands can be called by passing them to the `runExit` function:
 
-```ts
+```ts twoslash
+import {Command, Option, runExit} from 'clipanion';
+
+runExit(class HelloCommand extends Command {
+  name = Option.String();
+
+  async execute() {
+    this.context.stdout.write(`Hello ${this.name}!\n`);
+  }
+});
+```
+
+Alternatively, you can construct the CLI instance itself, which is what `runExit` does:
+
+```ts twoslash
+import {Command} from 'clipanion';
+
+class HelloCommand extends Command {
+  async execute() {}
+}
+
+// ---cut---
+
 import {Cli} from 'clipanion';
-
-import {HelloCommand} from './HelloCommand';
 
 const [node, app, ...args] = process.argv;
 
@@ -54,15 +74,32 @@ cli.register(HelloCommand);
 cli.runExit(args);
 ```
 
-Or you can use the `Cli.runExit` helper which abstracts all that for you:
+## Registering multiple commands
 
-```ts
-import {Cli} from 'clipanion';
+You can add multiple commands to your CLI by giving them different `paths` static properties. For example:
 
-import {HelloCommand} from './HelloCommand';
+```ts twoslash
+import {Command, Option, runExit} from 'clipanion';
 
-Cli.runExit({
-    binaryLabel: `My Application`,
-    binaryVersion: `1.0.0`,
-}, HelloCommand);
+runExit([
+  class AddCommand extends Command {
+    static paths = [[`add`]];
+
+    name = Option.String();
+
+    async execute() {
+      this.context.stdout.write(`Adding ${this.name}!\n`);
+    }
+  },
+
+  class RemoveCommand extends Command {
+    static paths = [[`remove`]];
+
+    name = Option.String();
+
+    async execute() {
+      this.context.stdout.write(`Removing ${this.name}!\n`);
+    }
+  },
+]);
 ```

@@ -172,6 +172,15 @@ export type MiniCli<Context extends BaseContext> = CliOptions & {
   usage(command?: CommandClass<Context> | Command<Context> | null, opts?: {detailed?: boolean, prefix?: string}): string;
 };
 
+/**
+ * An all-in-one helper that simultaneously instantiate a CLI and immediately
+ * executes it. All parameters are optional except the command classes and
+ * will be filled by sensible values for the current environment (for example
+ * the argv argument will default to `process.argv`, etc).
+ *
+ * Just like `Cli#runExit`, this function will set the `process.exitCode` value
+ * before returning.
+ */
 export async function runExit<Context extends BaseContext = BaseContext>(commandClasses: RunCommandNoContext<Context>): Promise<void>;
 export async function runExit<Context extends BaseContext = BaseContext>(commandClasses: RunCommand<Context>, context: RunContext<Context>): Promise<void>;
 
@@ -196,6 +205,15 @@ export async function runExit(...args: Array<any>) {
   return cli.runExit(resolvedArgv, resolvedContext);
 }
 
+/**
+ * An all-in-one helper that simultaneously instantiate a CLI and immediately
+ * executes it. All parameters are optional except the command classes and
+ * will be filled by sensible values for the current environment (for example
+ * the argv argument will default to `process.argv`, etc).
+ *
+ * Unlike `runExit`, this function won't set the `process.exitCode` value
+ * before returning.
+ */
 export async function run<Context extends BaseContext = BaseContext>(commandClasses: RunCommandNoContext<Context>): Promise<number>;
 export async function run<Context extends BaseContext = BaseContext>(commandClasses: RunCommand<Context>, context: RunContext<Context>): Promise<number>;
 

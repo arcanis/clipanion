@@ -229,6 +229,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/lodash@npm:^4.14.179":
+  version: 4.14.179
+  resolution: "@types/lodash@npm:4.14.179"
+  checksum: 71faa0c8071732c2b7f0bd092850d3cea96fc7912055d57d819cf2ab399a64150e4190d8a4ea35a0905662ddc118be9d2abd55891d8047c085acf98608156149
+  languageName: node
+  linkType: hard
+
 "@types/minimatch@npm:*":
   version: 3.0.5
   resolution: "@types/minimatch@npm:3.0.5"
@@ -1023,6 +1030,7 @@ __metadata:
     "@rollup/plugin-typescript": ^6.1.0
     "@types/chai": ^4.2.11
     "@types/chai-as-promised": ^7.1.2
+    "@types/lodash": ^4.14.179
     "@types/mocha": ^7.0.2
     "@types/node": ^14.0.13
     "@typescript-eslint/eslint-plugin": ^4.11.1
@@ -1036,6 +1044,7 @@ __metadata:
     eslint-plugin-arca: ^0.10.0
     eslint-plugin-react: ^7.21.5
     get-stream: ^5.1.0
+    lodash: ^4.17.21
     mocha: ^8.0.1
     rollup: ^2.16.1
     rollup-plugin-copy: ^3.4.0
@@ -2517,7 +2526,7 @@ fsevents@~2.1.2:
   languageName: node
   linkType: hard
 
-"lodash@npm:^4.17.11":
+"lodash@npm:^4.17.11, lodash@npm:^4.17.21":
   version: 4.17.21
   resolution: "lodash@npm:4.17.21"
   checksum: eb835a2e51d381e561e508ce932ea50a8e5a68f4ebdd771ea240d3048244a8d13658acbd502cd4829768c56f2e16bdd4340b9ea141297d472517b83868e677f7
