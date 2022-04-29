@@ -1,7 +1,10 @@
-import {GeneralOptionFlags, CommandOptionReturn, rerouteArguments, makeCommandOption, WithArity} from "./utils";
+import {StrictValidator}                                                                                         from "typanion";
 
-export type ArrayFlags<Arity extends number = 1> = GeneralOptionFlags & {
+import {applyValidator, GeneralOptionFlags, CommandOptionReturn, rerouteArguments, makeCommandOption, WithArity} from "./utils";
+
+export type ArrayFlags<T, Arity extends number = 1> = GeneralOptionFlags & {
   arity?: Arity,
+  validator?: StrictValidator<unknown, Array<T>>,
 };
 
 /**
@@ -12,10 +15,10 @@ export type ArrayFlags<Arity extends number = 1> = GeneralOptionFlags & {
  * --foo hello --foo bar
  *     ► {"foo": ["hello", "world"]}
  */
-export function Array<Arity extends number = 1>(descriptor: string, opts: ArrayFlags<Arity> & {required: true}): CommandOptionReturn<Array<WithArity<string, Arity>>>;
-export function Array<Arity extends number = 1>(descriptor: string, opts?: ArrayFlags<Arity>): CommandOptionReturn<Array<WithArity<string, Arity>> | undefined>;
-export function Array<Arity extends number = 1>(descriptor: string, initialValue: Array<WithArity<string, Arity>>, opts?: Omit<ArrayFlags<Arity>, 'required'>): CommandOptionReturn<Array<WithArity<string, Arity>>>;
-export function Array<Arity extends number = 1>(descriptor: string, initialValueBase: ArrayFlags<Arity> | Array<WithArity<string, Arity>> | undefined, optsBase?: ArrayFlags<Arity>) {
+export function Array<T = string, Arity extends number = 1>(descriptor: string, opts: ArrayFlags<T, Arity> & {required: true}): CommandOptionReturn<Array<WithArity<T, Arity>>>;
+export function Array<T = string, Arity extends number = 1>(descriptor: string, opts?: ArrayFlags<T, Arity>): CommandOptionReturn<Array<WithArity<T, Arity>> | undefined>;
+export function Array<T = string, Arity extends number = 1>(descriptor: string, initialValue: Array<WithArity<string, Arity>>, opts?: Omit<ArrayFlags<T, Arity>, 'required'>): CommandOptionReturn<Array<WithArity<T, Arity>>>;
+export function Array<T = string, Arity extends number = 1>(descriptor: string, initialValueBase: ArrayFlags<T, Arity> | Array<WithArity<string, Arity>> | undefined, optsBase?: ArrayFlags<T, Arity>) {
   const [initialValue, opts] = rerouteArguments(initialValueBase, optsBase ?? {});
   const {arity = 1} = opts;
 
@@ -36,6 +39,7 @@ export function Array<Arity extends number = 1>(descriptor: string, initialValue
     },
 
     transformer(builder, key, state) {
+      let usedName;
       let currentValue = typeof initialValue !== `undefined`
         ? [...initialValue]
         : undefined;
@@ -44,11 +48,16 @@ export function Array<Arity extends number = 1>(descriptor: string, initialValue
         if (!nameSet.has(name))
           continue;
 
+        usedName = name;
         currentValue = currentValue ?? [];
         currentValue.push(value);
       }
 
-      return currentValue;
+      if (typeof currentValue !== `undefined`) {
+        return applyValidator(usedName ?? key, currentValue, opts.validator);
+      } else {
+        return currentValue;
+      }
     },
   });
 }

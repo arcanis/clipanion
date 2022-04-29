@@ -23,7 +23,7 @@
     "website"
   ],
   "dependencies": {
-    "typanion": "^3.3.1"
+    "typanion": "^3.8.0"
   },
   "peerDependencies": {
     "typanion": "*"

@@ -1051,7 +1051,7 @@ __metadata:
     rollup-plugin-multi-input: ^1.3.1
     ts-node: ^8.10.2
     tslib: ^2.0.0
-    typanion: ^3.3.1
+    typanion: ^3.8.0
     typescript: ^4.1.2
   peerDependencies:
     typanion: "*"
@@ -3894,10 +3894,10 @@ fsevents@~2.1.2:
   languageName: node
   linkType: hard
 
-"typanion@npm:^3.3.1":
-  version: 3.3.1
-  resolution: "typanion@npm:3.3.1"
-  checksum: 212d2beb5502028f7879c90508cd7695d83a32b95d9323870d2a2c8b21f68e4cdf2bafbfdd6a2c8f3a37329355e3d5ec6e99c97eecd422adcd8e07011ee7668b
+"typanion@npm:^3.8.0":
+  version: 3.8.0
+  resolution: "typanion@npm:3.8.0"
+  checksum: ea3f97072c72efd4f1ac2c8996dad61e2a0810e6e2835f72b1e076e3f4c796666dc5f60af88329f3892173419a114b5d58a7369c16fdc46d76e3d9a55e8c486d
   languageName: node
   linkType: hard
 

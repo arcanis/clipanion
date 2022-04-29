@@ -1127,7 +1127,7 @@ describe(`Advanced`, () => {
     await expect(runCli(cli, [`--foo`, `--bar`])).to.be.rejectedWith(`property "foo" forbids using property "bar"`);
   });
 
-  it(`should coerce options when requested`, async () => {
+  it(`should coerce options when requested (strings)`, async () => {
     class FooCommand extends Command {
       foo = Option.String(`--foo`, {validator: t.isNumber()});
 
@@ -1140,6 +1140,36 @@ describe(`Advanced`, () => {
 
     await expect(runCli(cli, [`--foo`, `42`])).to.eventually.equal(`Running FooCommand\n42\n`);
     await expect(runCli(cli, [`--foo`, `ab`])).to.be.rejectedWith(`Invalid value for --foo: expected a number`);
+  });
+
+  it(`should coerce options when requested (array)`, async () => {
+    class FooCommand extends Command {
+      foo = Option.Array(`--foo`, {validator: t.isArray(t.isNumber())});
+
+      async execute() {
+        log(this, [`foo`]);
+      }
+    }
+
+    const cli = Cli.from([FooCommand]);
+
+    await expect(runCli(cli, [`--foo`, `42`, `--foo`, `21`])).to.eventually.equal(`Running FooCommand\n[42,21]\n`);
+    await expect(runCli(cli, [`--foo`, `test`])).to.be.rejectedWith(`Invalid value for --foo[0]: expected a number (got "test")`);
+  });
+
+  it(`should coerce options when requested (array of tuples)`, async () => {
+    class FooCommand extends Command {
+      foo = Option.Array(`--foo`, {arity: 2, validator: t.isArray(t.isTuple([t.isNumber(), t.isBoolean()]))});
+
+      async execute() {
+        log(this, [`foo`]);
+      }
+    }
+
+    const cli = Cli.from([FooCommand]);
+
+    await expect(runCli(cli, [`--foo`, `42`, `true`, `--foo`, `21`, `false`])).to.eventually.equal(`Running FooCommand\n[[42,true],[21,false]]\n`);
+    await expect(runCli(cli, [`--foo`, `42`, `test`])).to.be.rejectedWith(`Invalid value for --foo[0][1]: expected a boolean (got "test")`);
   });
 
   it(`should coerce positionals when requested`, async () => {
