@@ -11,7 +11,7 @@
     "option",
     "command"
   ],
-  "version": "3.2.0-rc.10",
+  "version": "3.2.0-rc.11",
   "main": "sources/advanced/index.ts",
   "license": "MIT",
   "sideEffects": false,
