@@ -56,6 +56,7 @@ describe(`Advanced`, () => {
           static paths = [[`foo`]];
 
           foo = Option.Boolean(`--foo`);
+          bar = Option.Boolean(`--bar`, {required: true});
           async execute() {log(this);}
         }
 
