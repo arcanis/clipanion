@@ -63,6 +63,7 @@ describe(`Advanced`, () => {
 
         expect(await runCli(cli, [`foo`, `-h`])).to.equal(cli.usage(CommandA));
         expect(await runCli(cli, [`foo`, `--help`])).to.equal(cli.usage(CommandA));
+        expect(await runCli(cli, [`foo`, `--help`, `--foo`])).to.equal(cli.usage(CommandA));
       });
 
       it(`should display the command usage if there's a single one and it's the default`, async () => {
@@ -1057,6 +1058,55 @@ describe(`Advanced`, () => {
     expect(await runCli(cli, [`--foo`])).to.equal(`Running FooCommand\n`);
     await expect(runCli(cli, [`--bar`])).to.be.rejectedWith(`Command not found; did you mean:`);
     expect(await runCli(cli, [`--foo`, `--bar`])).to.equal(`Running FooBarCommand\n`);
+  });
+
+  it(`should support --help even for commands with required options`, async () => {
+    const cli = new Cli();
+    cli.register(Builtins.HelpCommand);
+
+    class CommandA extends Command {
+      static paths = [[`foo`]];
+
+      foo = Option.Boolean(`--foo`);
+      bar = Option.Boolean(`--bar`, {required: true});
+      async execute() {log(this);}
+    }
+
+    cli.register(CommandA);
+
+    expect(await runCli(cli, [`foo`, `--help`])).to.equal(cli.usage(CommandA));
+  });
+
+  it(`should support --help even when used before other arguments`, async () => {
+    const cli = new Cli();
+    cli.register(Builtins.HelpCommand);
+
+    class CommandA extends Command {
+      static paths = [[`foo`]];
+
+      foo = Option.Boolean(`--foo`);
+      async execute() {log(this);}
+    }
+
+    cli.register(CommandA);
+
+    expect(await runCli(cli, [`foo`, `--help`, `--foo`])).to.equal(cli.usage(CommandA));
+  });
+
+  it(`should support --help even when used before required options`, async () => {
+    const cli = new Cli();
+    cli.register(Builtins.HelpCommand);
+
+    class CommandA extends Command {
+      static paths = [[`foo`]];
+
+      foo = Option.Boolean(`--foo`, {required: true});
+      async execute() {log(this);}
+    }
+
+    cli.register(CommandA);
+
+    expect(await runCli(cli, [`foo`, `--help`, `--foo`])).to.equal(cli.usage(CommandA));
   });
 
   it(`should show the reason if the single branch errors`, async () => {

@@ -387,7 +387,7 @@ export function selectBestState(input: Array<string>, states: Array<RunState>) {
     throw new Error();
 
   const requiredOptionsSetStates = terminalStates.filter(state =>
-    state.requiredOptions.every(names =>
+    state.selectedIndex === HELP_COMMAND_INDEX || state.requiredOptions.every(names =>
       names.some(name =>
         state.options.find(opt => opt.name === name)
       )
@@ -874,6 +874,7 @@ export class CommandBuilder<Context> {
       if (this.arity.leading.length > 0 || !this.arity.proxy) {
         const helpNode = injectNode(machine, makeNode());
         registerDynamic(machine, lastPathNode, `isHelp`, helpNode, [`useHelp`, this.cliIndex]);
+        registerDynamic(machine, helpNode, `always`, helpNode, `pushExtra`);
         registerStatic(machine, helpNode, END_OF_INPUT, NODE_SUCCESS, [`setSelectedIndex`, HELP_COMMAND_INDEX]);
 
         this.registerOptions(machine, lastPathNode);
