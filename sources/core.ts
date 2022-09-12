@@ -379,11 +379,6 @@ export function trimSmallerBranches(branches: Array<{node: number, state: RunSta
 }
 
 export function selectBestState(input: Array<string>, states: Array<RunState>) {
-  const helpState = getHelpState(states);
-
-  if (helpState)
-    return helpState;
-
   const terminalStates = states.filter(state => {
     return state.selectedIndex !== null;
   });
@@ -392,7 +387,7 @@ export function selectBestState(input: Array<string>, states: Array<RunState>) {
     throw new Error();
 
   const requiredOptionsSetStates = terminalStates.filter(state =>
-    state.requiredOptions.every(names =>
+    state.selectedIndex === HELP_COMMAND_INDEX || state.requiredOptions.every(names =>
       names.some(name =>
         state.options.find(opt => opt.name === name)
       )
@@ -434,25 +429,34 @@ export function selectBestState(input: Array<string>, states: Array<RunState>) {
     return state;
   });
 
-  if (bestPositionalStates.length > 1)
-    throw new errors.AmbiguousSyntaxError(input, bestPositionalStates.map(state => state.candidateUsage!));
+  const fixedStates = aggregateHelpStates(bestPositionalStates);
+  if (fixedStates.length > 1)
+    throw new errors.AmbiguousSyntaxError(input, fixedStates.map(state => state.candidateUsage!));
 
-  return bestPositionalStates[0];
+  return fixedStates[0];
 }
 
-export function getHelpState(states: Array<RunState>) {
-  const helps: Array<RunState> = states.filter(state => (
-    state.selectedIndex === HELP_COMMAND_INDEX
-  ));
+export function aggregateHelpStates(states: Array<RunState>) {
+  const notHelps: Array<RunState> = [];
+  const helps: Array<RunState> = [];
 
-  if (!helps.length)
-    return undefined;
+  for (const state of states) {
+    if (state.selectedIndex === HELP_COMMAND_INDEX) {
+      helps.push(state);
+    } else {
+      notHelps.push(state);
+    }
+  }
 
-  return {
-    ...basicHelpState,
-    path: findCommonPrefix(...helps.map(state => state.path)),
-    options: helps.reduce((options, state) => options.concat(state.options), [] as RunState['options']),
-  };
+  if (helps.length > 0) {
+    notHelps.push({
+      ...basicHelpState,
+      path: findCommonPrefix(...helps.map(state => state.path)),
+      options: helps.reduce((options, state) => options.concat(state.options), [] as RunState['options']),
+    });
+  }
+
+  return notHelps;
 }
 
 function findCommonPrefix(...paths: Array<Array<string>>): Array<string>;
