@@ -1,6 +1,7 @@
 {
   "name": "clipanion",
   "description": "Type-safe CLI library / framework with no runtime dependencies",
+  "homepage": "https://mael.dev/clipanion/",
   "keywords": [
     "cli",
     "typescript",
@@ -11,7 +12,7 @@
     "option",
     "command"
   ],
-  "version": "3.2.0-rc.12",
+  "version": "3.2.0-rc.13",
   "main": "sources/advanced/index.ts",
   "license": "MIT",
   "sideEffects": false,
