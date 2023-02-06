@@ -65,15 +65,7 @@
     "demo": "node --require ts-node/register demos/advanced.ts"
   },
   "publishConfig": {
-    "main": "lib/advanced/index",
-    "exports": {
-      ".": {
-        "types": "./lib/advanced/index.d.ts",
-        "require": "./lib/advanced/index.js",
-        "import": "./lib/advanced/index.mjs"
-      },
-      "./package.json": "./package.json"
-    }
+    "main": "lib/advanced/index"
   },
   "files": [
     "lib"
