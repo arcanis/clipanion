@@ -1,4 +1,14 @@
 {
-    "main": "./node",
-    "browser": "./browser"
+  "main": "./node.js",
+  "browser": "./browser.mjs",
+  "exports": {
+    ".": {
+      "browser": "./browser.mjs",
+      "default": {
+        "require": "./node.js",
+        "import": "./node.mjs"
+      }
+    },
+    "./package.json": "./package.json"
+  }
 }
