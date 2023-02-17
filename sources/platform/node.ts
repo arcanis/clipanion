@@ -1,9 +1,12 @@
-import {AsyncLocalStorage} from 'async_hooks';
-import tty                 from 'tty';
+import type {AsyncLocalStorage} from 'async_hooks';
+import tty                      from 'tty';
 
-import {BaseContext}       from '../advanced/Cli';
+import type {BaseContext}       from '../advanced/Cli';
 
 export function getDefaultColorDepth() {
+  if (process.env.NODE_ENV === `test`)
+    return 1;
+
   if (tty && `getColorDepth` in tty.WriteStream.prototype)
     return tty.WriteStream.prototype.getColorDepth();
 

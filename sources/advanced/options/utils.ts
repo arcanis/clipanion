@@ -1,8 +1,8 @@
-import {Coercion, CoercionFn, StrictValidator} from 'typanion';
+import type {Coercion, CoercionFn, StrictValidator} from 'typanion';
 
-import {CommandBuilder,  RunState}             from '../../core';
-import {UsageError}                            from '../../errors';
-import {BaseContext, CliContext}               from '../Cli';
+import type {CommandBuilder,  RunState}             from '../../core';
+import {UsageError}                                 from '../../errors';
+import type {BaseContext, CliContext}               from '../Cli';
 
 export const isOptionSymbol = Symbol(`clipanion/isOption`);
 

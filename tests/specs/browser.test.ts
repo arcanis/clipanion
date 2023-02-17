@@ -1,14 +1,11 @@
-import {nodeResolve}              from '@rollup/plugin-node-resolve';
-import {execUtils}                from '@yarnpkg/core';
-import {xfs, PortablePath, npath} from '@yarnpkg/fslib';
-import {rollup}                   from 'rollup';
-
-import {expect}                   from '../expect';
+import {nodeResolve}       from '@rollup/plugin-node-resolve';
+import {execUtils}         from '@yarnpkg/core';
+import type {PortablePath} from '@yarnpkg/fslib';
+import {xfs, npath}        from '@yarnpkg/fslib';
+import {rollup}            from 'rollup';
 
 describe(`Browser support`, () => {
-  it(`should only keep the command Options used in the bundle`, async function () {
-    this.timeout(20000);
-
+  it(`should only keep the command Options used in the bundle`, async () => {
     await xfs.mktempPromise(async tempDir => {
       const rndName = Math.floor(Math.random() * 100000000).toString(16).padStart(8, `0`);
 
@@ -16,13 +13,13 @@ describe(`Browser support`, () => {
         cwd: npath.toPortablePath(__dirname),
       });
 
-      expect(packed.code).to.eq(0);
+      expect(packed.code).toEqual(0);
 
       await xfs.writeJsonPromise(`${tempDir}/package.json` as PortablePath, {name: `test-treeshake`});
       await xfs.writeFilePromise(`${tempDir}/yarn.lock` as PortablePath, ``);
 
       const added = await execUtils.execvp(`yarn`, [`add`, `./${rndName}.tgz`], {cwd: tempDir});
-      expect(added.code).to.eq(0);
+      expect(added.code).toEqual(0);
 
       await xfs.writeFilePromise(`${tempDir}/index.js` as PortablePath, `import { Cli } from 'clipanion';\n`);
 
@@ -30,21 +27,21 @@ describe(`Browser support`, () => {
 
       await rollup({
         input: npath.fromPortablePath(`${tempDir}/index.js`),
-        plugins: [nodeResolve({preferBuiltins: true, browser: true})],
+        plugins: [nodeResolve({preferBuiltins: false, browser: true})],
         onwarn: warning => warnings.push(warning),
       });
 
-      expect(warnings).to.deep.equal([]);
+      expect(warnings).toEqual([]);
 
       await rollup({
         input: npath.fromPortablePath(`${tempDir}/index.js`),
-        plugins: [nodeResolve({preferBuiltins: true})],
+        plugins: [nodeResolve({preferBuiltins: false})],
         onwarn: warning => warnings.push(warning),
       });
 
-      expect(warnings).to.have.length(1);
-      expect(warnings).to.have.nested.property(`[0].code`, `UNRESOLVED_IMPORT`);
-      expect(warnings).to.have.nested.property(`[0].source`, `tty`);
+      expect(warnings).toHaveLength(1);
+      expect(warnings).toHaveProperty(`[0].code`, `UNRESOLVED_IMPORT`);
+      expect(warnings).toHaveProperty(`[0].exporter`, `tty`);
     });
   });
 });

@@ -1,14 +1,11 @@
-import {nodeResolve}              from '@rollup/plugin-node-resolve';
-import {execUtils}                from '@yarnpkg/core';
-import {xfs, PortablePath, npath} from '@yarnpkg/fslib';
-import {rollup}                   from 'rollup';
-
-import {expect}                   from '../expect';
+import {nodeResolve}       from '@rollup/plugin-node-resolve';
+import {execUtils}         from '@yarnpkg/core';
+import {xfs, npath}        from '@yarnpkg/fslib';
+import type {PortablePath} from '@yarnpkg/fslib';
+import {rollup}            from 'rollup';
 
 describe(`Tree shaking`, () => {
-  it(`should only keep the command Options used in the bundle`, async function () {
-    this.timeout(20000);
-
+  it(`should only keep the command Options used in the bundle`, async () => {
     await xfs.mktempPromise(async tempDir => {
       const rndName = Math.floor(Math.random() * 100000000).toString(16).padStart(8, `0`);
 
@@ -16,13 +13,13 @@ describe(`Tree shaking`, () => {
         cwd: npath.toPortablePath(__dirname),
       });
 
-      expect(packed.code).to.eq(0);
+      expect(packed.code).toEqual(0);
 
       await xfs.writeJsonPromise(`${tempDir}/package.json` as PortablePath, {name: `test-treeshake`});
       await xfs.writeFilePromise(`${tempDir}/yarn.lock` as PortablePath, ``);
 
       const added = await execUtils.execvp(`yarn`, [`add`, `./${rndName}.tgz`], {cwd: tempDir});
-      expect(added.code).to.eq(0);
+      expect(added.code).toEqual(0);
 
       const buildCode = async (code: string) => {
         await xfs.writeFilePromise(`${tempDir}/index.js` as PortablePath, code);
@@ -43,7 +40,7 @@ describe(`Tree shaking`, () => {
       // We expect the output when referencing multiple symbols to be quite a
       // bit more than the number of extra characters (with some buffer to
       // account with the transpilation overhead)
-      expect(multiCode.length).to.be.greaterThan(singleCode.length + 20);
+      expect(multiCode.length).toBeGreaterThan(singleCode.length + 20);
     });
   });
 });

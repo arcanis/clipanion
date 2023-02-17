@@ -1,10 +1,13 @@
 export {Command} from './Command';
 
-export {BaseContext, Cli, RunContext, CliOptions} from './Cli';
-export {CommandClass, Usage, Definition} from './Command';
+export type {BaseContext, RunContext, CliOptions} from './Cli';
+export {Cli} from './Cli';
+export type {CommandClass, Usage, Definition} from './Command';
 
-export {UsageError, ErrorMeta, ErrorWithMeta} from '../errors';
-export {formatMarkdownish, ColorFormat} from '../format';
+export type {ErrorMeta, ErrorWithMeta} from '../errors';
+export {UsageError} from '../errors';
+export type {ColorFormat} from '../format';
+export {formatMarkdownish} from '../format';
 
 export {run, runExit} from './Cli';
 

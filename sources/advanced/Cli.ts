@@ -1,14 +1,17 @@
-import {Readable, Writable}                                     from 'stream';
+import * as platform                               from '#platform';
+import type {Readable, Writable}                   from 'stream';
 
-import {HELP_COMMAND_INDEX}                                     from '../constants';
-import {CliBuilder, CommandBuilder}                             from '../core';
-import {ErrorMeta}                                              from '../errors';
-import {formatMarkdownish, ColorFormat, richFormat, textFormat} from '../format';
-import * as platform                                            from '../platform';
+import {HELP_COMMAND_INDEX}                        from '../constants';
+import {CliBuilder}                                from '../core';
+import type {CommandBuilder}                       from '../core';
+import type {ErrorMeta}                            from '../errors';
+import {formatMarkdownish, richFormat, textFormat} from '../format';
+import type {ColorFormat}                          from '../format';
 
-import {CommandClass, Command, Definition}                      from './Command';
-import {HelpCommand}                                            from './HelpCommand';
-import {CommandOption}                                          from './options/utils';
+import {Command}                                   from './Command';
+import type {CommandClass, Definition}             from './Command';
+import {HelpCommand}                               from './HelpCommand';
+import type {CommandOption}                        from './options/utils';
 
 const errorCommandSymbol = Symbol(`clipanion/errorCommand`);
 

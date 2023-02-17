@@ -14,6 +14,12 @@
   ],
   "version": "3.2.0-rc.16",
   "main": "sources/advanced/index.ts",
+  "imports": {
+    "#platform": {
+      "default": "./sources/platform/node.ts",
+      "browser": "./sources/platform/browser.ts"
+    }
+  },
   "license": "MIT",
   "sideEffects": false,
   "repository": {
@@ -30,10 +36,7 @@
     "typanion": "*"
   },
   "devDependencies": {
-    "@rollup/plugin-node-resolve": "^10.0.0",
-    "@rollup/plugin-typescript": "^6.1.0",
-    "@types/chai": "^4.2.11",
-    "@types/chai-as-promised": "^7.1.2",
+    "@rollup/plugin-node-resolve": "^15.0.1",
     "@types/lodash": "^4.14.179",
     "@types/mocha": "^7.0.2",
     "@types/node": "^14.0.13",
@@ -42,33 +45,39 @@
     "@yarnpkg/core": "^2.3.1",
     "@yarnpkg/eslint-config": "yarnpkg/berry#workspace=@yarnpkg/eslint-config",
     "@yarnpkg/fslib": "^2.3.0",
-    "chai": "^4.2.0",
-    "chai-as-promised": "^7.1.1",
-    "eslint": "^7.16.0",
+    "esfuse": "file:/Users/mael.nison/esfuse/package.tgz",
+    "eslint": "^8.34.0",
     "eslint-plugin-arca": "^0.10.0",
     "eslint-plugin-react": "^7.21.5",
     "get-stream": "^5.1.0",
     "lodash": "^4.17.21",
-    "mocha": "^8.0.1",
-    "rollup": "^2.16.1",
-    "rollup-plugin-copy": "^3.4.0",
-    "rollup-plugin-multi-input": "^1.3.1",
-    "ts-node": "^8.10.2",
-    "tslib": "^2.0.0",
-    "typescript": "^4.8.4"
+    "rollup": "^3.15.0",
+    "typescript": "5.0.0-beta"
   },
   "scripts": {
-    "prepack": "rm -rf lib && rollup -c",
+    "prepack": "yarn esfuse pack",
     "postpack": "rm -rf lib",
     "test": "FORCE_COLOR=1 mocha --require ts-node/register --extension ts tests/specs",
     "lint": "eslint --max-warnings 0 .",
-    "demo": "node --require ts-node/register demos/advanced.ts"
+    "demo": "yarn esfuse demos/advanced.ts"
   },
   "publishConfig": {
-    "main": "lib/advanced/index"
+    "main": "lib/advanced/index",
+    "imports": {
+      "#platform": {
+        "browser": {
+          "import": "./lib/platform/browser.mjs",
+          "default": "./lib/platform/browser.js"
+        },
+        "default": {
+          "import": "./lib/platform/node.mjs",
+          "default": "./lib/platform/node.js"
+        }
+      }
+    }
   },
   "files": [
     "lib"
   ],
-  "packageManager": "yarn@3.3.0"
+  "packageManager": "yarn@3.4.1"
 }

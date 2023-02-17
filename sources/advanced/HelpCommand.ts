@@ -1,7 +1,7 @@
-import {RunState}                from '../core';
+import type {RunState}                from '../core';
 
-import {BaseContext, CliContext} from './Cli';
-import {Command}                 from './Command';
+import type {BaseContext, CliContext} from './Cli';
+import {Command}                      from './Command';
 
 export class HelpCommand<Context extends BaseContext> extends Command<Context> {
   private commands: Array<number> = [];

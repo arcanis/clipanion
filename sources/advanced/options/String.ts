@@ -1,8 +1,9 @@
-import {StrictValidator}                                                                                         from "typanion";
+import type {StrictValidator}                                    from "typanion";
 
-import {NoLimits}                                                                                                from "../../core";
+import {NoLimits}                                                from "../../core";
 
-import {applyValidator, CommandOptionReturn, GeneralOptionFlags, makeCommandOption, rerouteArguments, WithArity} from "./utils";
+import type {CommandOptionReturn, GeneralOptionFlags, WithArity} from "./utils";
+import {applyValidator, makeCommandOption, rerouteArguments}     from "./utils";
 
 export type StringOptionNoBoolean<T, Arity extends number = 1> = GeneralOptionFlags & {
   env?: string,

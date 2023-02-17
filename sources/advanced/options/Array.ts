@@ -1,6 +1,7 @@
-import {StrictValidator}                                                                                         from "typanion";
+import type {StrictValidator}                                    from "typanion";
 
-import {applyValidator, GeneralOptionFlags, CommandOptionReturn, rerouteArguments, makeCommandOption, WithArity} from "./utils";
+import type {GeneralOptionFlags, CommandOptionReturn, WithArity} from "./utils";
+import {applyValidator, rerouteArguments, makeCommandOption}     from "./utils";
 
 export type ArrayFlags<T, Arity extends number = 1> = GeneralOptionFlags & {
   arity?: Arity,

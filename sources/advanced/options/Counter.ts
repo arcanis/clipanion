@@ -1,4 +1,5 @@
-import {CommandOptionReturn, GeneralOptionFlags, makeCommandOption, rerouteArguments} from "./utils";
+import type {CommandOptionReturn, GeneralOptionFlags} from "./utils";
+import {makeCommandOption, rerouteArguments}          from "./utils";
 
 export type CounterFlags = GeneralOptionFlags;
 
