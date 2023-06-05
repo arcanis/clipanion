@@ -719,7 +719,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
   }
 
   error(error: Error | any, {colored, command = error[errorCommandSymbol] ?? null}: {colored?: boolean, command?: Command<Context> | null} = {}) {
-    if (!(error instanceof Error))
+    if (!error || typeof error !== `object` || !(`stack` in error))
       error = new Error(`Execution failed with a non-error rejection (rejected value: ${JSON.stringify(error)})`);
 
     let result = ``;

@@ -1,4 +1,5 @@
 import * as t                                                    from 'typanion';
+import vm                                                        from 'vm';
 
 import {Cli, Command, CliOptions, Option, Builtins, BaseContext} from '../../sources/advanced';
 import {expect}                                                  from '../expect';
@@ -458,6 +459,30 @@ describe(`Advanced`, () => {
     expect(cli.process([])).to.contain({enableDebugger: true});
     expect(cli.process([`--break`])).to.contain({enableDebugger: true});
     expect(cli.process([`--no-break`])).to.contain({enableDebugger: false});
+  });
+
+  it(`should report the stacktrace when an error is thrown`, async () => {
+    await expect(runCli(() => {
+      class CommandA extends Command {
+        async execute() {throw new Error(`hello world`);}
+      }
+
+      return [
+        CommandA,
+      ];
+    }, [])).to.be.rejectedWith(`at CommandA.execute`);
+  });
+
+  it(`should report the stacktrace when an error is thrown from another context`, async () => {
+    await expect(runCli(() => {
+      class CommandA extends Command {
+        async execute() {vm.runInNewContext(`throw new Error('hello world')`);}
+      }
+
+      return [
+        CommandA,
+      ];
+    }, [])).to.be.rejectedWith(`at CommandA.execute`);
   });
 
   it(`shouldn't crash when throwing non-error exceptions`, async () => {
