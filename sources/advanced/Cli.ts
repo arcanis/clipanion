@@ -1,12 +1,11 @@
-import {AsyncLocalStorage}                                              from 'async_hooks';
 import {CompletionResult, SingleOrArray}                                from 'clcs';
 import {Readable, Writable}                                             from 'stream';
-import tty                                                              from 'tty';
 
 import {CompletionType, HELP_COMMAND_INDEX}                             from '../constants';
 import {CliBuilder, PartialCompletionRequest, CommandBuilder, RunState} from '../core';
 import {ErrorMeta}                                                      from '../errors';
 import {formatMarkdownish, ColorFormat, richFormat, textFormat}         from '../format';
+import * as platform                                                    from '../platform';
 
 import {CommandClass, Command, Definition}                              from './Command';
 import {HelpCommand}                                                    from './HelpCommand';
@@ -25,6 +24,14 @@ type TypeOrFactory<T> = T | (() => T);
  * All Contexts have to extend it.
  */
 export type BaseContext = {
+  /**
+   * Environment variables.
+   *
+   * @default
+   * process.env
+   */
+  env: Record<string, string | undefined>;
+
   /**
    * The input stream of the CLI.
    *
@@ -65,6 +72,19 @@ export type UserContext<Context extends BaseContext> = Pick<Context, UserContext
 export type PartialContext<Context extends BaseContext> = UserContextKeys<Context> extends never
   ? Partial<Pick<Context, keyof BaseContext>> | undefined | void
   : Partial<Pick<Context, keyof BaseContext>> & UserContext<Context>;
+
+export type RunContext<Context extends BaseContext = BaseContext> =
+  & Partial<Pick<Context, keyof BaseContext>>
+  & UserContext<Context>;
+
+export type RunCommand<Context extends BaseContext = BaseContext> =
+  | Array<CommandClass<Context>>
+  | CommandClass<Context>;
+
+export type RunCommandNoContext<Context extends BaseContext = BaseContext> =
+  UserContextKeys<Context> extends never
+    ? RunCommand<Context>
+    : never;
 
 export type CliOptions = Readonly<{
   /**
@@ -134,7 +154,7 @@ export type MiniCli<Context extends BaseContext> = CliOptions & {
    *
    * @returns The compiled `Command`, with its properties populated with the arguments.
    */
-  process(input: Array<string>): Command<Context>;
+  process(input: Array<string>, context?: Partial<Context>): Command<Context>;
 
   /**
    * Completes a command.
@@ -166,34 +186,150 @@ export type MiniCli<Context extends BaseContext> = CliOptions & {
   usage(command?: CommandClass<Context> | Command<Context> | null, opts?: {detailed?: boolean, prefix?: string}): string;
 };
 
-function getDefaultColorDepth() {
-  if (process.env.FORCE_COLOR === `0`)
-    return 1;
-  if (process.env.FORCE_COLOR === `1`)
-    return 8;
+/**
+ * An all-in-one helper that simultaneously instantiate a CLI and immediately
+ * executes it. All parameters are optional except the command classes and
+ * will be filled by sensible values for the current environment (for example
+ * the argv argument will default to `process.argv`, etc).
+ *
+ * Just like `Cli#runExit`, this function will set the `process.exitCode` value
+ * before returning.
+ */
+export async function runExit<Context extends BaseContext = BaseContext>(commandClasses: RunCommandNoContext<Context>): Promise<void>;
+export async function runExit<Context extends BaseContext = BaseContext>(commandClasses: RunCommand<Context>, context: RunContext<Context>): Promise<void>;
 
-  if (typeof process.stdout !== `undefined` && process.stdout.isTTY)
-    return 8;
+export async function runExit<Context extends BaseContext = BaseContext>(options: Partial<CliOptions>, commandClasses: RunCommandNoContext<Context>): Promise<void>;
+export async function runExit<Context extends BaseContext = BaseContext>(options: Partial<CliOptions>, commandClasses: RunCommand<Context>, context: RunContext<Context>): Promise<void>;
 
-  return 1;
+export async function runExit<Context extends BaseContext = BaseContext>(commandClasses: RunCommandNoContext<Context>, argv: Array<string>): Promise<void>;
+export async function runExit<Context extends BaseContext = BaseContext>(commandClasses: RunCommand<Context>, argv: Array<string>, context: RunContext<Context>): Promise<void>;
+
+export async function runExit<Context extends BaseContext = BaseContext>(options: Partial<CliOptions>, commandClasses: RunCommandNoContext<Context>, argv: Array<string>): Promise<void>;
+export async function runExit<Context extends BaseContext = BaseContext>(options: Partial<CliOptions>, commandClasses: RunCommand<Context>, argv: Array<string>, context: RunContext<Context>): Promise<void>;
+
+export async function runExit(...args: Array<any>) {
+  const {
+    resolvedOptions,
+    resolvedCommandClasses,
+    resolvedArgv,
+    resolvedContext,
+  } = resolveRunParameters(args);
+
+  const cli = Cli.from(resolvedCommandClasses, resolvedOptions);
+  return cli.runExit(resolvedArgv, resolvedContext);
+}
+
+/**
+ * An all-in-one helper that simultaneously instantiate a CLI and immediately
+ * executes it. All parameters are optional except the command classes and
+ * will be filled by sensible values for the current environment (for example
+ * the argv argument will default to `process.argv`, etc).
+ *
+ * Unlike `runExit`, this function won't set the `process.exitCode` value
+ * before returning.
+ */
+export async function run<Context extends BaseContext = BaseContext>(commandClasses: RunCommandNoContext<Context>): Promise<number>;
+export async function run<Context extends BaseContext = BaseContext>(commandClasses: RunCommand<Context>, context: RunContext<Context>): Promise<number>;
+
+export async function run<Context extends BaseContext = BaseContext>(options: Partial<CliOptions>, commandClasses: RunCommandNoContext<Context>): Promise<number>;
+export async function run<Context extends BaseContext = BaseContext>(options: Partial<CliOptions>, commandClasses: RunCommand<Context>, context: RunContext<Context>): Promise<number>;
+
+export async function run<Context extends BaseContext = BaseContext>(commandClasses: RunCommandNoContext<Context>, argv: Array<string>): Promise<number>;
+export async function run<Context extends BaseContext = BaseContext>(commandClasses: RunCommand<Context>, argv: Array<string>, context: RunContext<Context>): Promise<number>;
+
+export async function run<Context extends BaseContext = BaseContext>(options: Partial<CliOptions>, commandClasses: RunCommandNoContext<Context>, argv: Array<string>): Promise<number>;
+export async function run<Context extends BaseContext = BaseContext>(options: Partial<CliOptions>, commandClasses: RunCommand<Context>, argv: Array<string>, context: RunContext<Context>): Promise<number>;
+
+export async function run(...args: Array<any>) {
+  const {
+    resolvedOptions,
+    resolvedCommandClasses,
+    resolvedArgv,
+    resolvedContext,
+  } = resolveRunParameters(args);
+
+  const cli = Cli.from(resolvedCommandClasses, resolvedOptions);
+  return cli.run(resolvedArgv, resolvedContext);
+}
+
+function resolveRunParameters(args: Array<any>) {
+  let resolvedOptions: any;
+  let resolvedCommandClasses: any;
+  let resolvedArgv: any;
+  let resolvedContext: any;
+
+  if (typeof process !== `undefined` && typeof process.argv !== `undefined`)
+    resolvedArgv = process.argv.slice(2);
+
+  switch (args.length) {
+    case 1: {
+      resolvedCommandClasses = args[0];
+    } break;
+
+    case 2: {
+      if (args[0] && (args[0].prototype instanceof Command) || Array.isArray(args[0])) {
+        resolvedCommandClasses = args[0];
+        if (Array.isArray(args[1])) {
+          resolvedArgv = args[1];
+        } else {
+          resolvedContext = args[1];
+        }
+      } else {
+        resolvedOptions = args[0];
+        resolvedCommandClasses = args[1];
+      }
+    } break;
+
+    case 3: {
+      if (Array.isArray(args[2])) {
+        resolvedOptions = args[0];
+        resolvedCommandClasses = args[1];
+        resolvedArgv = args[2];
+      } else if (args[0] && (args[0].prototype instanceof Command) || Array.isArray(args[0])) {
+        resolvedCommandClasses = args[0];
+        resolvedArgv = args[1];
+        resolvedContext = args[2];
+      } else {
+        resolvedOptions = args[0];
+        resolvedCommandClasses = args[1];
+        resolvedContext = args[2];
+      }
+    } break;
+
+    default: {
+      resolvedOptions = args[0];
+      resolvedCommandClasses = args[1];
+      resolvedArgv = args[2];
+      resolvedContext = args[3];
+    } break;
+  }
+
+  if (typeof resolvedArgv === `undefined`)
+    throw new Error(`The argv parameter must be provided when running Clipanion outside of a Node context`);
+
+  return {
+    resolvedOptions,
+    resolvedCommandClasses,
+    resolvedArgv,
+    resolvedContext,
+  };
 }
 
 /**
  * @template Context The context shared by all commands. Contexts are a set of values, defined when calling the `run` / `runExit` / `complete` functions from the CLI instance, that will be made available to the commands via `this.context` in the case of the `run` functions and via `command.context` in the case of `complete`.
  */
-export class Cli<Context extends BaseContext = BaseContext> implements Omit<MiniCli<Context>, `complete` | `run`> {
+export class Cli<Context extends BaseContext = BaseContext> implements Omit<MiniCli<Context>, `process` | `complete` | `run`> {
   /**
    * The default context of the CLI.
    *
    * Contains the stdio of the current `process`.
    */
   static defaultContext = {
+    env: process.env,
     stdin: process.stdin,
     stdout: process.stdout,
     stderr: process.stderr,
-    colorDepth: `getColorDepth` in tty.WriteStream.prototype
-      ? tty.WriteStream.prototype.getColorDepth()
-      : getDefaultColorDepth(),
+    colorDepth: platform.getDefaultColorDepth(),
   };
 
   private readonly builder: CliBuilder<CliContext<Context>>;
@@ -246,7 +382,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
       definitions: () => this.definitions(),
       error: (error, opts) => this.error(error, opts),
       format: colored => this.format(colored),
-      process: input => this.process(input),
+      process: (input, subContext?) => this.process(input, {...context, ...subContext}),
       complete: (request, subContext?) => this.complete(request, {...context, ...subContext}),
       run: (input, subContext?) => this.run(input, {...context, ...subContext}),
       usage: (command, opts) => this.usage(command, opts),
@@ -295,14 +431,17 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
     });
   }
 
-  private processImpl(state: RunState, contexts: Array<CliContext<Context>>) {
+  private processImpl(state: RunState, contexts: Array<CliContext<Context>>, context: Context) {
     switch (state.selectedIndex) {
       case null: {
         throw new Error(`Assertion failed: Expected the cli index to have been selected`);
       } break;
 
       case HELP_COMMAND_INDEX: {
-        return {commandClass: HelpCommand, command: HelpCommand.from<Context>(state, contexts)};
+        const command = HelpCommand.from<Context>(state, contexts);
+        command.context = context;
+
+        return {commandClass: HelpCommand, command};
       } break;
 
       default: {
@@ -313,14 +452,15 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
           throw new Error(`Assertion failed: Expected the command class to have been registered.`);
 
         const command = new commandClass();
+        command.context = context;
         command.path = state.path;
 
         try {
           for (const [key, {transformer}] of record.specs.entries())
-            (command as any)[key] = transformer(record.builder, key, state);
+            (command as any)[key] = transformer(record.builder, key, state, context);
 
           return {commandClass, command};
-        } catch (error) {
+        } catch (error: any) {
           error[errorCommandSymbol] = command;
           throw error;
         }
@@ -329,15 +469,21 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
   }
 
   private populateCommand(command: Command<Context>, context: Context) {
-    command.context = context;
     command.cli = this.makeMiniCli(context);
   }
 
-  process(input: Array<string>) {
+  process(input: Array<string>, context: VoidIfEmpty<Omit<Context, keyof BaseContext>>): Command<Context>;
+  process(input: Array<string>, context: MakeOptional<Context, keyof BaseContext>): Command<Context>;
+  process(input: Array<string>, userContext: any) {
     const {contexts, process} = this.builder.compile();
     const state = process(input);
 
-    const {command} = this.processImpl(state, contexts);
+    const context = {
+      ...Cli.defaultContext,
+      ...userContext,
+    } as Context;
+
+    const {command} = this.processImpl(state, contexts, context);
 
     return command;
   }
@@ -358,7 +504,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
       command = input;
     } else {
       try {
-        command = this.process(input);
+        command = this.process(input, context);
       } catch (error) {
         context.stdout.write(this.error(error, {colored}));
         return 1;
@@ -373,7 +519,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
     this.populateCommand(command, context);
 
     const activate = this.enableCapture
-      ? getCaptureActivator(context)
+      ? platform.getCaptureActivator(context) ?? noopCaptureActivator
       : noopCaptureActivator;
 
     let exitCode;
@@ -410,7 +556,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
     } as Context;
 
     const activate = this.enableCapture
-      ? getCaptureActivator(context)
+      ? platform.getCaptureActivator(context) ?? noopCaptureActivator
       : noopCaptureActivator;
 
     const {complete, contexts} = this.builder.compile();
@@ -430,7 +576,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
       if (state.completion === null)
         return;
 
-      const {commandClass, command: partialCommand} = this.processImpl(state, contexts);
+      const {commandClass, command: partialCommand} = this.processImpl(state, contexts, context);
       const {completion: {fn, request: completionRequest, type}} = state;
 
       this.populateCommand(partialCommand, context);
@@ -611,7 +757,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
 
         if (options.length > 0) {
           result += `\n`;
-          result += `${richFormat.header(`Options`)}\n`;
+          result += `${this.format(colored).header(`Options`)}\n`;
 
           const maxDefinitionLength = options.reduce((length, option) => {
             return Math.max(length, option.definition.length);
@@ -651,8 +797,8 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
     return result;
   }
 
-  error(error: Error | any, {colored, command}: {colored?: boolean, command?: Command<Context> | null} = {}) {
-    if (!(error instanceof Error))
+  error(error: Error | any, {colored, command = error[errorCommandSymbol] ?? null}: {colored?: boolean, command?: Command<Context> | null} = {}) {
+    if (!error || typeof error !== `object` || !(`stack` in error))
       error = new Error(`Execution failed with a non-error rejection (rejected value: ${JSON.stringify(error)})`);
 
     command = error[errorCommandSymbol] ?? null;
@@ -696,41 +842,6 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
   protected getUsageByIndex(n: number, opts?: {detailed?: boolean; inlineOptions?: boolean}) {
     return this.builder.getBuilderByIndex(n).usage(opts);
   }
-}
-
-let gContextStorage: AsyncLocalStorage<BaseContext> | undefined;
-
-function getCaptureActivator(context: BaseContext) {
-  let contextStorage = gContextStorage;
-  if (typeof contextStorage === `undefined`) {
-    if (context.stdout === process.stdout && context.stderr === process.stderr)
-      return noopCaptureActivator;
-
-    const {AsyncLocalStorage: LazyAsyncLocalStorage} = require(`async_hooks`);
-    contextStorage = gContextStorage = new LazyAsyncLocalStorage();
-
-    const origStdoutWrite = process.stdout._write;
-    process.stdout._write = function (chunk, encoding, cb) {
-      const context = contextStorage!.getStore();
-      if (typeof context === `undefined`)
-        return origStdoutWrite.call(this, chunk, encoding, cb);
-
-      return context.stdout.write(chunk, encoding, cb);
-    };
-
-    const origStderrWrite = process.stderr._write;
-    process.stderr._write = function (chunk, encoding, cb) {
-      const context = contextStorage!.getStore();
-      if (typeof context === `undefined`)
-        return origStderrWrite.call(this, chunk, encoding, cb);
-
-      return context.stderr.write(chunk, encoding, cb);
-    };
-  }
-
-  return <T>(fn: () => Promise<T>) => {
-    return contextStorage!.run(context, fn);
-  };
 }
 
 function noopCaptureActivator<T>(fn: () => Promise<T>) {

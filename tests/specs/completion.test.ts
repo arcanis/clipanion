@@ -2,10 +2,9 @@ import chaiAsPromised                      from 'chai-as-promised';
 import chaiSpies                           from 'chai-spies';
 import chai, {expect}                      from 'chai';
 
-import {CompletionFunction}                from '../sources/advanced/options';
-import {BaseContext, Cli, Command, Option} from '../sources/advanced';
-
-import {completeCli, prefix}               from './utils';
+import {CompletionFunction}                from '../../sources/advanced/options';
+import {BaseContext, Cli, Command, Option} from '../../sources/advanced';
+import {completeCli, prefix}               from '../utils';
 
 chai.use(chaiAsPromised);
 chai.use(chaiSpies);

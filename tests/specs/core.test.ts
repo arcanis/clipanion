@@ -1,7 +1,6 @@
-import {expect}                                   from 'chai';
-
-import {HELP_COMMAND_INDEX}                       from '../sources/constants';
-import {CliBuilderCallback, CliBuilder, NoLimits} from '../sources/core';
+import {HELP_COMMAND_INDEX}                       from '../../sources/constants';
+import {CliBuilderCallback, CliBuilder, NoLimits} from '../../sources/core';
+import {expect}                                   from '../expect';
 
 const makeCli = (definitions: Array<CliBuilderCallback<{}>>) => {
   return CliBuilder.build<{}>(definitions.map(cb => {

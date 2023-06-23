@@ -56,7 +56,7 @@ export function formatMarkdownish(text: string, {format, paragraphs}: {format: C
   text = text.replace(/^(\s*)-([^\n]*?)\n+/gm, `$1-$2\n\n`);
 
   // Single newlines are removed; larger than that are collapsed into one
-  text = text.replace(/\n(\n)?\n*/g, `$1`);
+  text = text.replace(/\n(\n)?\n*/g, ($0, $1) => $1 ? $1 : ` `);
 
   if (paragraphs) {
     text = text.split(/\n/).map(paragraph => {

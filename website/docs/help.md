@@ -16,8 +16,8 @@ Commands may define a `usage` static property that will be used to document the 
 
 Note that all commands are hidden from the global help listing by default unless they define a `usage` property.
 
-```ts
-import {Cli, Command, Option} from "clipanion";
+```ts twoslash
+import {Cli, Command, Option} from 'clipanion';
 
 export class HelloCommand extends Command {
   static paths = [

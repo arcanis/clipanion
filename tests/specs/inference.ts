@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import * as t            from 'typanion';
 
-import {PartialCommand}  from '../sources/advanced/options';
-import {Command, Option} from '..';
+import {runExit}         from '../../sources/advanced/Cli';
+import {PartialCommand}  from '../../sources/advanced/options';
+import {Command, Option} from '../..';
 
 type AssertEqual<T, Expected> = [T, Expected] extends [Expected, T] ? true : false;
 
@@ -74,6 +75,8 @@ class MyCommand extends Command {
   arrayWithArity3AndRequired = Option.Array(`--foo`, {arity: 3, required: true});
   // @ts-expect-error: Overload prevents this
   arrayWithArity3AndRequiredAndDefault = Option.Array(`--foo`, [], {arity: 3, required: true});
+  arrayWithValidator = Option.Array(`--foo`, {validator: t.isArray(t.isNumber())});
+  arrayWithTupleValidator = Option.Array(`--foo`, {arity: 2, validator: t.isArray(t.isTuple([t.isNumber(), t.isBoolean()]))});
 
   rest = Option.Rest();
   proxy = Option.Proxy();
@@ -123,6 +126,8 @@ class MyCommand extends Command {
     assertEqual<Array<[string, string, string]> | undefined>()(this.arrayWithArity3, true);
     assertEqual<Array<[string, string, string]>>()(this.arrayWithArity3AndDefault, true);
     assertEqual<Array<[string, string, string]>>()(this.arrayWithArity3AndRequired, true);
+    assertEqual<Array<number> | undefined>()(this.arrayWithValidator, true);
+    assertEqual<Array<[number, boolean]> | undefined>()(this.arrayWithTupleValidator, true);
 
     assertEqual<Array<string>>()(this.rest, true);
     assertEqual<Array<string>>()(this.proxy, true);
@@ -181,4 +186,54 @@ declare const partialCommand: PartialCommand<MyCommand>;
 
   assertEqual<Array<string>>()(partialCommand.rest, true);
   assertEqual<Array<string>>()(partialCommand.proxy, true);
+};
+
+() => {
+  runExit(class FooCommand extends Command {
+    async execute() {}
+  });
+
+  runExit(class FooCommand extends Command {
+    async execute() {}
+  }, {
+    stdin: process.stdin,
+  });
+
+  runExit({
+    binaryLabel: `Foo`,
+  }, class FooCommand extends Command {
+    async execute() {}
+  });
+
+  runExit({
+    binaryLabel: `Foo`,
+  }, class FooCommand extends Command {
+    async execute() {}
+  }, {
+    stdin: process.stdin,
+  });
+
+  runExit(class FooCommand extends Command {
+    async execute() {}
+  }, []);
+
+  runExit(class FooCommand extends Command {
+    async execute() {}
+  }, [], {
+    stdin: process.stdin,
+  });
+
+  runExit({
+    binaryLabel: `Foo`,
+  }, class FooCommand extends Command {
+    async execute() {}
+  }, []);
+
+  runExit({
+    binaryLabel: `Foo`,
+  }, class FooCommand extends Command {
+    async execute() {}
+  }, [], {
+    stdin: process.stdin,
+  });
 };

@@ -71,6 +71,12 @@ export type CommandClass<Context extends BaseContext = BaseContext> = {
   usage?: Usage;
 };
 
+/**
+ * Base abstract class for CLI commands. The main thing to remember is to
+ * declare an async `execute` member function that will be called when the
+ * command is invoked from the CLI, and optionally a `paths` property to
+ * declare the set of paths under which the command should be exposed.
+ */
 export abstract class Command<Context extends BaseContext = BaseContext> {
   static readonly isCommandClass = true;
 

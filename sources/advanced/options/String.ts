@@ -5,6 +5,7 @@ import {NoLimits}                                                               
 import {applyValidator, CommandOptionReturn, GeneralOptionFlags, makeCommandOption, rerouteArguments, WithArity, CompletionFunction} from "./utils";
 
 export type StringOptionNoBoolean<T, Arity extends number = number> = GeneralOptionFlags & {
+  env?: string,
   validator?: StrictValidator<unknown, T>,
   tolerateBoolean?: false,
   arity?: Arity,
@@ -12,6 +13,7 @@ export type StringOptionNoBoolean<T, Arity extends number = number> = GeneralOpt
 };
 
 export type StringOptionTolerateBoolean<T> = GeneralOptionFlags & {
+  env?: string,
   validator?: StrictValidator<unknown, T>,
   tolerateBoolean: boolean,
   arity?: 0,
@@ -29,9 +31,9 @@ export type StringPositionalFlags<T> = {
   completion?: CompletionFunction,
 };
 
-function StringOption<T = string, Arity extends number = 1>(descriptor: string, opts: StringOptionNoBoolean<T, Arity> & {required: true}): CommandOptionReturn<WithArity<T, Arity>, true>;
-function StringOption<T = string, Arity extends number = 1>(descriptor: string, opts?: StringOptionNoBoolean<T, Arity>): CommandOptionReturn<WithArity<T, Arity> | undefined>;
-function StringOption<T = string, Arity extends number = 1>(descriptor: string, initialValue: WithArity<string, Arity>, opts?: Omit<StringOptionNoBoolean<T, Arity>, 'required'>): CommandOptionReturn<WithArity<T, Arity>>;
+function StringOption<T extends {} = string, Arity extends number = 1>(descriptor: string, opts: StringOptionNoBoolean<T, Arity> & {required: true}): CommandOptionReturn<WithArity<T, Arity>, true>;
+function StringOption<T extends {} = string, Arity extends number = 1>(descriptor: string, opts?: StringOptionNoBoolean<T, Arity>): CommandOptionReturn<WithArity<T, Arity> | undefined>;
+function StringOption<T extends {} = string, Arity extends number = 1>(descriptor: string, initialValue: WithArity<string, Arity>, opts?: Omit<StringOptionNoBoolean<T, Arity>, 'required'>): CommandOptionReturn<WithArity<T, Arity>>;
 function StringOption<T = string>(descriptor: string, opts: StringOptionTolerateBoolean<T> & {required: true}): CommandOptionReturn<T | boolean, true>;
 function StringOption<T = string>(descriptor: string, opts: StringOptionTolerateBoolean<T>): CommandOptionReturn<T | boolean | undefined>;
 function StringOption<T = string>(descriptor: string, initialValue: string | boolean, opts: Omit<StringOptionTolerateBoolean<T>, 'required'>): CommandOptionReturn<T | boolean>;
@@ -57,9 +59,14 @@ function StringOption<T = string, Arity extends number = 1>(descriptor: string, 
       });
     },
 
-    transformer(builder, key, state) {
+    transformer(builder, key, state, context) {
       let usedName;
       let currentValue = initialValue;
+
+      if (typeof opts.env !== `undefined` && context.env[opts.env]) {
+        usedName = opts.env;
+        currentValue = context.env[opts.env];
+      }
 
       for (const {name, value} of state.options) {
         if (!nameSet.has(name))
@@ -142,9 +149,9 @@ export function String<T = string>(opts: StringPositionalFlags<T>): CommandOptio
  * --foo=hello --bar world
  *     ► {"foo": "hello", "bar": "world"}
  */
-export function String<T = string, Arity extends number = 1>(descriptor: string, opts: StringOptionNoBoolean<T, Arity> & {required: true}): CommandOptionReturn<WithArity<T, Arity>, true>;
-export function String<T = string, Arity extends number = 1>(descriptor: string, opts?: StringOptionNoBoolean<T, Arity>): CommandOptionReturn<WithArity<T, Arity> | undefined>;
-export function String<T = string, Arity extends number = 1>(descriptor: string, initialValue: WithArity<string, Arity>, opts?: Omit<StringOptionNoBoolean<T, Arity>, 'required'>): CommandOptionReturn<WithArity<T, Arity>>;
+export function String<T extends {} = string, Arity extends number = 1>(descriptor: string, opts: StringOptionNoBoolean<T, Arity> & {required: true}): CommandOptionReturn<WithArity<T, Arity>, true>;
+export function String<T extends {} = string, Arity extends number = 1>(descriptor: string, opts?: StringOptionNoBoolean<T, Arity>): CommandOptionReturn<WithArity<T, Arity> | undefined>;
+export function String<T extends {} = string, Arity extends number = 1>(descriptor: string, initialValue: WithArity<string, Arity>, opts?: Omit<StringOptionNoBoolean<T, Arity>, 'required'>): CommandOptionReturn<WithArity<T, Arity>>;
 export function String<T = string>(descriptor: string, opts: StringOptionTolerateBoolean<T> & {required: true}): CommandOptionReturn<T | boolean, true>;
 export function String<T = string>(descriptor: string, opts: StringOptionTolerateBoolean<T>): CommandOptionReturn<T | boolean | undefined>;
 export function String<T = string>(descriptor: string, initialValue: string | boolean, opts: Omit<StringOptionTolerateBoolean<T>, 'required'>): CommandOptionReturn<T | boolean>;

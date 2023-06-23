@@ -1,14 +1,11 @@
-import chaiAsPromised                                            from 'chai-as-promised';
-import chai, {expect}                                            from 'chai';
-import getStream                                                 from 'get-stream';
-import {PassThrough}                                             from 'stream';
 import * as t                                                    from 'typanion';
+import vm                                                        from 'vm';
 
-import {Cli, Command, CliOptions, Option, Builtins, BaseContext} from '../sources/advanced';
+import {Cli, Command, CliOptions, Option, Builtins, BaseContext} from '../../sources/advanced';
+import {expect}                                                  from '../expect';
+import {log, runCli}                                             from '../tools';
 
-import {prefix, log, runCli}                                     from './utils';
-
-chai.use(chaiAsPromised);
+const prefix = `\u001b[1m$ \u001b[22m`;
 
 describe(`Advanced`, () => {
   describe(`Cli.prototype.register`, () => {
@@ -221,6 +218,7 @@ describe(`Advanced`, () => {
 
         expect(await runCli(cli, [`foo`, `-h`])).to.equal(cli.usage(CommandA));
         expect(await runCli(cli, [`foo`, `--help`])).to.equal(cli.usage(CommandA));
+        expect(await runCli(cli, [`foo`, `--help`, `--foo`])).to.equal(cli.usage(CommandA));
       });
 
       it(`should display the command usage if there's a single one and it's the default`, async () => {
@@ -564,6 +562,48 @@ describe(`Advanced`, () => {
     expect(cli.usage(CommandA)).to.equal(`\u001b[1m$ \u001b[22m... clean <workspaceNames> <workspaceNames> ...\n`);
   });
 
+  it(`supports populating strings with environment variables`, async () => {
+    class CommandA extends Command {
+      foo = Option.String(`--foo`, {env: `TEST_FOO`});
+
+      async execute() {
+        log(this, [`foo`]);
+      }
+    }
+
+    const cli = Cli.from([CommandA]);
+
+    expect(cli.process([], {env: {TEST_FOO: `bar`}})).to.contain({foo: `bar`});
+  });
+
+  it(`overrides defaults with environment variables`, async () => {
+    class CommandA extends Command {
+      foo = Option.String(`--foo`, `foo`, {env: `TEST_FOO`});
+
+      async execute() {
+        log(this, [`foo`]);
+      }
+    }
+
+    const cli = Cli.from([CommandA]);
+
+    expect(cli.process([], {env: {TEST_FOO: `bar`}})).to.contain({foo: `bar`});
+  });
+
+  it(`overrides environment variables with options`, async () => {
+    class CommandA extends Command {
+      foo = Option.String(`--foo`, {env: `TEST_FOO`});
+
+      async execute() {
+        log(this, [`foo`]);
+      }
+    }
+
+    const cli = Cli.from([CommandA]);
+
+    expect(cli.process([`--foo=qux`], {env: {TEST_FOO: `bar`}})).to.contain({foo: `qux`});
+  });
+
   it(`supports strings that act like booleans if not bound to a value`, async () => {
     class CommandA extends Command {
       enableDebugger = Option.String(`--break`, false, {tolerateBoolean: true});
@@ -599,6 +639,34 @@ describe(`Advanced`, () => {
     expect(cli.process([])).to.contain({enableDebugger: true});
     expect(cli.process([`--break`])).to.contain({enableDebugger: true});
     expect(cli.process([`--no-break`])).to.contain({enableDebugger: false});
+  });
+
+  it(`should report the stacktrace when an error is thrown`, async () => {
+    await expect(runCli(() => {
+      class CommandA extends Command {
+        async execute() {
+          throw new Error(`hello world`);
+        }
+      }
+
+      return [
+        CommandA,
+      ];
+    }, [])).to.be.rejectedWith(`at CommandA.execute`);
+  });
+
+  it(`should report the stacktrace when an error is thrown from another context`, async () => {
+    await expect(runCli(() => {
+      class CommandA extends Command {
+        async execute() {
+          vm.runInNewContext(`throw new Error('hello world')`);
+        }
+      }
+
+      return [
+        CommandA,
+      ];
+    }, [])).to.be.rejectedWith(`at CommandA.execute`);
   });
 
   it(`shouldn't crash when throwing non-error exceptions`, async () => {
@@ -1213,6 +1281,61 @@ describe(`Advanced`, () => {
     expect(await runCli(cli, [`--foo`, `--bar`])).to.equal(`Running FooBarCommand\n`);
   });
 
+  it(`should support --help even for commands with required options`, async () => {
+    const cli = new Cli();
+    cli.register(Builtins.HelpCommand);
+
+    class CommandA extends Command {
+      static paths = [[`foo`]];
+
+      foo = Option.Boolean(`--foo`);
+      bar = Option.Boolean(`--bar`, {required: true});
+      async execute() {
+        log(this);
+      }
+    }
+
+    cli.register(CommandA);
+
+    expect(await runCli(cli, [`foo`, `--help`])).to.equal(cli.usage(CommandA));
+  });
+
+  it(`should support --help even when used before other arguments`, async () => {
+    const cli = new Cli();
+    cli.register(Builtins.HelpCommand);
+
+    class CommandA extends Command {
+      static paths = [[`foo`]];
+
+      foo = Option.Boolean(`--foo`);
+      async execute() {
+        log(this);
+      }
+    }
+
+    cli.register(CommandA);
+
+    expect(await runCli(cli, [`foo`, `--help`, `--foo`])).to.equal(cli.usage(CommandA));
+  });
+
+  it(`should support --help even when used before required options`, async () => {
+    const cli = new Cli();
+    cli.register(Builtins.HelpCommand);
+
+    class CommandA extends Command {
+      static paths = [[`foo`]];
+
+      foo = Option.Boolean(`--foo`, {required: true});
+      async execute() {
+        log(this);
+      }
+    }
+
+    cli.register(CommandA);
+
+    expect(await runCli(cli, [`foo`, `--help`, `--foo`])).to.equal(cli.usage(CommandA));
+  });
+
   it(`should show the reason if the single branch errors`, async () => {
     class BaseCommand extends Command {
       name = Option.String();
@@ -1281,7 +1404,7 @@ describe(`Advanced`, () => {
     await expect(runCli(cli, [`--foo`, `--bar`])).to.be.rejectedWith(`property "foo" forbids using property "bar"`);
   });
 
-  it(`should coerce options when requested`, async () => {
+  it(`should coerce options when requested (strings)`, async () => {
     class FooCommand extends Command {
       foo = Option.String(`--foo`, {validator: t.isNumber()});
 
@@ -1294,6 +1417,36 @@ describe(`Advanced`, () => {
 
     await expect(runCli(cli, [`--foo`, `42`])).to.eventually.equal(`Running FooCommand\n42\n`);
     await expect(runCli(cli, [`--foo`, `ab`])).to.be.rejectedWith(`Invalid value for --foo: expected a number`);
+  });
+
+  it(`should coerce options when requested (array)`, async () => {
+    class FooCommand extends Command {
+      foo = Option.Array(`--foo`, {validator: t.isArray(t.isNumber())});
+
+      async execute() {
+        log(this, [`foo`]);
+      }
+    }
+
+    const cli = Cli.from([FooCommand]);
+
+    await expect(runCli(cli, [`--foo`, `42`, `--foo`, `21`])).to.eventually.equal(`Running FooCommand\n[42,21]\n`);
+    await expect(runCli(cli, [`--foo`, `test`])).to.be.rejectedWith(`Invalid value for --foo[0]: expected a number (got "test")`);
+  });
+
+  it(`should coerce options when requested (array of tuples)`, async () => {
+    class FooCommand extends Command {
+      foo = Option.Array(`--foo`, {arity: 2, validator: t.isArray(t.isTuple([t.isNumber(), t.isBoolean()]))});
+
+      async execute() {
+        log(this, [`foo`]);
+      }
+    }
+
+    const cli = Cli.from([FooCommand]);
+
+    await expect(runCli(cli, [`--foo`, `42`, `true`, `--foo`, `21`, `false`])).to.eventually.equal(`Running FooCommand\n[[42,true],[21,false]]\n`);
+    await expect(runCli(cli, [`--foo`, `42`, `test`])).to.be.rejectedWith(`Invalid value for --foo[0][1]: expected a boolean (got "test")`);
   });
 
   it(`should coerce positionals when requested`, async () => {
@@ -1327,37 +1480,6 @@ describe(`Advanced`, () => {
     await expect(runCli(cli, [`--foo`])).to.eventually.equal(`Running FooCommand\ntrue\nfalse\n`);
   });
 
-  it(`should write errors to stdout`, async () => {
-    class FooCommand extends Command {
-      async execute() {
-        throw 42;
-      }
-    }
-
-    const cli = Cli.from([FooCommand]);
-
-    const stdout = new PassThrough();
-    const stdoutPromise = getStream(stdout);
-
-    const stderr = new PassThrough();
-    const stderrPromise = getStream(stderr);
-
-    await cli.run([], {
-      stdin: process.stdin,
-      stdout,
-      stderr,
-    });
-
-    stdout.end();
-    stderr.end();
-
-    const stdoutOutput = await stdoutPromise;
-    const stderrOutput = await stderrPromise;
-
-    expect(stdoutOutput).to.contain(`non-error rejection`);
-    expect(stderrOutput).to.equal(``);
-  });
-
   it(`should capture stdout if requested`, async () => {
     class FooCommand extends Command {
       async execute() {
@@ -1382,7 +1504,7 @@ describe(`Advanced`, () => {
     await expect(runCli(cli, [])).to.eventually.equal(`foo\n`);
   });
 
-  it(`shouldn't require the context if base`, async () => {
+  it(`shouldn't require the context if empty`, async () => {
     class FooCommand extends Command {
       async execute() {
       }
@@ -1391,6 +1513,7 @@ describe(`Advanced`, () => {
     const cli = Cli.from([FooCommand]);
 
     // This is a type-only test
+    // eslint-disable-next-line no-constant-condition
     await expect(cli.run([])).to.eventually.be.fulfilled;
   });
 

@@ -5,11 +5,15 @@ title: Execution Contexts
 
 In Clipanion commands have what we call a *context*. Under this fancy word is simply an arbitrary object that we provide to all commands via `this.context` during their execution. The default context is fairly simple:
 
-```ts
+```ts twoslash
+import type {Readable, Writable} from 'stream';
+
 interface BaseContext {
+    env: Record<string, string | undefined>;
     stdin: Readable;
     stdout: Writable;
     stderr: Writable;
+    colorDepth: number;
 }
 ```
 
@@ -27,7 +31,11 @@ If you'd prefer for this to be automatically handled by Clipanion so that all wr
 
 When calling the `this.cli` API, the `run` function takes a *partial* context object - contrary to the usual `cli.run` and `cli.runExit` functions, which require a full context. This partial context will then be applied on top of the current one, so forwarded commands will automatically inherit the context you don't override.
 
-```ts
+```ts twoslash
+import {Command} from 'clipanion';
+// ---cut---
+import {PassThrough} from 'stream';
+
 class BufferCommand extends Command {
     async execute() {
         const passThrough = new PassThrough();

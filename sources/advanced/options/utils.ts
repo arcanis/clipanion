@@ -26,18 +26,21 @@ export type Tuple<Type, Arity extends number> = Arity extends Arity
     : TupleOf<Type, Arity, []>
   : never;
 
-export type WithArity<Type, Arity extends number> = Arity extends 0
-  ? boolean | Type
-  : Arity extends 1
-    ? Type
-    : number extends Arity
-      ? boolean | Type | Tuple<Type, Arity>
-      : Tuple<Type, Arity>;
+export type WithArity<Type extends {length?: number}, Arity extends number> =
+  number extends Type['length']
+    ? Arity extends 0
+      ? boolean | Type
+      : Arity extends 1
+        ? Type
+        : number extends Arity
+          ? boolean | Type | Tuple<Type, Arity>
+          : Tuple<Type, Arity>
+    : Type;
 
 export type CommandOption<T> = {
   [isOptionSymbol]: true,
   definition: <Context extends BaseContext>(builder: CommandBuilder<CliContext<Context>>, key: string) => void,
-  transformer: <Context extends BaseContext>(builder: CommandBuilder<CliContext<Context>>, key: string, state: RunState) => T,
+  transformer: <Context extends BaseContext>(builder: CommandBuilder<CliContext<Context>>, key: string, state: RunState, context: Context) => T,
 };
 
 export type PartialTuple<T extends [any, ...Array<any>]> = T extends [infer Leading, ...infer Rest]
@@ -104,18 +107,25 @@ export function rerouteArguments<A, B>(a: A | B | undefined, b: B): [Exclude<A, 
   }
 }
 
-export function cleanValidationError(message: string, lowerCase: boolean = false) {
-  let cleaned = message.replace(/^\.: /, ``);
+export function cleanValidationError(message: string, {mergeName = false}: {mergeName?: boolean} = {}) {
+  const match = message.match(/^([^:]+): (.*)$/m);
+  if (!match)
+    return `validation failed`;
 
-  if (lowerCase)
-    cleaned = cleaned[0].toLowerCase() + cleaned.slice(1);
+  let [, path, line] = match;
+  if (mergeName)
+    line = line[0].toLowerCase() + line.slice(1);
 
-  return cleaned;
+  line = path !== `.` || !mergeName
+    ? `${path.replace(/^\.(\[|$)/, `$1`)}: ${line}`
+    : `: ${line}`;
+
+  return line;
 }
 
 export function formatError(message: string, errors: Array<string>) {
   if (errors.length === 1) {
-    return new UsageError(`${message}: ${cleanValidationError(errors[0], true)}`);
+    return new UsageError(`${message}${cleanValidationError(errors[0], {mergeName: true})}`);
   } else {
     return new UsageError(`${message}:\n${errors.map(error => `\n- ${cleanValidationError(error)}`).join(``)}`);
   }

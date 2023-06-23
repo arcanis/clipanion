@@ -3,8 +3,6 @@ id: cli
 title: Cli
 ---
 
-The `Cli` class is the main way you'll interact with your cli.
-
 ## `new Cli`
 
 ```ts
