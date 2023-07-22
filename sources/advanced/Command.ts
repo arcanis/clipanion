@@ -1,5 +1,7 @@
 import {Coercion, LooseTest}         from 'typanion';
 
+import {Token}                       from '../core';
+
 import {BaseContext, MiniCli}        from './Cli';
 import {formatError, isOptionSymbol} from './options/utils';
 
@@ -153,6 +155,12 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
    * to access the command currently being executed.
    */
   path!: Array<string>;
+
+  /**
+   * Predefined variable that will be populated with the tokens found when
+   * interpreting the command line.
+   */
+  tokens!: Array<Token>;
 
   async validateAndExecute(): Promise<number> {
     const commandClass = this.constructor as CommandClass<Context>;

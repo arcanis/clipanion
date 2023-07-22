@@ -129,6 +129,11 @@ export type MiniCli<Context extends BaseContext> = CliOptions & {
   definitions(): Array<Definition>;
 
   /**
+   * Get the definition of a particular command.
+   */
+  definition(command: CommandClass<Context>): Definition | null;
+
+  /**
    * Formats errors using colors.
    *
    * @param error The error to format. If `error.name` is `'Error'`, it is replaced with `'Internal Error'`.
@@ -410,6 +415,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
       case HELP_COMMAND_INDEX: {
         const command = HelpCommand.from<Context>(state, contexts);
         command.context = context;
+        command.tokens = state.tokens;
 
         return command;
       } break;
@@ -423,6 +429,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
 
         const command = new commandClass();
         command.context = context;
+        command.tokens = state.tokens;
         command.path = state.path;
 
         try {
@@ -474,6 +481,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
       enableCapture: this.enableCapture,
       enableColors: this.enableColors,
       definitions: () => this.definitions(),
+      definition: command => this.definition(command),
       error: (error, opts) => this.error(error, opts),
       format: colored => this.format(colored),
       process: (input, subContext?) => this.process(input, {...context, ...subContext}),
@@ -510,38 +518,41 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
     process.exitCode = await this.run(input, context);
   }
 
-  suggest(input: Array<string>, partial: boolean) {
-    const {suggest} = this.builder.compile();
-    return suggest(input, partial);
+  definition(commandClass: CommandClass<Context>, {colored = false}: {colored?: boolean} = {}): Definition | null {
+    if (!commandClass.usage)
+      return null;
+
+    const {usage: path} = this.getUsageByRegistration(commandClass, {detailed: false});
+    const {usage, options} = this.getUsageByRegistration(commandClass, {detailed: true, inlineOptions: false});
+
+    const category = typeof commandClass.usage.category !== `undefined`
+      ? formatMarkdownish(commandClass.usage.category, {format: this.format(colored), paragraphs: false})
+      : undefined;
+
+    const description = typeof commandClass.usage.description !== `undefined`
+      ? formatMarkdownish(commandClass.usage.description, {format: this.format(colored), paragraphs: false})
+      : undefined;
+
+    const details = typeof commandClass.usage.details !== `undefined`
+      ? formatMarkdownish(commandClass.usage.details, {format: this.format(colored), paragraphs: true})
+      : undefined;
+
+    const examples: Definition['examples'] = typeof commandClass.usage.examples !== `undefined`
+      ? commandClass.usage.examples.map(([label, cli]) => [formatMarkdownish(label, {format: this.format(colored), paragraphs: false}), cli.replace(/\$0/g, this.binaryName)])
+      : undefined;
+
+    return {path, usage, category, description, details, examples, options};
   }
 
   definitions({colored = false}: {colored?: boolean} = {}): Array<Definition> {
     const data: Array<Definition> = [];
 
-    for (const [commandClass, {index}] of this.registrations) {
-      if (typeof commandClass.usage === `undefined`)
+    for (const commandClass of this.registrations.keys()) {
+      const usage = this.definition(commandClass, {colored});
+      if (!usage)
         continue;
 
-      const {usage: path} = this.getUsageByIndex(index, {detailed: false});
-      const {usage, options} = this.getUsageByIndex(index, {detailed: true, inlineOptions: false});
-
-      const category = typeof commandClass.usage.category !== `undefined`
-        ? formatMarkdownish(commandClass.usage.category, {format: this.format(colored), paragraphs: false})
-        : undefined;
-
-      const description = typeof commandClass.usage.description !== `undefined`
-        ? formatMarkdownish(commandClass.usage.description, {format: this.format(colored), paragraphs: false})
-        : undefined;
-
-      const details = typeof commandClass.usage.details !== `undefined`
-        ? formatMarkdownish(commandClass.usage.details, {format: this.format(colored), paragraphs: true})
-        : undefined;
-
-      const examples: Definition['examples'] = typeof commandClass.usage.examples !== `undefined`
-        ? commandClass.usage.examples.map(([label, cli]) => [formatMarkdownish(label, {format: this.format(colored), paragraphs: false}), cli.replace(/\$0/g, this.binaryName)])
-        : undefined;
-
-      data.push({path, usage, category, description, details, examples, options});
+      data.push(usage);
     }
 
     return data;

@@ -23,6 +23,35 @@ export type StateMachine = {
   nodes: Array<Node>;
 };
 
+export type TokenBase = {
+  segmentIndex: number;
+};
+
+export type PathToken = TokenBase & {
+  type: `path`;
+};
+
+export type PositionalToken = TokenBase & {
+  type: `positional`;
+};
+
+export type OptionToken = TokenBase & {
+  type: `option`;
+  slice?: [number, number];
+  option: string;
+};
+
+export type ValueToken = TokenBase & {
+  type: `value`;
+  slice?: [number, number];
+};
+
+export type Token =
+  | PathToken
+  | PositionalToken
+  | OptionToken
+  | ValueToken;
+
 export type RunState = {
   candidateUsage: string | null;
   requiredOptions: Array<Array<string>>;
@@ -33,6 +62,7 @@ export type RunState = {
   positionals: Array<{value: string, extra: boolean | typeof NoLimits}>;
   remainder: string | null;
   selectedIndex: number | null;
+  tokens: Array<Token>;
 };
 
 const basicHelpState: RunState = {
@@ -45,6 +75,7 @@ const basicHelpState: RunState = {
   options: [],
   remainder: null,
   selectedIndex: HELP_COMMAND_INDEX,
+  tokens: [],
 };
 
 export function makeStateMachine(): StateMachine {
@@ -155,6 +186,7 @@ export function runMachineInternal(machine: StateMachine, input: Array<string>, 
     positionals: [],
     remainder: null,
     selectedIndex: null,
+    tokens: [],
   }}];
 
   debugMachine(machine, {prefix: `  `});
@@ -162,6 +194,9 @@ export function runMachineInternal(machine: StateMachine, input: Array<string>, 
   const tokens = [START_OF_INPUT, ...input];
   for (let t = 0; t < tokens.length; ++t) {
     const segment = tokens[t];
+
+    // The -1 is because we added a START_OF_INPUT token
+    const segmentIndex = t - 1;
 
     debug(`  Processing ${JSON.stringify(segment)}`);
     const nextBranches: Array<{node: number, state: RunState}> = [];
@@ -185,7 +220,7 @@ export function runMachineInternal(machine: StateMachine, input: Array<string>, 
         if (hasExactMatch) {
           const transitions = nodeDef.statics[segment];
           for (const {to, reducer} of transitions) {
-            nextBranches.push({node: to, state: typeof reducer !== `undefined` ? execute(reducers, reducer, state, segment) : state});
+            nextBranches.push({node: to, state: typeof reducer !== `undefined` ? execute(reducers, reducer, state, segment, segmentIndex) : state});
             debug(`      Static transition to ${to} found`);
           }
         } else {
@@ -200,7 +235,7 @@ export function runMachineInternal(machine: StateMachine, input: Array<string>, 
 
           if (segment === candidate) {
             for (const {to, reducer} of nodeDef.statics[candidate]) {
-              nextBranches.push({node: to, state: typeof reducer !== `undefined` ? execute(reducers, reducer, state, segment) : state});
+              nextBranches.push({node: to, state: typeof reducer !== `undefined` ? execute(reducers, reducer, state, segment, segmentIndex) : state});
               debug(`      Static transition to ${to} found`);
             }
           } else {
@@ -220,8 +255,8 @@ export function runMachineInternal(machine: StateMachine, input: Array<string>, 
 
       if (segment !== END_OF_INPUT) {
         for (const [test, {to, reducer}] of nodeDef.dynamics) {
-          if (execute(tests, test, state, segment)) {
-            nextBranches.push({node: to, state: typeof reducer !== `undefined` ? execute(reducers, reducer, state, segment) : state});
+          if (execute(tests, test, state, segment, segmentIndex)) {
+            nextBranches.push({node: to, state: typeof reducer !== `undefined` ? execute(reducers, reducer, state, segment, segmentIndex) : state});
             debug(`      Dynamic transition to ${to} found (via ${test})`);
           }
         }
@@ -262,101 +297,6 @@ export function runMachineInternal(machine: StateMachine, input: Array<string>, 
   }
 
   return branches;
-}
-
-function checkIfNodeIsFinished(node: Node, state: RunState) {
-  if (state.selectedIndex !== null)
-    return true;
-
-  if (Object.prototype.hasOwnProperty.call(node.statics, END_OF_INPUT))
-    for (const {to} of node.statics[END_OF_INPUT])
-      if (to === NODE_SUCCESS)
-        return true;
-
-  return false;
-}
-
-function suggestMachine(machine: StateMachine, input: Array<string>, partial: boolean) {
-  // If we're accepting partial matches, then exact matches need to be
-  // prefixed with an extra space.
-  const prefix = partial && input.length > 0 ? [``] : [];
-
-  const branches = runMachineInternal(machine, input, partial);
-
-  const suggestions: Array<Array<string>> = [];
-  const suggestionsJson = new Set<string>();
-
-  const traverseSuggestion = (suggestion: Array<string>, node: number, skipFirst: boolean = true) => {
-    let nextNodes = [node];
-
-    while (nextNodes.length > 0) {
-      const currentNodes = nextNodes;
-      nextNodes = [];
-
-      for (const node of currentNodes) {
-        const nodeDef = machine.nodes[node];
-        const keys = Object.keys(nodeDef.statics);
-
-        // The fact that `key` is unused is likely a bug, but no one has investigated it yet.
-        // TODO: Investigate it.
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        for (const key of Object.keys(nodeDef.statics)) {
-          const segment = keys[0];
-
-          for (const {to, reducer} of nodeDef.statics[segment]) {
-            if (reducer !== `pushPath`)
-              continue;
-
-            if (!skipFirst)
-              suggestion.push(segment);
-
-            nextNodes.push(to);
-          }
-        }
-      }
-
-      skipFirst = false;
-    }
-
-    const json = JSON.stringify(suggestion);
-    if (suggestionsJson.has(json))
-      return;
-
-    suggestions.push(suggestion);
-    suggestionsJson.add(json);
-  };
-
-  for (const {node, state} of branches) {
-    if (state.remainder !== null) {
-      traverseSuggestion([state.remainder], node);
-      continue;
-    }
-
-    const nodeDef = machine.nodes[node];
-    const isFinished = checkIfNodeIsFinished(nodeDef, state);
-
-    for (const [candidate, transitions] of Object.entries(nodeDef.statics))
-      if ((isFinished && candidate !== END_OF_INPUT) || (!candidate.startsWith(`-`) && transitions.some(({reducer}) => reducer === `pushPath`)))
-        traverseSuggestion([...prefix, candidate], node);
-
-    if (!isFinished)
-      continue;
-
-    for (const [test, {to}] of nodeDef.dynamics) {
-      if (to === NODE_ERRORED)
-        continue;
-
-      const tokens = suggest(test, state);
-      if (tokens === null)
-        continue;
-
-      for (const token of tokens) {
-        traverseSuggestion([...prefix, token], node);
-      }
-    }
-  }
-
-  return [...suggestions].sort();
 }
 
 function runMachine(machine: StateMachine, input: Array<string>) {
@@ -544,40 +484,23 @@ type UndefinedKeys<T> = {[P in keyof T]-?: undefined extends T[P] ? P : never}[k
 type UndefinedTupleKeys<T extends Array<unknown>> = UndefinedKeys<Omit<T, keyof []>>;
 type TupleKeys<T> = Exclude<keyof T, keyof []>;
 
-export type CallbackFn<P extends Array<any>, R> = (state: RunState, segment: string, ...args: P) => R;
-export type CallbackFnParameters<T extends CallbackFn<any, any>> = T extends ((state: RunState, segment: string, ...args: infer P) => any) ? P : never;
+export type CallbackFn<P extends Array<any>, R> = (state: RunState, segment: string, segmentIndex: number, ...args: P) => R;
+export type CallbackFnParameters<T extends CallbackFn<any, any>> = T extends ((state: RunState, segment: string, segmentIndex: number, ...args: infer P) => any) ? P : never;
 export type CallbackStore<T extends string, R> = Record<T, CallbackFn<any, R>>;
 export type Callback<T extends string, S extends CallbackStore<T, any>> =
     [TupleKeys<CallbackFnParameters<S[T]>>] extends [UndefinedTupleKeys<CallbackFnParameters<S[T]>>]
       ? (T | [T, ...CallbackFnParameters<S[T]>])
       : [T, ...CallbackFnParameters<S[T]>];
 
-export function execute<T extends string, R, S extends CallbackStore<T, R>>(store: S, callback: Callback<T, S>, state: RunState, segment: string) {
+export function execute<T extends string, R, S extends CallbackStore<T, R>>(store: S, callback: Callback<T, S>, state: RunState, segment: string, segmentIndex: number) {
   // TypeScript's control flow can't properly narrow
   // generic conditionals for some mysterious reason
   if (Array.isArray(callback)) {
     const [name, ...args] = callback as [T, ...CallbackFnParameters<S[T]>];
-    return store[name](state, segment, ...args);
+    return store[name](state, segment, segmentIndex, ...args);
   } else {
-    return store[callback as T](state, segment);
+    return store[callback as T](state, segment, segmentIndex);
   }
-}
-
-export function suggest(callback: Callback<keyof typeof tests, typeof tests>, state: RunState): Array<string> | null {
-  const fn = Array.isArray(callback)
-    ? tests[callback[0]]
-    : tests[callback];
-
-  // @ts-ignore
-  if (typeof fn.suggest === `undefined`)
-    return null;
-
-  const args = Array.isArray(callback)
-    ? callback.slice(1)
-    : [];
-
-  // @ts-ignore
-  return fn.suggest(state, ...args);
 }
 
 export const tests = {
@@ -590,88 +513,130 @@ export const tests = {
   isNotOptionLike: (state: RunState, segment: string) => {
     return state.ignoreOptions || segment === `-` || !segment.startsWith(`-`);
   },
-  isOption: (state: RunState, segment: string, name: string, hidden?: boolean) => {
+  isOption: (state: RunState, segment: string, segmentIndex: number, name: string) => {
     return !state.ignoreOptions && segment === name;
   },
-  isBatchOption: (state: RunState, segment: string, names: Array<string>) => {
-    return !state.ignoreOptions && BATCH_REGEX.test(segment) && [...segment.slice(1)].every(name => names.includes(`-${name}`));
+  isBatchOption: (state: RunState, segment: string, segmentIndex: number, names: Map<string, string>) => {
+    return !state.ignoreOptions && BATCH_REGEX.test(segment) && [...segment.slice(1)].every(name => names.has(`-${name}`));
   },
-  isBoundOption: (state: RunState, segment: string, names: Array<string>, options: Array<OptDefinition>) => {
+  isBoundOption: (state: RunState, segment: string, segmentIndex: number, names: Map<string, string>, options: Array<OptDefinition>) => {
     const optionParsing = segment.match(BINDING_REGEX);
-    return !state.ignoreOptions && !!optionParsing && OPTION_REGEX.test(optionParsing[1]) && names.includes(optionParsing[1])
+    return !state.ignoreOptions && !!optionParsing && OPTION_REGEX.test(optionParsing[1]) && names.has(optionParsing[1])
             // Disallow bound options with no arguments (i.e. booleans)
-            && options.filter(opt => opt.names.includes(optionParsing[1])).every(opt => opt.allowBinding);
+            && options.filter(opt => opt.aliases.includes(optionParsing[1])).every(opt => opt.allowBinding);
   },
-  isNegatedOption: (state: RunState, segment: string, name: string) => {
+  isNegatedOption: (state: RunState, segment: string, segmentIndex: number, name: string) => {
     return !state.ignoreOptions && segment === `--no-${name.slice(2)}`;
   },
   isHelp: (state: RunState, segment: string) => {
     return !state.ignoreOptions && HELP_REGEX.test(segment);
   },
-  isUnsupportedOption: (state: RunState, segment: string, names: Array<string>) => {
-    return !state.ignoreOptions && segment.startsWith(`-`) && OPTION_REGEX.test(segment) && !names.includes(segment);
+  isUnsupportedOption: (state: RunState, segment: string, segmentIndex: number, names: Map<string, string>) => {
+    return !state.ignoreOptions && segment.startsWith(`-`) && OPTION_REGEX.test(segment) && !names.has(segment);
   },
   isInvalidOption: (state: RunState, segment: string) => {
     return !state.ignoreOptions && segment.startsWith(`-`) && !OPTION_REGEX.test(segment);
   },
 };
 
-// @ts-ignore
-tests.isOption.suggest = (state: RunState, name: string, hidden: boolean = true) => {
-  return !hidden ? [name] : null;
-};
-
 export const reducers = {
-  setCandidateState: (state: RunState, segment: string, candidateState: Partial<RunState>) => {
+  setCandidateState: (state: RunState, segment: string, segmentIndex: number, candidateState: Partial<RunState>) => {
     return {...state, ...candidateState};
   },
-  setSelectedIndex: (state: RunState, segment: string, index: number) => {
+  setSelectedIndex: (state: RunState, segment: string, segmentIndex: number, index: number) => {
     return {...state, selectedIndex: index};
   },
-  pushBatch: (state: RunState, segment: string) => {
-    return {...state, options: state.options.concat([...segment.slice(1)].map(name => ({name: `-${name}`, value: true})))};
+  pushBatch: (state: RunState, segment: string, segmentIndex: number, names: Map<string, string>) => {
+    const options = state.options.slice();
+    const tokens = state.tokens.slice();
+
+    for (let t = 1; t < segment.length; ++t) {
+      const name = names.get(`-${segment[t]}`)!;
+      const slice: [number, number] = t === 1 ? [0, 2] : [t, 1];
+
+      options.push({name, value: true});
+      tokens.push({segmentIndex, type: `option`, option: name, slice});
+    }
+
+    return {...state, options, tokens};
   },
-  pushBound: (state: RunState, segment: string) => {
+  pushBound: (state: RunState, segment: string, segmentIndex: number) => {
     const [, name, value] = segment.match(BINDING_REGEX)!;
-    return {...state, options: state.options.concat({name, value})};
+
+    const options = state.options.concat({name, value});
+    const tokens = state.tokens.concat([
+      {segmentIndex, type: `option`, slice: [0, name.length], option: name},
+      {segmentIndex, type: `value`, slice: [name.length + 1, value.length]},
+    ]);
+
+    return {...state, options, tokens};
   },
-  pushPath: (state: RunState, segment: string) => {
-    return {...state, path: state.path.concat(segment)};
+  pushPath: (state: RunState, segment: string, segmentIndex: number) => {
+    const path = state.path.concat(segment);
+    const tokens = state.tokens.concat({segmentIndex, type: `path`});
+
+    return {...state, path, tokens};
   },
-  pushPositional: (state: RunState, segment: string) => {
-    return {...state, positionals: state.positionals.concat({value: segment, extra: false})};
+  pushPositional: (state: RunState, segment: string, segmentIndex: number) => {
+    const positionals = state.positionals.concat({value: segment, extra: false});
+    const tokens = state.tokens.concat({segmentIndex, type: `positional`});
+
+    return {...state, positionals, tokens};
   },
-  pushExtra: (state: RunState, segment: string) => {
-    return {...state, positionals: state.positionals.concat({value: segment, extra: true})};
+  pushExtra: (state: RunState, segment: string, segmentIndex: number) => {
+    const positionals = state.positionals.concat({value: segment, extra: true});
+    const tokens = state.tokens.concat({segmentIndex, type: `positional`});
+
+    return {...state, positionals, tokens};
   },
-  pushExtraNoLimits: (state: RunState, segment: string) => {
-    return {...state, positionals: state.positionals.concat({value: segment, extra: NoLimits})};
+  pushExtraNoLimits: (state: RunState, segment: string, segmentIndex: number) => {
+    const positionals = state.positionals.concat({value: segment, extra: NoLimits});
+    const tokens = state.tokens.concat({segmentIndex, type: `positional`});
+
+    return {...state, positionals, tokens};
   },
-  pushTrue: (state: RunState, segment: string, name: string = segment) => {
-    return {...state, options: state.options.concat({name: segment, value: true})};
+  pushTrue: (state: RunState, segment: string, segmentIndex: number, name: string) => {
+    const options = state.options.concat({name, value: true});
+    const tokens = state.tokens.concat({segmentIndex, type: `option`, option: name});
+
+    return {...state, options, tokens};
   },
-  pushFalse: (state: RunState, segment: string, name: string = segment) => {
-    return {...state, options: state.options.concat({name, value: false})};
+  pushFalse: (state: RunState, segment: string, segmentIndex: number, name: string) => {
+    const options = state.options.concat({name, value: false});
+    const tokens = state.tokens.concat({segmentIndex, type: `option`, option: name});
+
+    return {...state, options, tokens};
   },
-  pushUndefined: (state: RunState, segment: string) => {
-    return {...state, options: state.options.concat({name: segment, value: undefined})};
+  pushUndefined: (state: RunState, segment: string, segmentIndex: number, name: string) => {
+    const options = state.options.concat({name: segment, value: undefined});
+    const tokens = state.tokens.concat({segmentIndex, type: `option`, option: segment});
+
+    return {...state, options, tokens};
   },
-  pushStringValue: (state: RunState, segment: string) => {
-    const copy = {...state, options: [...state.options]};
+  pushStringValue: (state: RunState, segment: string, segmentIndex: number) => {
     const lastOption = state.options[state.options.length - 1];
+
+    const options = state.options.slice();
+    const tokens = state.tokens.concat({segmentIndex, type: `value`});
+
     lastOption.value = (lastOption.value ?? []).concat([segment]);
-    return copy;
+
+    return {...state, options, tokens};
   },
-  setStringValue: (state: RunState, segment: string) => {
-    const copy = {...state, options: [...state.options]};
+  setStringValue: (state: RunState, segment: string, segmentIndex: number) => {
     const lastOption = state.options[state.options.length - 1];
+
+    const options = state.options.slice();
+    const tokens = state.tokens.concat({segmentIndex, type: `value`});
+
     lastOption.value = segment;
-    return copy;
+
+    return {...state, options, tokens};
   },
   inhibateOptions: (state: RunState) => {
     return {...state, ignoreOptions: true};
   },
-  useHelp: (state: RunState, segment: string, command: number) => {
+  useHelp: (state: RunState, segment: string, segmentIndex: number, command: number) => {
     const [, /* name */, index] = segment.match(HELP_REGEX)!;
 
     if (typeof index !== `undefined`) {
@@ -680,7 +645,7 @@ export const reducers = {
       return {...state, options: [{name: `-c`, value: String(command)}]};
     }
   },
-  setError: (state: RunState, segment: string, errorMessage: string) => {
+  setError: (state: RunState, segment: string, segmentIndex: number, errorMessage: string) => {
     if (segment === END_OF_INPUT) {
       return {...state, errorMessage: `${errorMessage}.`};
     } else {
@@ -704,7 +669,8 @@ export type ArityDefinition = {
 };
 
 export type OptDefinition = {
-  names: Array<string>;
+  name: string;
+  aliases: Array<string>;
   description?: string;
   arity: number;
   hidden: boolean;
@@ -716,7 +682,7 @@ export class CommandBuilder<Context> {
   public readonly cliIndex: number;
   public readonly cliOpts: Readonly<CliOptions>;
 
-  public readonly allOptionNames: Array<string> = [];
+  public readonly allOptionNames = new Map<string, string>();
   public readonly arity: ArityDefinition = {leading: [], trailing: [], extra: [], proxy: false};
   public readonly options: Array<OptDefinition> = [];
   public readonly paths: Array<Array<string>> = [];
@@ -776,8 +742,14 @@ export class CommandBuilder<Context> {
     if (arity < 0)
       throw new Error(`The arity must be positive, got ${arity}`);
 
-    this.allOptionNames.push(...names);
-    this.options.push({names, description, arity, hidden, required, allowBinding});
+    const longestName = names.reduce((longestName, name) => {
+      return name.length > longestName.length ? name : longestName;
+    }, ``);
+
+    for (const name of names)
+      this.allOptionNames.set(name, longestName);
+
+    this.options.push({name: longestName, aliases: names, description, arity, hidden, required, allowBinding});
   }
 
   setContext(context: Context) {
@@ -788,6 +760,7 @@ export class CommandBuilder<Context> {
     const segments = [this.cliOpts.binaryName];
 
     const detailedOptionList: Array<{
+      name: string;
       definition: string;
       description: string;
       required: boolean;
@@ -797,7 +770,7 @@ export class CommandBuilder<Context> {
       segments.push(...this.paths[0]);
 
     if (detailed) {
-      for (const {names, arity, hidden, description, required} of this.options) {
+      for (const {name, aliases, arity, hidden, description, required} of this.options) {
         if (hidden)
           continue;
 
@@ -805,10 +778,10 @@ export class CommandBuilder<Context> {
         for (let t = 0; t < arity; ++t)
           args.push(` #${t}`);
 
-        const definition = `${names.join(`,`)}${args.join(``)}`;
+        const definition = `${aliases.join(`,`)}${args.join(``)}`;
 
         if (!inlineOptions && description) {
-          detailedOptionList.push({definition, description, required});
+          detailedOptionList.push({name, definition, description, required});
         } else {
           segments.push(required ? `<${definition}>` : `[${definition}]`);
         }
@@ -839,7 +812,7 @@ export class CommandBuilder<Context> {
     const candidateUsage = this.usage().usage;
     const requiredOptions = this.options
       .filter(opt => opt.required)
-      .map(opt => opt.names);
+      .map(opt => opt.aliases);
 
     firstNode = injectNode(machine, makeNode());
     registerStatic(machine, NODE_INITIAL, START_OF_INPUT, firstNode, [`setCandidateState`, {candidateUsage, requiredOptions}]);
@@ -956,22 +929,18 @@ export class CommandBuilder<Context> {
 
   private registerOptions(machine: StateMachine, node: number) {
     registerDynamic(machine, node, [`isOption`, `--`], node, `inhibateOptions`);
-    registerDynamic(machine, node, [`isBatchOption`, this.allOptionNames], node, `pushBatch`);
+    registerDynamic(machine, node, [`isBatchOption`, this.allOptionNames], node, [`pushBatch`, this.allOptionNames]);
     registerDynamic(machine, node, [`isBoundOption`, this.allOptionNames, this.options], node, `pushBound`);
     registerDynamic(machine, node, [`isUnsupportedOption`, this.allOptionNames], NODE_ERRORED, [`setError`, `Unsupported option name`]);
     registerDynamic(machine, node, [`isInvalidOption`], NODE_ERRORED, [`setError`, `Invalid option name`]);
 
     for (const option of this.options) {
-      const longestName = option.names.reduce((longestName, name) => {
-        return name.length > longestName.length ? name : longestName;
-      }, ``);
-
       if (option.arity === 0) {
-        for (const name of option.names) {
-          registerDynamic(machine, node, [`isOption`, name, option.hidden || name !== longestName], node, `pushTrue`);
+        for (const name of option.aliases) {
+          registerDynamic(machine, node, [`isOption`, name], node, [`pushTrue`, option.name]);
 
           if (name.startsWith(`--`) && !name.startsWith(`--no-`)) {
-            registerDynamic(machine, node, [`isNegatedOption`, name], node, [`pushFalse`, name]);
+            registerDynamic(machine, node, [`isNegatedOption`, name], node, [`pushFalse`, option.name]);
           }
         }
       } else {
@@ -979,9 +948,8 @@ export class CommandBuilder<Context> {
         let lastNode = injectNode(machine, makeNode());
 
         // We register transitions from the starting node to this new node
-        for (const name of option.names)
-          registerDynamic(machine, node, [`isOption`, name, option.hidden || name !== longestName], lastNode, `pushUndefined`);
-
+        for (const name of option.aliases)
+          registerDynamic(machine, node, [`isOption`, name], lastNode, [`pushUndefined`, option.name]);
 
         // For each argument, we inject a new node at the end and we
         // register a transition from the current node to this new node
@@ -1069,9 +1037,6 @@ export class CliBuilder<Context> {
       contexts,
       process: (input: Array<string>) => {
         return runMachine(machine, input);
-      },
-      suggest: (input: Array<string>, partial: boolean) => {
-        return suggestMachine(machine, input, partial);
       },
     };
   }

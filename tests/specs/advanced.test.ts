@@ -168,6 +168,52 @@ describe(`Advanced`, () => {
     });
   });
 
+  describe(`Tokenization`, () => {
+    const cli = Cli.from(class extends Command {
+      foo = Option.Boolean(`-f,--foo`);
+      bar = Option.Boolean(`-b,--bar`);
+
+      hello = Option.String(`--hello`);
+
+      arg1 = Option.String({required: false});
+      arg2 = Option.Rest();
+
+      async execute() {}
+    });
+
+    const TOKEN_EXPECTATIONS = [{
+      input: [],
+      tokens: [],
+    }, {
+      input: [`foo`],
+      tokens: [{segmentIndex: 0, type: `positional`}],
+    }, {
+      input: [`foo`, `bar`],
+      tokens: [{segmentIndex: 0, type: `positional`}, {segmentIndex: 1, type: `positional`}],
+    }, {
+      input: [`--foo`, `bar`],
+      tokens: [{segmentIndex: 0, type: `option`, option: `--foo`}, {segmentIndex: 1, type: `positional`}],
+    }, {
+      input: [`-f`, `bar`],
+      tokens: [{segmentIndex: 0, type: `option`, option: `--foo`}, {segmentIndex: 1, type: `positional`}],
+    }, {
+      input: [`-fb`],
+      tokens: [{segmentIndex: 0, type: `option`, slice: [0, 2], option: `--foo`}, {segmentIndex: 0, type: `option`, slice: [2, 1], option: `--bar`}],
+    }, {
+      input: [`--hello`, `world`, `bar`],
+      tokens: [{segmentIndex: 0, type: `option`, option: `--hello`}, {segmentIndex: 1, type: `value`}, {segmentIndex: 2, type: `positional`}],
+    }, {
+      input: [`--hello=world`, `bar`],
+      tokens: [{segmentIndex: 0, type: `option`, slice: [0, 7], option: `--hello`}, {segmentIndex: 0, type: `value`, slice: [8, 5]}, {segmentIndex: 1, type: `positional`}],
+    }];
+
+    for (const {input, tokens} of TOKEN_EXPECTATIONS) {
+      it(`should tokenize "${input.join(` `)}"`, () => {
+        expect(cli.process(input).tokens).to.deep.equal(tokens);
+      });
+    }
+  });
+
   it(`should print the general help listing when using --help on the raw command`, async () => {
     const output = await runCli(() => {
       class CommandHelp extends Command {
