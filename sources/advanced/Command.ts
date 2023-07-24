@@ -79,6 +79,8 @@ export type CommandClass<Context extends BaseContext = BaseContext> = {
  * declare the set of paths under which the command should be exposed.
  */
 export abstract class Command<Context extends BaseContext = BaseContext> {
+  declare [`constructor`]: CommandClass<Context>;
+
   /**
    * @deprecated Do not use this; prefer the static `paths` property instead.
    */
