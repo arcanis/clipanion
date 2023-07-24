@@ -770,6 +770,7 @@ export class CommandBuilder<Context> {
 
     const detailedOptionList: Array<{
       name: string;
+      aliases: Array<string>;
       definition: string;
       description: string;
       required: boolean;
@@ -790,7 +791,7 @@ export class CommandBuilder<Context> {
         const definition = `${aliases.join(`,`)}${args.join(``)}`;
 
         if (!inlineOptions && description) {
-          detailedOptionList.push({name, definition, description, required});
+          detailedOptionList.push({name, aliases, definition, description, required});
         } else {
           segments.push(required ? `<${definition}>` : `[${definition}]`);
         }

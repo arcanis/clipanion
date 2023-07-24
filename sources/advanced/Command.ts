@@ -59,6 +59,8 @@ export type Definition = Usage & {
    * The various options registered on the command.
    */
   options: Array<{
+    name: string;
+    aliases: Array<string>;
     definition: string;
     description?: string;
     required: boolean;
