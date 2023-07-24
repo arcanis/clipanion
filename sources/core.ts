@@ -37,6 +37,12 @@ export type PositionalToken = TokenBase & {
   slice?: undefined;
 };
 
+export type OptionDashToken = TokenBase & {
+  type: `dash`;
+  slice?: [number, number];
+  option?: string;
+};
+
 export type OptionToken = TokenBase & {
   type: `option`;
   slice?: [number, number];
@@ -56,6 +62,7 @@ export type ValueToken = TokenBase & {
 export type Token =
   | PathToken
   | PositionalToken
+  | OptionDashToken
   | OptionToken
   | AssignToken
   | ValueToken;
