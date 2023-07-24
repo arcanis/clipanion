@@ -29,10 +29,12 @@ export type TokenBase = {
 
 export type PathToken = TokenBase & {
   type: `path`;
+  slice?: undefined;
 };
 
 export type PositionalToken = TokenBase & {
   type: `positional`;
+  slice?: undefined;
 };
 
 export type OptionToken = TokenBase & {
