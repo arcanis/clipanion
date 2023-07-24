@@ -43,6 +43,11 @@ export type OptionToken = TokenBase & {
   option: string;
 };
 
+export type AssignToken = TokenBase & {
+  type: `assign`;
+  slice: [number, number];
+};
+
 export type ValueToken = TokenBase & {
   type: `value`;
   slice?: [number, number];
@@ -52,6 +57,7 @@ export type Token =
   | PathToken
   | PositionalToken
   | OptionToken
+  | AssignToken
   | ValueToken;
 
 export type RunState = {
@@ -568,6 +574,7 @@ export const reducers = {
     const options = state.options.concat({name, value});
     const tokens = state.tokens.concat([
       {segmentIndex, type: `option`, slice: [0, name.length], option: name},
+      {segmentIndex, type: `assign`, slice: [name.length, 1]},
       {segmentIndex, type: `value`, slice: [name.length + 1, value.length]},
     ]);
 
