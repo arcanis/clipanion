@@ -177,6 +177,25 @@ export type MiniCli<Context extends BaseContext> = CliOptions & {
   usage(command?: CommandClass<Context> | Command<Context> | null, opts?: {detailed?: boolean, prefix?: string}): string;
 };
 
+export type MandatoryContextKeys<Context extends BaseContext> = keyof MandatoryContext<Context>;
+
+export type MandatoryContext<Context extends BaseContext> = {
+  [K in Exclude<keyof Context, keyof BaseContext> as undefined extends Context[K] ? never : K]: Context[K];
+};
+
+export type UserProvidedContext<Context extends BaseContext> =
+  & MandatoryContext<Context>
+  & Partial<Omit<Context, MandatoryContextKeys<Context>>>;
+
+export type MaybeProvidedContext<Context extends BaseContext> =
+  MandatoryContextKeys<Context> extends never
+    ? {context?: UserProvidedContext<Context>}
+    : {context: UserProvidedContext<Context>};
+
+export type ProcessOptions<Context extends BaseContext> =
+    & MaybeProvidedContext<Context>
+    & {input: Array<string>, partial?: boolean};
+
 /**
  * An all-in-one helper that simultaneously instantiate a CLI and immediately
  * executes it. All parameters are optional except the command classes and
@@ -400,16 +419,21 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
     });
   }
 
+  process(opts: ProcessOptions<Context>): Command<Context>;
   process(input: Array<string>, context: VoidIfEmpty<Omit<Context, keyof BaseContext>>): Command<Context>;
   process(input: Array<string>, context: MakeOptional<Context, keyof BaseContext>): Command<Context>;
-  process(input: Array<string>, userContext: any) {
+  process(opts: Array<string> | ProcessOptions<Context>, contextArg?: any) {
+    const {input, context: userContext, partial}: ProcessOptions<Context> = typeof opts === `object` && Array.isArray(opts)
+      ? {input: opts as any as Array<string>, context: contextArg}
+      : opts;
+
     const {contexts, process} = this.builder.compile();
-    const state = process(input);
+    const state = process(input, {partial});
 
     const context = {
       ...Cli.defaultContext,
       ...userContext,
-    } as Context;
+    } as any as Context;
 
     switch (state.selectedIndex) {
       case HELP_COMMAND_INDEX: {

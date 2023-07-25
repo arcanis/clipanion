@@ -1,10 +1,10 @@
-import * as errors from './errors';
+import {NodeType, SpecialToken} from './constants';
+import * as errors              from './errors';
 
 import {
-  BATCH_REGEX, BINDING_REGEX, END_OF_INPUT,
-  HELP_COMMAND_INDEX, HELP_REGEX, NODE_ERRORED,
-  NODE_INITIAL, NODE_SUCCESS, OPTION_REGEX,
-  START_OF_INPUT, DEBUG,
+  BATCH_REGEX, BINDING_REGEX, HELP_REGEX, OPTION_REGEX,
+  HELP_COMMAND_INDEX,
+  IS_DEBUG,
 } from './constants';
 
 declare const console: any;
@@ -12,7 +12,7 @@ declare const console: any;
 // ------------------------------------------------------------------------
 
 export function debug(str: string) {
-  if (DEBUG) {
+  if (IS_DEBUG) {
     console.log(str);
   }
 }
@@ -93,10 +93,15 @@ const basicHelpState: RunState = {
   tokens: [],
 };
 
-export function makeStateMachine(): StateMachine {
-  return {
-    nodes: [makeNode(), makeNode(), makeNode()],
+export function makeStateMachine() {
+  const stateMachine: StateMachine = {
+    nodes: [],
   };
+
+  for (let t = 0; t < NodeType.CustomNode; ++t)
+    stateMachine.nodes.push(makeNode());
+
+  return stateMachine;
 }
 
 export function makeAnyOfMachine(inputs: Array<StateMachine>) {
@@ -112,11 +117,11 @@ export function makeAnyOfMachine(inputs: Array<StateMachine>) {
       if (!isTerminalNode(t))
         output.nodes.push(cloneNode(input.nodes[t], offset));
 
-    offset += input.nodes.length - 2;
+    offset += input.nodes.length - NodeType.CustomNode + 1;
   }
 
   for (const head of heads)
-    registerShortcut(output, NODE_INITIAL, head);
+    registerShortcut(output, NodeType.InitialNode, head);
 
   return output;
 }
@@ -129,7 +134,7 @@ export function injectNode(machine: StateMachine, node: Node) {
 export function simplifyMachine(input: StateMachine) {
   const visited = new Set();
 
-  const process = (node: number) => {
+  const process = (node: NodeType | number) => {
     if (visited.has(node))
       return;
 
@@ -176,12 +181,12 @@ export function simplifyMachine(input: StateMachine) {
     }
   };
 
-  process(NODE_INITIAL);
+  process(NodeType.InitialNode);
 }
 
 export function debugMachine(machine: StateMachine, {prefix = ``}: {prefix?: string} = {}) {
   // Don't iterate unless it's needed
-  if (DEBUG) {
+  if (IS_DEBUG) {
     debug(`${prefix}Nodes are:`);
     for (let t = 0; t < machine.nodes.length; ++t) {
       debug(`${prefix}  ${t}: ${JSON.stringify(machine.nodes[t])}`);
@@ -191,24 +196,28 @@ export function debugMachine(machine: StateMachine, {prefix = ``}: {prefix?: str
 
 export function runMachineInternal(machine: StateMachine, input: Array<string>, partial: boolean = false) {
   debug(`Running a vm on ${JSON.stringify(input)}`);
-  let branches: Array<{node: number, state: RunState}> = [{node: NODE_INITIAL, state: {
-    candidateUsage: null,
-    requiredOptions: [],
-    errorMessage: null,
-    ignoreOptions: false,
-    options: [],
-    path: [],
-    positionals: [],
-    remainder: null,
-    selectedIndex: null,
-    tokens: [],
-  }}];
+  let branches: Array<{node: number, state: RunState}> = [{
+    node: NodeType.InitialNode,
+    state: {
+      candidateUsage: null,
+      requiredOptions: [],
+      errorMessage: null,
+      ignoreOptions: false,
+      options: [],
+      path: [],
+      positionals: [],
+      remainder: null,
+      selectedIndex: null,
+      tokens: [],
+    },
+  }];
 
   debugMachine(machine, {prefix: `  `});
 
-  const tokens = [START_OF_INPUT, ...input];
+  const tokens = [SpecialToken.StartOfInput, ...input];
   for (let t = 0; t < tokens.length; ++t) {
     const segment = tokens[t];
+    const isEOI = segment === SpecialToken.EndOfInput || segment === SpecialToken.EndOfPartialInput;
 
     // The -1 is because we added a START_OF_INPUT token
     const segmentIndex = t - 1;
@@ -220,7 +229,7 @@ export function runMachineInternal(machine: StateMachine, input: Array<string>, 
       debug(`    Current node is ${node}`);
       const nodeDef = machine.nodes[node];
 
-      if (node === NODE_ERRORED) {
+      if (node === NodeType.ErrorNode) {
         nextBranches.push({node, state});
         continue;
       }
@@ -268,7 +277,7 @@ export function runMachineInternal(machine: StateMachine, input: Array<string>, 
         }
       }
 
-      if (segment !== END_OF_INPUT) {
+      if (!isEOI) {
         for (const [test, {to, reducer}] of nodeDef.dynamics) {
           if (execute(tests, test, state, segment, segmentIndex)) {
             nextBranches.push({node: to, state: typeof reducer !== `undefined` ? execute(reducers, reducer, state, segment, segmentIndex) : state});
@@ -278,22 +287,22 @@ export function runMachineInternal(machine: StateMachine, input: Array<string>, 
       }
     }
 
-    if (nextBranches.length === 0 && segment === END_OF_INPUT && input.length === 1) {
+    if (nextBranches.length === 0 && isEOI && input.length === 1) {
       return [{
-        node: NODE_INITIAL,
+        node: NodeType.InitialNode,
         state: basicHelpState,
       }];
     }
 
     if (nextBranches.length === 0) {
       throw new errors.UnknownSyntaxError(input, branches.filter(({node}) => {
-        return node !== NODE_ERRORED;
+        return node !== NodeType.ErrorNode;
       }).map(({state}) => {
         return {usage: state.candidateUsage!, reason: null};
       }));
     }
 
-    if (nextBranches.every(({node}) => node === NODE_ERRORED)) {
+    if (nextBranches.every(({node}) => node === NodeType.ErrorNode)) {
       throw new errors.UnknownSyntaxError(input, nextBranches.map(({state}) => {
         return {usage: state.candidateUsage!, reason: state.errorMessage};
       }));
@@ -314,8 +323,8 @@ export function runMachineInternal(machine: StateMachine, input: Array<string>, 
   return branches;
 }
 
-function runMachine(machine: StateMachine, input: Array<string>) {
-  const branches = runMachineInternal(machine, [...input, END_OF_INPUT]);
+function runMachine(machine: StateMachine, input: Array<string>, {endToken = SpecialToken.EndOfInput}: {endToken?: SpecialToken.EndOfInput | SpecialToken.EndOfPartialInput} = {}) {
+  const branches = runMachineInternal(machine, [...input, endToken]);
 
   return selectBestState(input, branches.map(({state}) => {
     return state;
@@ -447,12 +456,18 @@ export function makeNode(): Node {
 }
 
 export function isTerminalNode(node: number) {
-  return node === NODE_SUCCESS || node === NODE_ERRORED;
+  return node === NodeType.SuccessNode || node === NodeType.ErrorNode;
 }
 
 export function cloneTransition(input: Transition, offset: number = 0) {
+  const to = !isTerminalNode(input.to)
+    ? input.to >= NodeType.CustomNode
+      ? input.to + offset - NodeType.CustomNode + 1
+      : input.to + offset
+    : input.to;
+
   return {
-    to: !isTerminalNode(input.to) ? input.to > 2 ? input.to + offset - 2 : input.to + offset : input.to,
+    to,
     reducer: input.reducer,
   };
 }
@@ -472,20 +487,20 @@ export function cloneNode(input: Node, offset: number = 0) {
   return output;
 }
 
-export function registerDynamic<T extends keyof typeof tests, R extends keyof typeof reducers>(machine: StateMachine, from: number, test: Callback<T, typeof tests>, to: number, reducer?: Callback<R, typeof reducers>) {
+export function registerDynamic<T extends keyof typeof tests, R extends keyof typeof reducers>(machine: StateMachine, from: NodeType | number, test: Callback<T, typeof tests>, to: NodeType | number, reducer?: Callback<R, typeof reducers>) {
   machine.nodes[from].dynamics.push([
     test as Callback<keyof typeof tests, typeof tests>,
     {to, reducer: reducer as Callback<keyof typeof reducers, typeof reducers>},
   ]);
 }
 
-export function registerShortcut<R extends keyof typeof reducers>(machine: StateMachine, from: number, to: number, reducer?: Callback<R, typeof reducers>) {
+export function registerShortcut<R extends keyof typeof reducers>(machine: StateMachine, from: NodeType | number, to: NodeType | number, reducer?: Callback<R, typeof reducers>) {
   machine.nodes[from].shortcuts.push(
     {to, reducer: reducer as Callback<keyof typeof reducers, typeof reducers>}
   );
 }
 
-export function registerStatic<R extends keyof typeof reducers>(machine: StateMachine, from: number, test: string, to: number, reducer?: Callback<R, typeof reducers>) {
+export function registerStatic<R extends keyof typeof reducers>(machine: StateMachine, from: NodeType | number, test: string, to: NodeType | number, reducer?: Callback<R, typeof reducers>) {
   const store = !Object.prototype.hasOwnProperty.call(machine.nodes[from].statics, test)
     ? machine.nodes[from].statics[test] = []
     : machine.nodes[from].statics[test];
@@ -662,7 +677,7 @@ export const reducers = {
     }
   },
   setError: (state: RunState, segment: string, segmentIndex: number, errorMessage: string) => {
-    if (segment === END_OF_INPUT) {
+    if (segment === SpecialToken.EndOfInput || segment === SpecialToken.EndOfPartialInput) {
       return {...state, errorMessage: `${errorMessage}.`};
     } else {
       return {...state, errorMessage: `${errorMessage} ("${segment}").`};
@@ -824,7 +839,7 @@ export class CommandBuilder<Context> {
       throw new Error(`Assertion failed: No context attached`);
 
     const machine = makeStateMachine();
-    let firstNode = NODE_INITIAL;
+    let firstNode = NodeType.InitialNode;
 
     const candidateUsage = this.usage().usage;
     const requiredOptions = this.options
@@ -832,7 +847,7 @@ export class CommandBuilder<Context> {
       .map(opt => opt.aliases);
 
     firstNode = injectNode(machine, makeNode());
-    registerStatic(machine, NODE_INITIAL, START_OF_INPUT, firstNode, [`setCandidateState`, {candidateUsage, requiredOptions}]);
+    registerStatic(machine, NodeType.InitialNode, SpecialToken.StartOfInput, firstNode, [`setCandidateState`, {candidateUsage, requiredOptions}]);
 
     const positionalArgument = this.arity.proxy
       ? `always`
@@ -865,13 +880,15 @@ export class CommandBuilder<Context> {
         const helpNode = injectNode(machine, makeNode());
         registerDynamic(machine, lastPathNode, `isHelp`, helpNode, [`useHelp`, this.cliIndex]);
         registerDynamic(machine, helpNode, `always`, helpNode, `pushExtra`);
-        registerStatic(machine, helpNode, END_OF_INPUT, NODE_SUCCESS, [`setSelectedIndex`, HELP_COMMAND_INDEX]);
+        registerStatic(machine, helpNode, SpecialToken.EndOfInput, NodeType.SuccessNode, [`setSelectedIndex`, HELP_COMMAND_INDEX]);
 
         this.registerOptions(machine, lastPathNode);
       }
 
-      if (this.arity.leading.length > 0)
-        registerStatic(machine, lastPathNode, END_OF_INPUT, NODE_ERRORED, [`setError`, `Not enough positional arguments`]);
+      if (this.arity.leading.length > 0) {
+        registerStatic(machine, lastPathNode, SpecialToken.EndOfInput, NodeType.ErrorNode, [`setError`, `Not enough positional arguments`]);
+        registerStatic(machine, lastPathNode, SpecialToken.EndOfPartialInput, NodeType.SuccessNode, [`setSelectedIndex`, this.cliIndex]);
+      }
 
       let lastLeadingNode = lastPathNode;
       for (let t = 0; t < this.arity.leading.length; ++t) {
@@ -880,8 +897,10 @@ export class CommandBuilder<Context> {
         if (!this.arity.proxy || t + 1 !== this.arity.leading.length)
           this.registerOptions(machine, nextLeadingNode);
 
-        if (this.arity.trailing.length > 0 || t + 1 !== this.arity.leading.length)
-          registerStatic(machine, nextLeadingNode, END_OF_INPUT, NODE_ERRORED, [`setError`, `Not enough positional arguments`]);
+        if (this.arity.trailing.length > 0 || t + 1 !== this.arity.leading.length) {
+          registerStatic(machine, nextLeadingNode, SpecialToken.EndOfInput, NodeType.ErrorNode, [`setError`, `Not enough positional arguments`]);
+          registerStatic(machine, nextLeadingNode, SpecialToken.EndOfPartialInput, NodeType.SuccessNode, [`setSelectedIndex`, this.cliIndex]);
+        }
 
         registerDynamic(machine, lastLeadingNode, `isNotOptionLike`, nextLeadingNode, `pushPositional`);
         lastLeadingNode = nextLeadingNode;
@@ -917,8 +936,10 @@ export class CommandBuilder<Context> {
         lastExtraNode = extraShortcutNode;
       }
 
-      if (this.arity.trailing.length > 0)
-        registerStatic(machine, lastExtraNode, END_OF_INPUT, NODE_ERRORED, [`setError`, `Not enough positional arguments`]);
+      if (this.arity.trailing.length > 0) {
+        registerStatic(machine, lastExtraNode, SpecialToken.EndOfInput, NodeType.ErrorNode, [`setError`, `Not enough positional arguments`]);
+        registerStatic(machine, lastExtraNode, SpecialToken.EndOfPartialInput, NodeType.SuccessNode, [`setSelectedIndex`, this.cliIndex]);
+      }
 
       let lastTrailingNode = lastExtraNode;
       for (let t = 0; t < this.arity.trailing.length; ++t) {
@@ -927,15 +948,18 @@ export class CommandBuilder<Context> {
         if (!this.arity.proxy)
           this.registerOptions(machine, nextTrailingNode);
 
-        if (t + 1 < this.arity.trailing.length)
-          registerStatic(machine, nextTrailingNode, END_OF_INPUT, NODE_ERRORED, [`setError`, `Not enough positional arguments`]);
+        if (t + 1 < this.arity.trailing.length) {
+          registerStatic(machine, nextTrailingNode, SpecialToken.EndOfInput, NodeType.ErrorNode, [`setError`, `Not enough positional arguments`]);
+          registerStatic(machine, nextTrailingNode, SpecialToken.EndOfPartialInput, NodeType.SuccessNode, [`setSelectedIndex`, this.cliIndex]);
+        }
 
         registerDynamic(machine, lastTrailingNode, `isNotOptionLike`, nextTrailingNode, `pushPositional`);
         lastTrailingNode = nextTrailingNode;
       }
 
-      registerDynamic(machine, lastTrailingNode, positionalArgument, NODE_ERRORED, [`setError`, `Extraneous positional argument`]);
-      registerStatic(machine, lastTrailingNode, END_OF_INPUT, NODE_SUCCESS, [`setSelectedIndex`, this.cliIndex]);
+      registerDynamic(machine, lastTrailingNode, positionalArgument, NodeType.ErrorNode, [`setError`, `Extraneous positional argument`]);
+      registerStatic(machine, lastTrailingNode, SpecialToken.EndOfInput, NodeType.SuccessNode, [`setSelectedIndex`, this.cliIndex]);
+      registerStatic(machine, lastTrailingNode, SpecialToken.EndOfPartialInput, NodeType.SuccessNode, [`setSelectedIndex`, this.cliIndex]);
     }
 
     return {
@@ -948,8 +972,8 @@ export class CommandBuilder<Context> {
     registerDynamic(machine, node, [`isOption`, `--`], node, `inhibateOptions`);
     registerDynamic(machine, node, [`isBatchOption`, this.allOptionNames], node, [`pushBatch`, this.allOptionNames]);
     registerDynamic(machine, node, [`isBoundOption`, this.allOptionNames, this.options], node, `pushBound`);
-    registerDynamic(machine, node, [`isUnsupportedOption`, this.allOptionNames], NODE_ERRORED, [`setError`, `Unsupported option name`]);
-    registerDynamic(machine, node, [`isInvalidOption`], NODE_ERRORED, [`setError`, `Invalid option name`]);
+    registerDynamic(machine, node, [`isUnsupportedOption`, this.allOptionNames], NodeType.ErrorNode, [`setError`, `Unsupported option name`]);
+    registerDynamic(machine, node, [`isInvalidOption`], NodeType.ErrorNode, [`setError`, `Invalid option name`]);
 
     for (const option of this.options) {
       if (option.arity === 0) {
@@ -973,9 +997,10 @@ export class CommandBuilder<Context> {
         for (let t = 0; t < option.arity; ++t) {
           const nextNode = injectNode(machine, makeNode());
 
-          // We can provide better errors when another option or END_OF_INPUT is encountered
-          registerStatic(machine, lastNode, END_OF_INPUT, NODE_ERRORED, `setOptionArityError`);
-          registerDynamic(machine, lastNode, `isOptionLike`, NODE_ERRORED, `setOptionArityError`);
+          // We can provide better errors when another option or EndOfInput is encountered
+          registerStatic(machine, lastNode, SpecialToken.EndOfInput, NodeType.ErrorNode, `setOptionArityError`);
+          registerStatic(machine, lastNode, SpecialToken.EndOfPartialInput, NodeType.ErrorNode, `setOptionArityError`);
+          registerDynamic(machine, lastNode, `isOptionLike`, NodeType.ErrorNode, `setOptionArityError`);
 
           // If the option has a single argument, no need to store it in an array
           const action: keyof typeof reducers = option.arity === 1
@@ -1052,8 +1077,12 @@ export class CliBuilder<Context> {
     return {
       machine,
       contexts,
-      process: (input: Array<string>) => {
-        return runMachine(machine, input);
+      process: (input: Array<string>, {partial}: {partial?: boolean} = {}) => {
+        const endToken = partial
+          ? SpecialToken.EndOfPartialInput
+          : SpecialToken.EndOfInput;
+
+        return runMachine(machine, input, {endToken});
       },
     };
   }

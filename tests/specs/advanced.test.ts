@@ -169,47 +169,69 @@ describe(`Advanced`, () => {
   });
 
   describe(`Tokenization`, () => {
-    const cli = Cli.from(class extends Command {
-      foo = Option.Boolean(`-f,--foo`);
-      bar = Option.Boolean(`-b,--bar`);
+    const cli = Cli.from([
+      class extends Command {
+        static paths = [[`main`]];
 
-      hello = Option.String(`--hello`);
+        foo = Option.Boolean(`-f,--foo`);
+        bar = Option.Boolean(`-b,--bar`);
 
-      arg1 = Option.String({required: false});
-      arg2 = Option.Rest();
+        hello = Option.String(`--hello`);
 
-      async execute() {}
-    });
+        arg1 = Option.String({required: false});
+        arg2 = Option.Rest();
+
+        async execute() {}
+      },
+
+      class extends Command {
+        static paths = [[`required-args`]];
+
+        arg1 = Option.String();
+        arg2 = Option.String();
+
+        async execute() {}
+      },
+    ]);
 
     const TOKEN_EXPECTATIONS = [{
-      input: [],
-      tokens: [],
+      input: [`main`],
+      tokens: [{segmentIndex: 0, type: `path`}],
     }, {
-      input: [`foo`],
-      tokens: [{segmentIndex: 0, type: `positional`}],
+      input: [`main`, `foo`],
+      tokens: [{segmentIndex: 0, type: `path`}, {segmentIndex: 1, type: `positional`}],
     }, {
-      input: [`foo`, `bar`],
-      tokens: [{segmentIndex: 0, type: `positional`}, {segmentIndex: 1, type: `positional`}],
+      input: [`main`, `foo`, `bar`],
+      tokens: [{segmentIndex: 0, type: `path`}, {segmentIndex: 1, type: `positional`}, {segmentIndex: 2, type: `positional`}],
     }, {
-      input: [`--foo`, `bar`],
-      tokens: [{segmentIndex: 0, type: `option`, option: `--foo`}, {segmentIndex: 1, type: `positional`}],
+      input: [`main`, `--foo`, `bar`],
+      tokens: [{segmentIndex: 0, type: `path`}, {segmentIndex: 1, type: `option`, option: `--foo`}, {segmentIndex: 2, type: `positional`}],
     }, {
-      input: [`-f`, `bar`],
-      tokens: [{segmentIndex: 0, type: `option`, option: `--foo`}, {segmentIndex: 1, type: `positional`}],
+      input: [`main`, `-f`, `bar`],
+      tokens: [{segmentIndex: 0, type: `path`}, {segmentIndex: 1, type: `option`, option: `--foo`}, {segmentIndex: 2, type: `positional`}],
     }, {
-      input: [`-fb`],
-      tokens: [{segmentIndex: 0, type: `option`, slice: [0, 2], option: `--foo`}, {segmentIndex: 0, type: `option`, slice: [2, 1], option: `--bar`}],
+      input: [`main`, `-fb`],
+      tokens: [{segmentIndex: 0, type: `path`}, {segmentIndex: 1, type: `option`, slice: [0, 2], option: `--foo`}, {segmentIndex: 1, type: `option`, slice: [2, 1], option: `--bar`}],
     }, {
-      input: [`--hello`, `world`, `bar`],
-      tokens: [{segmentIndex: 0, type: `option`, option: `--hello`}, {segmentIndex: 1, type: `value`}, {segmentIndex: 2, type: `positional`}],
+      input: [`main`, `--hello`, `world`, `bar`],
+      tokens: [{segmentIndex: 0, type: `path`}, {segmentIndex: 1, type: `option`, option: `--hello`}, {segmentIndex: 2, type: `value`}, {segmentIndex: 3, type: `positional`}],
     }, {
-      input: [`--hello=world`, `bar`],
-      tokens: [{segmentIndex: 0, type: `option`, slice: [0, 7], option: `--hello`}, {segmentIndex: 0, type: `value`, slice: [8, 5]}, {segmentIndex: 1, type: `positional`}],
+      input: [`main`, `--hello=world`, `bar`],
+      tokens: [{segmentIndex: 0, type: `path`}, {segmentIndex: 1, type: `option`, slice: [0, 7], option: `--hello`}, {segmentIndex: 1, type: `assign`, slice: [7, 1]}, {segmentIndex: 1, type: `value`, slice: [8, 5]}, {segmentIndex: 2, type: `positional`}],
+    }, {
+      input: [`required-args`],
+      tokens: [{segmentIndex: 0, type: `path`}],
+    }, {
+      input: [`required-args`, `foo`],
+      tokens: [{segmentIndex: 0, type: `path`}, {segmentIndex: 1, type: `positional`}],
+    }, {
+      input: [`required-args`, `foo`, `bar`],
+      tokens: [{segmentIndex: 0, type: `path`}, {segmentIndex: 1, type: `positional`}, {segmentIndex: 2, type: `positional`}],
     }];
 
     for (const {input, tokens} of TOKEN_EXPECTATIONS) {
       it(`should tokenize "${input.join(` `)}"`, () => {
-        expect(cli.process(input).tokens).to.deep.equal(tokens);
+        expect(cli.process({input, partial: true}).tokens).to.deep.equal(tokens);
       });
     }
   });
