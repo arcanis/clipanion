@@ -1338,7 +1338,6 @@ __metadata:
     get-stream: ^6.0.1
     mocha: ^8.0.1
     rollup: ^2.16.1
-    string.prototype.replaceall: ^1.0.5
     ts-node: ^8.10.2
     tslib: ^2.0.0
     typescript: ^4.3.5
@@ -1391,7 +1390,6 @@ __metadata:
     rollup: ^2.16.1
     rollup-plugin-copy: ^3.4.0
     rollup-plugin-multi-input: ^1.3.1
-    string.prototype.replaceall: ^1.0.5
     strip-ansi: ^6.0.0
     testbin: "workspace:^"
     ts-node: ^8.10.2
@@ -3070,7 +3068,7 @@ fsevents@~2.1.2:
   languageName: node
   linkType: hard
 
-"is-regex@npm:^1.1.2, is-regex@npm:^1.1.3":
+"is-regex@npm:^1.1.3":
   version: 1.1.3
   resolution: "is-regex@npm:1.1.3"
   dependencies:
@@ -4819,20 +4817,6 @@ resolve@^2.0.0-next.3:
     regexp.prototype.flags: ^1.3.1
     side-channel: ^1.0.4
   checksum: 0a9d64661ecf089e7712aed18a4b0d7e4093ae1dfc6d8134747a98271564065a2a667a3408fced4a77137528b3b2c0efe9d37868acae000ee13d0857a3d0f430
-  languageName: node
-  linkType: hard
-
-"string.prototype.replaceall@npm:^1.0.5":
-  version: 1.0.5
-  resolution: "string.prototype.replaceall@npm:1.0.5"
-  dependencies:
-    call-bind: ^1.0.2
-    define-properties: ^1.1.3
-    es-abstract: ^1.18.0-next.2
-    get-intrinsic: ^1.1.1
-    has-symbols: ^1.0.1
-    is-regex: ^1.1.2
-  checksum: 3af47d750951fb6fd39ad9355bec0b4a3ddb1d4f761bb8bb396c0b5655b23e8c341910b13a1662d9543b23535bbecc805f207b91b890e1e6008103280998c94f
   languageName: node
   linkType: hard
 

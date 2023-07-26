@@ -27,9 +27,6 @@
     "completion",
     "complete"
   ],
-  "dependencies": {
-    "string.prototype.replaceall": "^1.0.5"
-  },
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^10.0.0",
     "@rollup/plugin-typescript": "^6.1.0",

@@ -1,5 +1,3 @@
-require(`string.prototype.replaceall`).shim();
-
 import {npath, PortablePath, xfs} from '@yarnpkg/fslib';
 import {spawnSync}                from 'child_process';
 import * as pty                   from 'node-pty';
