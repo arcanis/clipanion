@@ -5,6 +5,7 @@ import * as Option                                                           fro
 import {BuiltinOptions}                                                      from '../utils';
 
 export type CompletionSetupCommandOptions = BuiltinOptions & {
+  binaryName?: string;
   completionProviderCommandPaths?: Array<Array<string>>;
 };
 
@@ -13,7 +14,7 @@ export type CompletionSetupCommandOptions = BuiltinOptions & {
  *
  * Default Paths: `completion setup`
  */
-export function CompletionSetupCommand({paths = [[`completion`, `setup`]], completionProviderCommandPaths = [[`completion`]]}: CompletionSetupCommandOptions = {}) {
+export function CompletionSetupCommand({paths = [[`completion`, `setup`]], completionProviderCommandPaths = [[`completion`]], binaryName}: CompletionSetupCommandOptions = {}) {
   const mainPath = paths[0] ?? [];
   const exampleUsagePath = [`$0`, ...mainPath].join(` `);
 
@@ -45,11 +46,13 @@ export function CompletionSetupCommand({paths = [[`completion`, `setup`]], compl
     shellName = Option.String({required: false});
 
     async execute() {
+      const actualBinaryName = binaryName ?? this.cli.binaryName;
+
       // We make sure that we don't register a completion provider for an invalid binary before writing to the shell configuration file.
-      validateBinaryName(this.cli.binaryName);
+      validateBinaryName(actualBinaryName);
 
       return await setupShellConfigurationFile({
-        completionProviderCommand: [this.cli.binaryName, ...completionProviderCommandPaths[0] ?? []].join(` `),
+        completionProviderCommand: [actualBinaryName, ...completionProviderCommandPaths[0] ?? []].join(` `),
         shellName: this.shellName,
       });
     }
