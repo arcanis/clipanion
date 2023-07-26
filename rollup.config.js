@@ -24,6 +24,7 @@ export default {
   ],
   preserveModules: true,
   external: [
+    `clcs`,
     `tty`,
     `typanion`,
     `../platform`,

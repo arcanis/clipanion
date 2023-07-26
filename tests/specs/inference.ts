@@ -2,13 +2,16 @@
 import * as t            from 'typanion';
 
 import {runExit}         from '../../sources/advanced/Cli';
-import {Command, Option} from '../../sources/advanced';
+import {PartialCommand}  from '../../sources/advanced/options';
+import {Command, Option} from '../..';
 
 type AssertEqual<T, Expected> = [T, Expected] extends [Expected, T] ? true : false;
 
 function assertEqual<U>() {
-  return <V>(val: V, expected: AssertEqual<U, V>) => {};
+  return <V>(val: V, expected: AssertEqual<Option.CommandOptionReturn<U, any>, V>) => {};
 }
+
+// IMPORTANT: Each `Command` assertion must have a matching `PartialCommand` assertion!
 
 class MyCommand extends Command {
   defaultPositional = Option.String();
@@ -29,6 +32,8 @@ class MyCommand extends Command {
   stringWithRequired = Option.String(`--foo`, {required: true});
   // @ts-expect-error: Overload prevents this
   stringWithRequiredAndDefault = Option.String(`--foo`, false, {required: true});
+  stringWithArityNumber = Option.String(`--foo`, {arity: 0 as number});
+  stringWithArityNumberAndRequired = Option.String(`--foo`, {arity: 0 as number, required: true});
   stringWithArity0 = Option.String(`--foo`, {arity: 0});
   stringWithArity1 = Option.String(`--foo`, {arity: 1});
   stringWithArity2 = Option.String(`--foo`, {arity: 2});
@@ -91,7 +96,9 @@ class MyCommand extends Command {
     assertEqual<number>()(this.stringWithValidatorAndRequired, true);
     assertEqual<number>()(this.stringWithValidatorAndDefault, true);
     assertEqual<string>()(this.stringWithRequired, true);
-    assertEqual<boolean | undefined>()(this.stringWithArity0, true);
+    assertEqual<Array<string> | boolean | string | undefined>()(this.stringWithArityNumber, true);
+    assertEqual<Array<string> | boolean | string>()(this.stringWithArityNumberAndRequired, true);
+    assertEqual<boolean | string | undefined>()(this.stringWithArity0, true);
     assertEqual<string | undefined>()(this.stringWithArity1, true);
     assertEqual<[string, string] | undefined>()(this.stringWithArity2, true);
     assertEqual<[string, string, string] | undefined>()(this.stringWithArity3, true);
@@ -113,7 +120,7 @@ class MyCommand extends Command {
     assertEqual<Array<string> | undefined>()(this.array, true);
     assertEqual<Array<string>>()(this.arrayWithDefault, true);
     assertEqual<Array<string>>()(this.arrayWithRequired, true);
-    assertEqual<Array<boolean> | undefined>()(this.arrayWithArity0, true);
+    assertEqual<Array<boolean | string> | undefined>()(this.arrayWithArity0, true);
     assertEqual<Array<string> | undefined>()(this.arrayWithArity1, true);
     assertEqual<Array<[string, string]> | undefined>()(this.arrayWithArity2, true);
     assertEqual<Array<[string, string, string]> | undefined>()(this.arrayWithArity3, true);
@@ -127,7 +134,61 @@ class MyCommand extends Command {
   }
 }
 
-if (eval(`false`)) {
+/* PartialCommand */
+
+declare const partialCommand: PartialCommand<MyCommand>;
+
+() => {
+  assertEqual<string | undefined>()(partialCommand.defaultPositional, true);
+  assertEqual<string | undefined>()(partialCommand.requiredPositional, true);
+  assertEqual<string | undefined>()(partialCommand.optionalPositional, true);
+
+  assertEqual<boolean | undefined>()(partialCommand.boolean, true);
+  assertEqual<boolean>()(partialCommand.booleanWithDefault, true);
+  assertEqual<boolean | undefined>()(partialCommand.booleanWithRequired, true);
+
+  assertEqual<string | undefined>()(partialCommand.string, true);
+  assertEqual<string>()(partialCommand.stringWithDefault, true);
+  assertEqual<number | undefined>()(partialCommand.stringWithValidator, true);
+  assertEqual<number | undefined>()(partialCommand.stringWithValidatorAndRequired, true);
+  assertEqual<number>()(partialCommand.stringWithValidatorAndDefault, true);
+  assertEqual<string | undefined>()(partialCommand.stringWithRequired, true) ;
+  assertEqual<Array<string> | boolean | string | undefined>()(partialCommand.stringWithArityNumber, true);
+  assertEqual<Array<string> | boolean | string | undefined>()(partialCommand.stringWithArityNumberAndRequired, true);
+  assertEqual<boolean | string | undefined>()(partialCommand.stringWithArity0, true);
+  assertEqual<string | undefined>()(partialCommand.stringWithArity1, true);
+  assertEqual<[string, string?] | undefined>()(partialCommand.stringWithArity2, true);
+  assertEqual<[string, string?, string?] | undefined>()(partialCommand.stringWithArity3, true);
+  assertEqual<[string, string?, string?]>()(partialCommand.stringWithArity3AndDefault, true);
+  assertEqual<[string, string?, string?] | undefined>()(partialCommand.stringWithArity3AndRequired, true);
+  assertEqual<[number, number?, number?] | undefined>()(partialCommand.stringWithArity3AndValidator, true);
+  assertEqual<[number, number?, number?]>()(partialCommand.stringWithArity3AndValidatorAndDefault, true);
+  assertEqual<[number, number?, number?] | undefined>()(partialCommand.stringWithArity3AndValidatorAndRequired, true);
+
+  assertEqual<string | undefined>()(partialCommand.stringWithTolerateBooleanFalse, true);
+  assertEqual<string | boolean | undefined>()(partialCommand.stringWithTolerateBoolean, true);
+  assertEqual<string | boolean>()(partialCommand.stringWithTolerateBooleanAndDefault, true);
+  assertEqual<string | boolean | undefined>()(partialCommand.stringWithTolerateBooleanAndRequired, true);
+
+  assertEqual<number | undefined>()(partialCommand.counter, true);
+  assertEqual<number>()(partialCommand.counterWithDefault, true);
+  assertEqual<number | undefined>()(partialCommand.counterWithRequired, true);
+
+  assertEqual<Array<string> | undefined>()(partialCommand.array, true);
+  assertEqual<Array<string>>()(partialCommand.arrayWithDefault, true);
+  assertEqual<Array<string> | undefined>()(partialCommand.arrayWithRequired, true);
+  assertEqual<Array<boolean | string> | undefined>()(partialCommand.arrayWithArity0, true);
+  assertEqual<Array<string> | undefined>()(partialCommand.arrayWithArity1, true);
+  assertEqual<[...Array<[string, string]>, [string, string?]] | undefined>()(partialCommand.arrayWithArity2, true);
+  assertEqual<[...Array<[string, string, string]>, [string, string?, string?]] | undefined>()(partialCommand.arrayWithArity3, true);
+  assertEqual<[...Array<[string, string, string]>, [string, string?, string?]]>()(partialCommand.arrayWithArity3AndDefault, true);
+  assertEqual<[...Array<[string, string, string]>, [string, string?, string?]] | undefined>()(partialCommand.arrayWithArity3AndRequired, true);
+
+  assertEqual<Array<string>>()(partialCommand.rest, true);
+  assertEqual<Array<string>>()(partialCommand.proxy, true);
+};
+
+() => {
   runExit(class FooCommand extends Command {
     async execute() {}
   });
@@ -175,4 +236,4 @@ if (eval(`false`)) {
   }, [], {
     stdin: process.stdin,
   });
-}
+};

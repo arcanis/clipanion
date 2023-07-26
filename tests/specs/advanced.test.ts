@@ -8,6 +8,158 @@ import {log, runCli}                                             from '../tools'
 const prefix = `\u001b[1m$ \u001b[22m`;
 
 describe(`Advanced`, () => {
+  describe(`Cli.prototype.register`, () => {
+    it(`should register a command`, async () => {
+      const cli = new Cli();
+
+      class CommandA extends Command {
+        async execute() {
+          log(this);
+        }
+      }
+
+      cli.register(CommandA);
+
+      expect(await runCli(cli, [])).to.equal(`Running CommandA\n`);
+    });
+
+    it(`should register an array of commands`, async () => {
+      const cli = new Cli();
+
+      class CommandA extends Command {
+        static paths = [[`a`]];
+
+        async execute() {
+          log(this);
+        }
+      }
+
+      class CommandB extends Command {
+        static paths = [[`b`]];
+
+        async execute() {
+          log(this);
+        }
+      }
+
+      cli.register([CommandA, CommandB]);
+
+      expect(await runCli(cli, [`a`])).to.equal(`Running CommandA\n`);
+      expect(await runCli(cli, [`b`])).to.equal(`Running CommandB\n`);
+    });
+
+    it(`should register a command factory`, async () => {
+      const cli = new Cli();
+
+      class CommandA extends Command {
+        async execute() {
+          log(this);
+        }
+      }
+
+      cli.register(() => CommandA);
+
+      expect(await runCli(cli, [])).to.equal(`Running CommandA\n`);
+    });
+
+    it(`should register a command array factory`, async () => {
+      const cli = new Cli();
+
+      class CommandA extends Command {
+        static paths = [[`a`]];
+
+        async execute() {
+          log(this);
+        }
+      }
+
+      class CommandB extends Command {
+        static paths = [[`b`]];
+
+        async execute() {
+          log(this);
+        }
+      }
+
+      cli.register(() => [CommandA, CommandB]);
+
+      expect(await runCli(cli, [`a`])).to.equal(`Running CommandA\n`);
+      expect(await runCli(cli, [`b`])).to.equal(`Running CommandB\n`);
+    });
+  });
+
+  describe(`Cli.from`, () => {
+    it(`should register a command`, async () => {
+      class CommandA extends Command {
+        async execute() {
+          log(this);
+        }
+      }
+
+      const cli = Cli.from(CommandA);
+
+      expect(await runCli(cli, [])).to.equal(`Running CommandA\n`);
+    });
+
+    it(`should register an array of commands`, async () => {
+      class CommandA extends Command {
+        static paths = [[`a`]];
+
+        async execute() {
+          log(this);
+        }
+      }
+
+      class CommandB extends Command {
+        static paths = [[`b`]];
+
+        async execute() {
+          log(this);
+        }
+      }
+
+      const cli = Cli.from([CommandA, CommandB]);
+
+      expect(await runCli(cli, [`a`])).to.equal(`Running CommandA\n`);
+      expect(await runCli(cli, [`b`])).to.equal(`Running CommandB\n`);
+    });
+
+    it(`should register a command factory`, async () => {
+      class CommandA extends Command {
+        async execute() {
+          log(this);
+        }
+      }
+
+      const cli = Cli.from(() => CommandA);
+
+      expect(await runCli(cli, [])).to.equal(`Running CommandA\n`);
+    });
+
+    it(`should register a command array factory`, async () => {
+      class CommandA extends Command {
+        static paths = [[`a`]];
+
+        async execute() {
+          log(this);
+        }
+      }
+
+      class CommandB extends Command {
+        static paths = [[`b`]];
+
+        async execute() {
+          log(this);
+        }
+      }
+
+      const cli = Cli.from(() => [CommandA, CommandB]);
+
+      expect(await runCli(cli, [`a`])).to.equal(`Running CommandA\n`);
+      expect(await runCli(cli, [`b`])).to.equal(`Running CommandB\n`);
+    });
+  });
+
   describe(`Builtin Entries`, () => {
     describe(`help`, () => {
       it(`should have a path`, async () => {
@@ -57,7 +209,9 @@ describe(`Advanced`, () => {
           static paths = [[`foo`]];
 
           foo = Option.Boolean(`--foo`);
-          async execute() {log(this);}
+          async execute() {
+            log(this);
+          }
         }
 
         cli.register(CommandA);
@@ -75,7 +229,9 @@ describe(`Advanced`, () => {
           static usage = {};
 
           foo = Option.Boolean(`--foo`);
-          async execute() {log(this);}
+          async execute() {
+            log(this);
+          }
         }
 
         cli.register(CommandA);
@@ -92,12 +248,16 @@ describe(`Advanced`, () => {
           static paths = [[`foo`]];
 
           foo = Option.Boolean(`--foo`);
-          async execute() {log(this);}
+          async execute() {
+            log(this);
+          }
         }
 
         class CommandB extends Command {
           foo = Option.Boolean(`--fobar`);
-          async execute() {log(this);}
+          async execute() {
+            log(this);
+          }
         }
 
         cli.register(CommandA);
@@ -115,7 +275,9 @@ describe(`Advanced`, () => {
           static paths = [[`foo`]];
 
           foo = Option.Boolean(`--foo`);
-          async execute() {log(this);}
+          async execute() {
+            log(this);
+          }
         }
 
         cli.register(CommandA);
@@ -133,12 +295,16 @@ describe(`Advanced`, () => {
           static usage = {};
 
           foo = Option.Boolean(`--foo`);
-          async execute() {log(this);}
+          async execute() {
+            log(this);
+          }
         }
 
         class CommandB extends Command {
           foo = Option.Boolean(`--fobar`);
-          async execute() {log(this);}
+          async execute() {
+            log(this);
+          }
         }
 
         cli.register(CommandA);
@@ -179,7 +345,9 @@ describe(`Advanced`, () => {
 
       class CommandA extends Command {
         static paths = [[`a`]];
-        async execute() {log(this);}
+        async execute() {
+          log(this);
+        }
       }
 
       return [
@@ -197,7 +365,9 @@ describe(`Advanced`, () => {
     const output = await runCli(() => {
       class CommandA extends Command {
         foo = Option.Boolean(`--foo`);
-        async execute() {log(this);}
+        async execute() {
+          log(this);
+        }
       }
 
       return [
@@ -214,7 +384,9 @@ describe(`Advanced`, () => {
     const output = await runCli(() => {
       class CommandA extends Command {
         arg = Option.String();
-        async execute() {log(this);}
+        async execute() {
+          log(this);
+        }
       }
       return [
         CommandA,
@@ -231,7 +403,9 @@ describe(`Advanced`, () => {
     const output = await runCli(() => {
       class CommandA extends Command {
         args = Option.Proxy();
-        async execute() {log(this, [`args`]);}
+        async execute() {
+          log(this, [`args`]);
+        }
       }
       return [
         CommandA,
@@ -247,7 +421,9 @@ describe(`Advanced`, () => {
     const output = await runCli(() => {
       class CommandA extends Command {
         static paths = [[`add`]];
-        async execute() {log(this);}
+        async execute() {
+          log(this);
+        }
       }
       return [
         CommandA,
@@ -451,8 +627,12 @@ describe(`Advanced`, () => {
     expect(cli.process([`--break`])).to.contain({enableDebugger: true});
     expect(cli.process([`--no-break`])).to.contain({enableDebugger: false});
     expect(cli.process([`--break=1234`])).to.contain({enableDebugger: `1234`});
-    expect(() => { cli.process([`--break`, `1234`]);}).to.throw(Error);
-    expect(() => { cli.process([`--no-break=1234`]);}).to.throw(Error);
+    expect(() => {
+      cli.process([`--break`, `1234`]);
+    }).to.throw(Error);
+    expect(() => {
+      cli.process([`--no-break=1234`]);
+    }).to.throw(Error);
 
     cli = Cli.from([InvertedCommandA]);
 
@@ -464,7 +644,9 @@ describe(`Advanced`, () => {
   it(`should report the stacktrace when an error is thrown`, async () => {
     await expect(runCli(() => {
       class CommandA extends Command {
-        async execute() {throw new Error(`hello world`);}
+        async execute() {
+          throw new Error(`hello world`);
+        }
       }
 
       return [
@@ -476,7 +658,9 @@ describe(`Advanced`, () => {
   it(`should report the stacktrace when an error is thrown from another context`, async () => {
     await expect(runCli(() => {
       class CommandA extends Command {
-        async execute() {vm.runInNewContext(`throw new Error('hello world')`);}
+        async execute() {
+          vm.runInNewContext(`throw new Error('hello world')`);
+        }
       }
 
       return [
@@ -488,7 +672,9 @@ describe(`Advanced`, () => {
   it(`shouldn't crash when throwing non-error exceptions`, async () => {
     await expect(runCli(() => {
       class CommandA extends Command {
-        async execute() {throw 42;}
+        async execute() {
+          throw 42;
+        }
       }
 
       return [
@@ -500,7 +686,9 @@ describe(`Advanced`, () => {
   it(`shouldn't crash when throwing non-error exceptions`, async () => {
     class CommandA extends Command {
       thisNameIsntUsed = Option.String({name: `prettyName`});
-      async execute() {throw 42;}
+      async execute() {
+        throw 42;
+      }
     }
 
     const cli = Cli.from([CommandA]);
@@ -517,7 +705,9 @@ describe(`Advanced`, () => {
   it(`should use default error handler when no custom logic is registered`, async () => {
     await expect(runCli(() => {
       class CommandA extends Command {
-        async execute() {throw new Error(`default error`);}
+        async execute() {
+          throw new Error(`default error`);
+        }
       }
 
       return [
@@ -531,7 +721,9 @@ describe(`Advanced`, () => {
 
     await expect(runCli(() => {
       class CommandA extends Command {
-        async execute() {throw new Error(`command failed`);}
+        async execute() {
+          throw new Error(`command failed`);
+        }
         async catch(error: Error) {
           catchCalled = true;
           throw error;
@@ -549,7 +741,9 @@ describe(`Advanced`, () => {
   it(`should not throw if custom error handler swallows error`, async () => {
     await expect(runCli(() => {
       class CommandA extends Command {
-        async execute() {throw new Error(`command failed`);}
+        async execute() {
+          throw new Error(`command failed`);
+        }
         async catch() {}
       }
 
@@ -584,7 +778,9 @@ describe(`Advanced`, () => {
       }
 
       class CommandB extends CommandA {
-        async execute() {throw new Error(`command failed`);}
+        async execute() {
+          throw new Error(`command failed`);
+        }
         async catch(error: Error) {
           calls.commandB = true;
           return super.catch(error);
@@ -938,7 +1134,7 @@ describe(`Advanced`, () => {
 
   it(`should support proxies with a minimum required length`, async () => {
     class CopyCommand extends Command {
-      args = Option.Proxy({required: 1})
+      args = Option.Proxy({required: 1});
       async execute() {}
     }
 
@@ -1094,7 +1290,9 @@ describe(`Advanced`, () => {
 
       foo = Option.Boolean(`--foo`);
       bar = Option.Boolean(`--bar`, {required: true});
-      async execute() {log(this);}
+      async execute() {
+        log(this);
+      }
     }
 
     cli.register(CommandA);
@@ -1110,7 +1308,9 @@ describe(`Advanced`, () => {
       static paths = [[`foo`]];
 
       foo = Option.Boolean(`--foo`);
-      async execute() {log(this);}
+      async execute() {
+        log(this);
+      }
     }
 
     cli.register(CommandA);
@@ -1126,7 +1326,9 @@ describe(`Advanced`, () => {
       static paths = [[`foo`]];
 
       foo = Option.Boolean(`--foo`, {required: true});
-      async execute() {log(this);}
+      async execute() {
+        log(this);
+      }
     }
 
     cli.register(CommandA);
@@ -1170,7 +1372,7 @@ describe(`Advanced`, () => {
     class PointCommand extends Command {
       point = Option.String(`--point`, {arity: 0});
 
-      thing = Option.Array(`--thing`, {arity: 0})
+      thing = Option.Array(`--thing`, {arity: 0});
 
       async execute() {}
     }

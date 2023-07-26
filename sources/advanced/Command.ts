@@ -65,6 +65,7 @@ export type Definition = Usage & {
 
 export type CommandClass<Context extends BaseContext = BaseContext> = {
   new(): Command<Context>;
+  readonly isCommandClass: true;
   paths?: Array<Array<string>>;
   schema?: Array<LooseTest<{[key: string]: unknown}>>;
   usage?: Usage;
@@ -77,6 +78,8 @@ export type CommandClass<Context extends BaseContext = BaseContext> = {
  * declare the set of paths under which the command should be exposed.
  */
 export abstract class Command<Context extends BaseContext = BaseContext> {
+  static readonly isCommandClass = true;
+
   /**
    * @deprecated Do not use this; prefer the static `paths` property instead.
    */

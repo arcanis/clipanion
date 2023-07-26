@@ -10,7 +10,7 @@ export type CounterFlags = GeneralOptionFlags;
  * -vvvvv
  *     ► {"v": 5}
  */
-export function Counter(descriptor: string, opts: CounterFlags & {required: true}): CommandOptionReturn<number>;
+export function Counter(descriptor: string, opts: CounterFlags & {required: true}): CommandOptionReturn<number, true>;
 export function Counter(descriptor: string, opts?: CounterFlags): CommandOptionReturn<number | undefined>;
 export function Counter(descriptor: string, initialValue: number, opts?: Omit<CounterFlags, 'required'>): CommandOptionReturn<number>;
 export function Counter(descriptor: string, initialValueBase: CounterFlags | number | undefined, optsBase?: CounterFlags) {

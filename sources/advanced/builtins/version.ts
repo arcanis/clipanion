@@ -1,13 +1,17 @@
-import {Command} from '../Command';
+import {Command}        from '../Command';
+
+import {BuiltinOptions} from './utils';
 
 /**
  * A command that prints the version of the binary (`cli.binaryVersion`).
  *
- * Paths: `-v`, `--version`
+ * Default Paths: `-v`, `--version`
  */
-export class VersionCommand extends Command<any> {
-  static paths = [[`-v`], [`--version`]];
-  async execute() {
-    this.context.stdout.write(`${this.cli.binaryVersion ?? `<unknown>`}\n`);
-  }
+export function VersionCommand({paths = [[`-v`], [`--version`]]}: BuiltinOptions = {}) {
+  return class VersionCommand extends Command<any> {
+    static paths = paths;
+    async execute() {
+      this.context.stdout.write(`${this.cli.binaryVersion ?? `<unknown>`}\n`);
+    }
+  };
 }

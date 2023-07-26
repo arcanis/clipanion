@@ -1,19 +1,22 @@
-import {Readable, Writable}                                     from 'stream';
+import {CompletionResult, SingleOrArray}                                from 'clcs';
+import {Readable, Writable}                                             from 'stream';
 
-import {HELP_COMMAND_INDEX}                                     from '../constants';
-import {CliBuilder, CommandBuilder}                             from '../core';
-import {ErrorMeta}                                              from '../errors';
-import {formatMarkdownish, ColorFormat, richFormat, textFormat} from '../format';
-import * as platform                                            from '../platform';
+import {CompletionType, HELP_COMMAND_INDEX}                             from '../constants';
+import {CliBuilder, PartialCompletionRequest, CommandBuilder, RunState} from '../core';
+import {ErrorMeta}                                                      from '../errors';
+import {formatMarkdownish, ColorFormat, richFormat, textFormat}         from '../format';
+import * as platform                                                    from '../platform';
 
-import {CommandClass, Command, Definition}                      from './Command';
-import {HelpCommand}                                            from './HelpCommand';
-import {CommandOption}                                          from './options/utils';
+import {CommandClass, Command, Definition}                              from './Command';
+import {HelpCommand}                                                    from './HelpCommand';
+import {CommandOption}                                                  from './options/utils';
 
 const errorCommandSymbol = Symbol(`clipanion/errorCommand`);
 
 type MakeOptional<T, Keys extends keyof T> = Omit<T, Keys> & Partial<Pick<T, Keys>>;
 type VoidIfEmpty<T> = keyof T extends never ? void : never;
+
+type TypeOrFactory<T> = T | (() => T);
 
 /**
  * The base context of the CLI.
@@ -132,9 +135,10 @@ export type MiniCli<Context extends BaseContext> = CliOptions & {
    * Formats errors using colors.
    *
    * @param error The error to format. If `error.name` is `'Error'`, it is replaced with `'Internal Error'`.
+   * @param opts.colored Forcefully enable or disable colors.
    * @param opts.command The command whose usage will be included in the formatted error.
    */
-  error(error: Error, opts?: {command?: Command<Context> | null}): string;
+  error(error: Error, opts?: {colored?: boolean, command?: Command<Context> | null}): string;
 
   /**
    * Returns a rich color format if colors are enabled, or a plain text format otherwise.
@@ -151,6 +155,16 @@ export type MiniCli<Context extends BaseContext> = CliOptions & {
    * @returns The compiled `Command`, with its properties populated with the arguments.
    */
   process(input: Array<string>, context?: Partial<Context>): Command<Context>;
+
+  /**
+   * Completes a command.
+   *
+   * @param request A completion request
+   * @param context Overrides the Context of the main `Cli` instance
+   *
+   * @returns The completion results, sorted and partially deduplicated
+   */
+  complete(request: PartialCompletionRequest, context?: Partial<Context>): Promise<Array<CompletionResult>>;
 
   /**
    * Runs a command.
@@ -302,9 +316,9 @@ function resolveRunParameters(args: Array<any>) {
 }
 
 /**
- * @template Context The context shared by all commands. Contexts are a set of values, defined when calling the `run`/`runExit` functions from the CLI instance, that will be made available to the commands via `this.context`.
+ * @template Context The context shared by all commands. Contexts are a set of values, defined when calling the `run` / `runExit` / `complete` functions from the CLI instance, that will be made available to the commands via `this.context` in the case of the `run` functions and via `command.context` in the case of `complete`.
  */
-export class Cli<Context extends BaseContext = BaseContext> implements Omit<MiniCli<Context>, `process` | `run`> {
+export class Cli<Context extends BaseContext = BaseContext> implements Omit<MiniCli<Context>, `process` | `complete` | `run`> {
   /**
    * The default context of the CLI.
    *
@@ -336,18 +350,13 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
   /**
    * Creates a new Cli and registers all commands passed as parameters.
    *
-   * @param commandClasses The Commands to register
+   * @param commandClasses The commands / factory of commands to register
    * @returns The created `Cli` instance
    */
-  static from<Context extends BaseContext = BaseContext>(commandClasses: RunCommand<Context>, options: Partial<CliOptions> = {}) {
+  static from<Context extends BaseContext = BaseContext>(commandClasses: TypeOrFactory<SingleOrArray<CommandClass<Context>>>, options: Partial<CliOptions> = {}) {
     const cli = new Cli<Context>(options);
 
-    const resolvedCommandClasses = Array.isArray(commandClasses)
-      ? commandClasses
-      : [commandClasses];
-
-    for (const commandClass of resolvedCommandClasses)
-      cli.register(commandClass);
+    cli.register(commandClasses);
 
     return cli;
   }
@@ -363,10 +372,37 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
     this.enableColors = enableColors;
   }
 
+  private makeMiniCli(context: Context): MiniCli<Context> {
+    return {
+      binaryLabel: this.binaryLabel,
+      binaryName: this.binaryName,
+      binaryVersion: this.binaryVersion,
+      enableCapture: this.enableCapture,
+      enableColors: this.enableColors,
+      definitions: () => this.definitions(),
+      error: (error, opts) => this.error(error, opts),
+      format: colored => this.format(colored),
+      process: (input, subContext?) => this.process(input, {...context, ...subContext}),
+      complete: (request, subContext?) => this.complete(request, {...context, ...subContext}),
+      run: (input, subContext?) => this.run(input, {...context, ...subContext}),
+      usage: (command, opts) => this.usage(command, opts),
+    };
+  }
+
   /**
-   * Registers a command inside the CLI.
+   * Registers a command / multiple commands / a command factory inside the CLI.
    */
-  register(commandClass: CommandClass<Context>) {
+  register(commandClass: TypeOrFactory<SingleOrArray<CommandClass<Context>>>) {
+    if (typeof commandClass === `function` && !(`isCommandClass` in commandClass))
+      commandClass = commandClass();
+
+    if (Array.isArray(commandClass)) {
+      for (const klass of commandClass)
+        this.register(klass);
+
+      return;
+    }
+
     const specs = new Map<string, CommandOption<any>>();
 
     const command = new commandClass();
@@ -395,27 +431,21 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
     });
   }
 
-  process(input: Array<string>, context: VoidIfEmpty<Omit<Context, keyof BaseContext>>): Command<Context>;
-  process(input: Array<string>, context: MakeOptional<Context, keyof BaseContext>): Command<Context>;
-  process(input: Array<string>, userContext: any) {
-    const {contexts, process} = this.builder.compile();
-    const state = process(input);
-
-    const context = {
-      ...Cli.defaultContext,
-      ...userContext,
-    } as Context;
-
+  private processImpl(state: RunState, contexts: Array<CliContext<Context>>, context: Context) {
     switch (state.selectedIndex) {
+      case null: {
+        throw new Error(`Assertion failed: Expected the cli index to have been selected`);
+      } break;
+
       case HELP_COMMAND_INDEX: {
         const command = HelpCommand.from<Context>(state, contexts);
         command.context = context;
 
-        return command;
+        return {commandClass: HelpCommand, command};
       } break;
 
       default: {
-        const {commandClass} = contexts[state.selectedIndex!];
+        const {commandClass} = contexts[state.selectedIndex];
 
         const record = this.registrations.get(commandClass);
         if (typeof record === `undefined`)
@@ -429,13 +459,33 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
           for (const [key, {transformer}] of record.specs.entries())
             (command as any)[key] = transformer(record.builder, key, state, context);
 
-          return command;
+          return {commandClass, command};
         } catch (error: any) {
           error[errorCommandSymbol] = command;
           throw error;
         }
       } break;
     }
+  }
+
+  private populateCommand(command: Command<Context>, context: Context) {
+    command.cli = this.makeMiniCli(context);
+  }
+
+  process(input: Array<string>, context: VoidIfEmpty<Omit<Context, keyof BaseContext>>): Command<Context>;
+  process(input: Array<string>, context: MakeOptional<Context, keyof BaseContext>): Command<Context>;
+  process(input: Array<string>, userContext: any) {
+    const {contexts, process} = this.builder.compile();
+    const state = process(input);
+
+    const context = {
+      ...Cli.defaultContext,
+      ...userContext,
+    } as Context;
+
+    const {command} = this.processImpl(state, contexts, context);
+
+    return command;
   }
 
   async run(input: Command<Context> | Array<string>, context: VoidIfEmpty<Omit<Context, keyof BaseContext>>): Promise<number>;
@@ -466,20 +516,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
       return 0;
     }
 
-    command.context = context;
-    command.cli = {
-      binaryLabel: this.binaryLabel,
-      binaryName: this.binaryName,
-      binaryVersion: this.binaryVersion,
-      enableCapture: this.enableCapture,
-      enableColors: this.enableColors,
-      definitions: () => this.definitions(),
-      error: (error, opts) => this.error(error, opts),
-      format: colored => this.format(colored),
-      process: (input, subContext?) => this.process(input, {...context, ...subContext}),
-      run: (input, subContext?) => this.run(input, {...context, ...subContext} as Context),
-      usage: (command, opts) => this.usage(command, opts),
-    };
+    this.populateCommand(command, context);
 
     const activate = this.enableCapture
       ? platform.getCaptureActivator(context) ?? noopCaptureActivator
@@ -510,9 +547,52 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
     process.exitCode = await this.run(input, context);
   }
 
-  suggest(input: Array<string>, partial: boolean) {
-    const {suggest} = this.builder.compile();
-    return suggest(input, partial);
+  async complete(request: PartialCompletionRequest, context: VoidIfEmpty<Omit<Context, keyof BaseContext>>): Promise<Array<CompletionResult>>;
+  async complete(request: PartialCompletionRequest, context: MakeOptional<Context, keyof BaseContext>): Promise<Array<CompletionResult>>;
+  async complete(request: PartialCompletionRequest, userContext: any) {
+    const context = {
+      ...Cli.defaultContext,
+      ...userContext,
+    } as Context;
+
+    const activate = this.enableCapture
+      ? platform.getCaptureActivator(context) ?? noopCaptureActivator
+      : noopCaptureActivator;
+
+    const {complete, contexts} = this.builder.compile();
+    const states = complete(request);
+
+    type Result = {
+      commandClass: CommandClass<Context> | typeof HelpCommand;
+      partialCommand: Command<Context> | HelpCommand<Context>;
+      completionType: CompletionType;
+      completionResult: CompletionResult;
+    };
+
+    const results: Array<Result> = [];
+
+    // The async push is fine because we sort the results before returning them to guarantee consistent ordering.
+    await Promise.all(states.map(async state => {
+      if (state.completion === null)
+        return;
+
+      const {commandClass, command: partialCommand} = this.processImpl(state, contexts, context);
+      const {completion: {fn, request: completionRequest, type}} = state;
+
+      this.populateCommand(partialCommand, context);
+
+      const completionResult = await activate(async () => fn.call(undefined, completionRequest, partialCommand));
+      const completionResults = Array.isArray(completionResult) ? completionResult : [completionResult];
+
+      for (const result of completionResults) {
+        results.push({commandClass, partialCommand, completionType: type, completionResult: result});
+      }
+    }));
+
+    return results
+      // TODO: sort the completion results based on various criteria
+      .sort()
+      .map(result => result.completionResult);
   }
 
   definitions({colored = false}: {colored?: boolean} = {}): Array<Definition> {
@@ -577,7 +657,6 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
       }
     }
 
-    // @ts-ignore
     const commandClass = command !== null && command instanceof Command
       ? command.constructor as CommandClass<Context>
       : command as CommandClass<Context> | null;
@@ -722,6 +801,8 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
     if (!error || typeof error !== `object` || !(`stack` in error))
       error = new Error(`Execution failed with a non-error rejection (rejected value: ${JSON.stringify(error)})`);
 
+    command = error[errorCommandSymbol] ?? null;
+
     let result = ``;
 
     let name = error.name.replace(/([a-z])([A-Z])/g, `$1 $2`);
@@ -763,6 +844,6 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
   }
 }
 
-function noopCaptureActivator(fn: () => Promise<number>) {
+function noopCaptureActivator<T>(fn: () => Promise<T>) {
   return fn();
 }

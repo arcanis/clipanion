@@ -21,9 +21,12 @@
     "type": "git"
   },
   "workspaces": [
-    "website"
+    "clcs",
+    "website",
+    "e2e/testbin"
   ],
   "dependencies": {
+    "clcs": "workspace:^",
     "typanion": "^3.8.0"
   },
   "peerDependencies": {
@@ -34,25 +37,31 @@
     "@rollup/plugin-typescript": "^6.1.0",
     "@types/chai": "^4.2.11",
     "@types/chai-as-promised": "^7.1.2",
+    "@types/chai-spies": "^1.0.3",
     "@types/lodash": "^4.14.179",
     "@types/mocha": "^7.0.2",
     "@types/node": "^14.0.13",
     "@typescript-eslint/eslint-plugin": "^5.43.0",
     "@typescript-eslint/parser": "^5.43.0",
     "@yarnpkg/core": "^2.3.1",
-    "@yarnpkg/eslint-config": "yarnpkg/berry#workspace=@yarnpkg/eslint-config",
+    "@yarnpkg/eslint-config": "^0.3.0",
     "@yarnpkg/fslib": "^2.3.0",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
+    "chai-spies": "^1.0.0",
     "eslint": "^7.16.0",
     "eslint-plugin-arca": "^0.10.0",
     "eslint-plugin-react": "^7.21.5",
     "get-stream": "^5.1.0",
     "lodash": "^4.17.21",
     "mocha": "^8.0.1",
+    "node-gyp": "^8.1.0",
+    "node-pty": "^0.10.1",
     "rollup": "^2.16.1",
     "rollup-plugin-copy": "^3.4.0",
     "rollup-plugin-multi-input": "^1.3.1",
+    "strip-ansi": "^6.0.0",
+    "testbin": "workspace:^",
     "ts-node": "^8.10.2",
     "tslib": "^2.0.0",
     "typescript": "^4.8.4"
@@ -60,7 +69,9 @@
   "scripts": {
     "prepack": "rm -rf lib && rollup -c",
     "postpack": "rm -rf lib",
-    "test": "FORCE_COLOR=1 mocha --require ts-node/register --extension ts tests/specs",
+    "test:clipanion": "FORCE_COLOR=1 mocha --require ts-node/register --extension ts tests/specs",
+    "test": "yarn test:clipanion & yarn test:clcs &",
+    "test:e2e": "run build:testbin && FORCE_COLOR=1 mocha --timeout 100000 --require ts-node/register e2e/**/*.test.ts",
     "lint": "eslint --max-warnings 0 .",
     "demo": "node --require ts-node/register demos/advanced.ts"
   },

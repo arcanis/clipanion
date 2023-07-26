@@ -52,4 +52,3 @@ export function getCaptureActivator(context: BaseContext) {
     return contextStorage!.run(context, fn);
   };
 }
-
