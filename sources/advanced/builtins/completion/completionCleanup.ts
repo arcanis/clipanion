@@ -5,7 +5,6 @@ import * as Option                                         from '../../options';
 import {BuiltinOptions}                                    from '../utils';
 
 export type CompletionCleanupCommandOptions = BuiltinOptions & {
-  binaryName?: string;
   completionProviderCommandPaths?: Array<Array<string>>;
 };
 
@@ -41,11 +40,9 @@ export function CompletionCleanupCommand({paths = [[`completion`, `cleanup`]], c
 
     shellName = Option.String({required: false});
 
-    async execute() {
-      const actualBinaryName = binaryName ?? this.cli.binaryName;
-
+    async execute({binaryName = this.cli.binaryName}: {binaryName?: string} = {}) {
       return await cleanupShellConfigurationFile({
-        completionProviderCommand: [actualBinaryName, ...completionProviderCommandPaths[0] ?? []].join(` `),
+        completionProviderCommand: [binaryName, ...completionProviderCommandPaths[0] ?? []].join(` `),
         shellName: this.shellName,
       });
     }
