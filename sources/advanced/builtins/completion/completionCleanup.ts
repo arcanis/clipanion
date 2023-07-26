@@ -13,7 +13,7 @@ export type CompletionCleanupCommandOptions = BuiltinOptions & {
  *
  * Default Paths: `completion cleanup`
  */
-export function CompletionCleanupCommand({paths = [[`completion`, `cleanup`]], completionProviderCommandPaths = [[`completion`]], binaryName}: CompletionCleanupCommandOptions = {}) {
+export function CompletionCleanupCommand({paths = [[`completion`, `cleanup`]], completionProviderCommandPaths = [[`completion`]]}: CompletionCleanupCommandOptions = {}) {
   const mainPath = paths[0] ?? [];
   const exampleUsagePath = [`$0`, ...mainPath].join(` `);
 
