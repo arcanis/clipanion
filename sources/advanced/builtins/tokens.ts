@@ -1,5 +1,5 @@
-import {Proxy}   from '../options/Proxy';
 import {Command} from '../Command';
+import {Proxy}   from '../options/Proxy';
 
 /**
  * A command that prints the clipanion tokens.
