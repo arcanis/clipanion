@@ -1,5 +1,7 @@
 import {Coercion, LooseTest}         from 'typanion';
 
+import {Token}                       from '../core';
+
 import {BaseContext, MiniCli}        from './Cli';
 import {formatError, isOptionSymbol} from './options/utils';
 
@@ -57,6 +59,8 @@ export type Definition = Usage & {
    * The various options registered on the command.
    */
   options: Array<{
+    preferredName: string;
+    nameSet: Array<string>;
     definition: string;
     description?: string;
     required: boolean;
@@ -77,6 +81,8 @@ export type CommandClass<Context extends BaseContext = BaseContext> = {
  * declare the set of paths under which the command should be exposed.
  */
 export abstract class Command<Context extends BaseContext = BaseContext> {
+  declare [`constructor`]: CommandClass<Context>;
+
   /**
    * @deprecated Do not use this; prefer the static `paths` property instead.
    */
@@ -153,6 +159,12 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
    * to access the command currently being executed.
    */
   path!: Array<string>;
+
+  /**
+   * Predefined variable that will be populated with the tokens found when
+   * interpreting the command line.
+   */
+  tokens!: Array<Token>;
 
   async validateAndExecute(): Promise<number> {
     const commandClass = this.constructor as CommandClass<Context>;

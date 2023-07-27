@@ -1,4 +1,4 @@
-import {END_OF_INPUT} from './constants';
+import {SpecialToken} from './constants';
 
 export type ErrorMeta = {
   type: `none`;
@@ -79,7 +79,7 @@ export class AmbiguousSyntaxError extends Error {
 }
 
 const whileRunning = (input: Array<string>) => `While running ${input.filter(token => {
-  return token !== END_OF_INPUT;
+  return token !== SpecialToken.EndOfInput && token !== SpecialToken.EndOfPartialInput;
 }).map(token => {
   const json = JSON.stringify(token);
   if (token.match(/\s/) || token.length === 0 || json !== `"${token}"`) {

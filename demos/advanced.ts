@@ -145,6 +145,7 @@ const cli = new Cli<Context>({
 
 cli.register(Builtins.DefinitionsCommand);
 cli.register(Builtins.HelpCommand);
+cli.register(Builtins.TokensCommand);
 cli.register(Builtins.VersionCommand);
 
 cli.register(YarnDefaultRun);

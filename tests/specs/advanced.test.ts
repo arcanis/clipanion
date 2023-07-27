@@ -168,6 +168,73 @@ describe(`Advanced`, () => {
     });
   });
 
+  describe(`Tokenization`, () => {
+    const cli = Cli.from([
+      class extends Command {
+        static paths = [[`main`]];
+
+        foo = Option.Boolean(`-f,--foo`);
+        bar = Option.Boolean(`-b,--bar`);
+
+        hello = Option.String(`--hello`);
+
+        arg = Option.Rest();
+
+        async execute() {}
+      },
+
+      class extends Command {
+        static paths = [[`required-args`]];
+
+        arg1 = Option.String();
+        arg2 = Option.String();
+
+        async execute() {}
+      },
+    ]);
+
+    const TOKEN_EXPECTATIONS = [{
+      input: [`main`],
+      tokens: [{segmentIndex: 0, type: `path`}],
+    }, {
+      input: [`main`, `foo`],
+      tokens: [{segmentIndex: 0, type: `path`}, {segmentIndex: 1, type: `positional`}],
+    }, {
+      input: [`main`, `foo`, `bar`],
+      tokens: [{segmentIndex: 0, type: `path`}, {segmentIndex: 1, type: `positional`}, {segmentIndex: 2, type: `positional`}],
+    }, {
+      input: [`main`, `--foo`, `bar`],
+      tokens: [{segmentIndex: 0, type: `path`}, {segmentIndex: 1, type: `option`, option: `--foo`}, {segmentIndex: 2, type: `positional`}],
+    }, {
+      input: [`main`, `-f`, `bar`],
+      tokens: [{segmentIndex: 0, type: `path`}, {segmentIndex: 1, type: `option`, option: `--foo`}, {segmentIndex: 2, type: `positional`}],
+    }, {
+      input: [`main`, `-fb`],
+      tokens: [{segmentIndex: 0, type: `path`}, {segmentIndex: 1, type: `option`, slice: [0, 2], option: `--foo`}, {segmentIndex: 1, type: `option`, slice: [2, 3], option: `--bar`}],
+    }, {
+      input: [`main`, `--hello`, `world`, `bar`],
+      tokens: [{segmentIndex: 0, type: `path`}, {segmentIndex: 1, type: `option`, option: `--hello`}, {segmentIndex: 2, type: `value`}, {segmentIndex: 3, type: `positional`}],
+    }, {
+      input: [`main`, `--hello=world`, `bar`],
+      tokens: [{segmentIndex: 0, type: `path`}, {segmentIndex: 1, type: `option`, slice: [0, 7], option: `--hello`}, {segmentIndex: 1, type: `assign`, slice: [7, 8]}, {segmentIndex: 1, type: `value`, slice: [8, 13]}, {segmentIndex: 2, type: `positional`}],
+    }, {
+      input: [`required-args`],
+      tokens: [{segmentIndex: 0, type: `path`}],
+    }, {
+      input: [`required-args`, `foo`],
+      tokens: [{segmentIndex: 0, type: `path`}, {segmentIndex: 1, type: `positional`}],
+    }, {
+      input: [`required-args`, `foo`, `bar`],
+      tokens: [{segmentIndex: 0, type: `path`}, {segmentIndex: 1, type: `positional`}, {segmentIndex: 2, type: `positional`}],
+    }];
+
+    for (const {input, tokens} of TOKEN_EXPECTATIONS) {
+      it(`should tokenize "${input.join(` `)}"`, () => {
+        expect(cli.process({input, partial: true}).tokens).to.deep.equal(tokens);
+      });
+    }
+  });
+
   it(`should print the general help listing when using --help on the raw command`, async () => {
     const output = await runCli(() => {
       class CommandHelp extends Command {
@@ -800,6 +867,22 @@ describe(`Advanced`, () => {
 
     expect(cli.process([`hello`])).to.contain({optionalThing: undefined, requiredThing: `hello`});
     expect(cli.process([`hello`, `world`])).to.contain({optionalThing: `hello`, requiredThing: `world`});
+  });
+
+
+  it.skip(`should allow rest arguments to follow an optional positional argument`, async () => {
+    class CommandA extends Command {
+      optionalThing = Option.String({required: false});
+      restThing = Option.Rest();
+
+      async execute() {
+        throw new Error(`not implemented, just testing usage()`);
+      }
+    }
+
+    const cli = Cli.from([CommandA]);
+
+    expect(cli.process([`hello`, `world`])).to.contain({optionalThing: `hello`, restThing: [`world`]});
   });
 
   it(`should support required positionals after rest arguments`, async () => {

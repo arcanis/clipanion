@@ -1,10 +1,10 @@
-import * as errors from './errors';
+import {NodeType, SpecialToken} from './constants';
+import * as errors              from './errors';
 
 import {
-  BATCH_REGEX, BINDING_REGEX, END_OF_INPUT,
-  HELP_COMMAND_INDEX, HELP_REGEX, NODE_ERRORED,
-  NODE_INITIAL, NODE_SUCCESS, OPTION_REGEX,
-  START_OF_INPUT, DEBUG,
+  BATCH_REGEX, BINDING_REGEX, HELP_REGEX, OPTION_REGEX,
+  HELP_COMMAND_INDEX,
+  IS_DEBUG,
 } from './constants';
 
 declare const console: any;
@@ -12,7 +12,7 @@ declare const console: any;
 // ------------------------------------------------------------------------
 
 export function debug(str: string) {
-  if (DEBUG) {
+  if (IS_DEBUG) {
     console.log(str);
   }
 }
@@ -22,6 +22,43 @@ export function debug(str: string) {
 export type StateMachine = {
   nodes: Array<Node>;
 };
+
+export type TokenBase = {
+  segmentIndex: number;
+};
+
+export type PathToken = TokenBase & {
+  type: `path`;
+  slice?: undefined;
+};
+
+export type PositionalToken = TokenBase & {
+  type: `positional`;
+  slice?: undefined;
+};
+
+export type OptionToken = TokenBase & {
+  type: `option`;
+  slice?: [number, number];
+  option: string;
+};
+
+export type AssignToken = TokenBase & {
+  type: `assign`;
+  slice: [number, number];
+};
+
+export type ValueToken = TokenBase & {
+  type: `value`;
+  slice?: [number, number];
+};
+
+export type Token =
+  | PathToken
+  | PositionalToken
+  | OptionToken
+  | AssignToken
+  | ValueToken;
 
 export type RunState = {
   candidateUsage: string | null;
@@ -33,6 +70,7 @@ export type RunState = {
   positionals: Array<{value: string, extra: boolean | typeof NoLimits}>;
   remainder: string | null;
   selectedIndex: number | null;
+  tokens: Array<Token>;
 };
 
 const basicHelpState: RunState = {
@@ -45,12 +83,18 @@ const basicHelpState: RunState = {
   options: [],
   remainder: null,
   selectedIndex: HELP_COMMAND_INDEX,
+  tokens: [],
 };
 
-export function makeStateMachine(): StateMachine {
-  return {
-    nodes: [makeNode(), makeNode(), makeNode()],
+export function makeStateMachine() {
+  const stateMachine: StateMachine = {
+    nodes: [],
   };
+
+  for (let t = 0; t < NodeType.CustomNode; ++t)
+    stateMachine.nodes.push(makeNode());
+
+  return stateMachine;
 }
 
 export function makeAnyOfMachine(inputs: Array<StateMachine>) {
@@ -66,11 +110,11 @@ export function makeAnyOfMachine(inputs: Array<StateMachine>) {
       if (!isTerminalNode(t))
         output.nodes.push(cloneNode(input.nodes[t], offset));
 
-    offset += input.nodes.length - 2;
+    offset += input.nodes.length - NodeType.CustomNode + 1;
   }
 
   for (const head of heads)
-    registerShortcut(output, NODE_INITIAL, head);
+    registerShortcut(output, NodeType.InitialNode, head);
 
   return output;
 }
@@ -83,7 +127,7 @@ export function injectNode(machine: StateMachine, node: Node) {
 export function simplifyMachine(input: StateMachine) {
   const visited = new Set();
 
-  const process = (node: number) => {
+  const process = (node: NodeType | number) => {
     if (visited.has(node))
       return;
 
@@ -130,12 +174,12 @@ export function simplifyMachine(input: StateMachine) {
     }
   };
 
-  process(NODE_INITIAL);
+  process(NodeType.InitialNode);
 }
 
 export function debugMachine(machine: StateMachine, {prefix = ``}: {prefix?: string} = {}) {
   // Don't iterate unless it's needed
-  if (DEBUG) {
+  if (IS_DEBUG) {
     debug(`${prefix}Nodes are:`);
     for (let t = 0; t < machine.nodes.length; ++t) {
       debug(`${prefix}  ${t}: ${JSON.stringify(machine.nodes[t])}`);
@@ -145,23 +189,31 @@ export function debugMachine(machine: StateMachine, {prefix = ``}: {prefix?: str
 
 export function runMachineInternal(machine: StateMachine, input: Array<string>, partial: boolean = false) {
   debug(`Running a vm on ${JSON.stringify(input)}`);
-  let branches: Array<{node: number, state: RunState}> = [{node: NODE_INITIAL, state: {
-    candidateUsage: null,
-    requiredOptions: [],
-    errorMessage: null,
-    ignoreOptions: false,
-    options: [],
-    path: [],
-    positionals: [],
-    remainder: null,
-    selectedIndex: null,
-  }}];
+  let branches: Array<{node: number, state: RunState}> = [{
+    node: NodeType.InitialNode,
+    state: {
+      candidateUsage: null,
+      requiredOptions: [],
+      errorMessage: null,
+      ignoreOptions: false,
+      options: [],
+      path: [],
+      positionals: [],
+      remainder: null,
+      selectedIndex: null,
+      tokens: [],
+    },
+  }];
 
   debugMachine(machine, {prefix: `  `});
 
-  const tokens = [START_OF_INPUT, ...input];
+  const tokens = [SpecialToken.StartOfInput, ...input];
   for (let t = 0; t < tokens.length; ++t) {
     const segment = tokens[t];
+    const isEOI = segment === SpecialToken.EndOfInput || segment === SpecialToken.EndOfPartialInput;
+
+    // The -1 is because we added a START_OF_INPUT token
+    const segmentIndex = t - 1;
 
     debug(`  Processing ${JSON.stringify(segment)}`);
     const nextBranches: Array<{node: number, state: RunState}> = [];
@@ -170,7 +222,7 @@ export function runMachineInternal(machine: StateMachine, input: Array<string>, 
       debug(`    Current node is ${node}`);
       const nodeDef = machine.nodes[node];
 
-      if (node === NODE_ERRORED) {
+      if (node === NodeType.ErrorNode) {
         nextBranches.push({node, state});
         continue;
       }
@@ -185,7 +237,7 @@ export function runMachineInternal(machine: StateMachine, input: Array<string>, 
         if (hasExactMatch) {
           const transitions = nodeDef.statics[segment];
           for (const {to, reducer} of transitions) {
-            nextBranches.push({node: to, state: typeof reducer !== `undefined` ? execute(reducers, reducer, state, segment) : state});
+            nextBranches.push({node: to, state: typeof reducer !== `undefined` ? execute(reducers, reducer, state, segment, segmentIndex) : state});
             debug(`      Static transition to ${to} found`);
           }
         } else {
@@ -200,7 +252,7 @@ export function runMachineInternal(machine: StateMachine, input: Array<string>, 
 
           if (segment === candidate) {
             for (const {to, reducer} of nodeDef.statics[candidate]) {
-              nextBranches.push({node: to, state: typeof reducer !== `undefined` ? execute(reducers, reducer, state, segment) : state});
+              nextBranches.push({node: to, state: typeof reducer !== `undefined` ? execute(reducers, reducer, state, segment, segmentIndex) : state});
               debug(`      Static transition to ${to} found`);
             }
           } else {
@@ -218,32 +270,32 @@ export function runMachineInternal(machine: StateMachine, input: Array<string>, 
         }
       }
 
-      if (segment !== END_OF_INPUT) {
+      if (!isEOI) {
         for (const [test, {to, reducer}] of nodeDef.dynamics) {
-          if (execute(tests, test, state, segment)) {
-            nextBranches.push({node: to, state: typeof reducer !== `undefined` ? execute(reducers, reducer, state, segment) : state});
+          if (execute(tests, test, state, segment, segmentIndex)) {
+            nextBranches.push({node: to, state: typeof reducer !== `undefined` ? execute(reducers, reducer, state, segment, segmentIndex) : state});
             debug(`      Dynamic transition to ${to} found (via ${test})`);
           }
         }
       }
     }
 
-    if (nextBranches.length === 0 && segment === END_OF_INPUT && input.length === 1) {
+    if (nextBranches.length === 0 && isEOI && input.length === 1) {
       return [{
-        node: NODE_INITIAL,
+        node: NodeType.InitialNode,
         state: basicHelpState,
       }];
     }
 
     if (nextBranches.length === 0) {
       throw new errors.UnknownSyntaxError(input, branches.filter(({node}) => {
-        return node !== NODE_ERRORED;
+        return node !== NodeType.ErrorNode;
       }).map(({state}) => {
         return {usage: state.candidateUsage!, reason: null};
       }));
     }
 
-    if (nextBranches.every(({node}) => node === NODE_ERRORED)) {
+    if (nextBranches.every(({node}) => node === NodeType.ErrorNode)) {
       throw new errors.UnknownSyntaxError(input, nextBranches.map(({state}) => {
         return {usage: state.candidateUsage!, reason: state.errorMessage};
       }));
@@ -264,103 +316,8 @@ export function runMachineInternal(machine: StateMachine, input: Array<string>, 
   return branches;
 }
 
-function checkIfNodeIsFinished(node: Node, state: RunState) {
-  if (state.selectedIndex !== null)
-    return true;
-
-  if (Object.prototype.hasOwnProperty.call(node.statics, END_OF_INPUT))
-    for (const {to} of node.statics[END_OF_INPUT])
-      if (to === NODE_SUCCESS)
-        return true;
-
-  return false;
-}
-
-function suggestMachine(machine: StateMachine, input: Array<string>, partial: boolean) {
-  // If we're accepting partial matches, then exact matches need to be
-  // prefixed with an extra space.
-  const prefix = partial && input.length > 0 ? [``] : [];
-
-  const branches = runMachineInternal(machine, input, partial);
-
-  const suggestions: Array<Array<string>> = [];
-  const suggestionsJson = new Set<string>();
-
-  const traverseSuggestion = (suggestion: Array<string>, node: number, skipFirst: boolean = true) => {
-    let nextNodes = [node];
-
-    while (nextNodes.length > 0) {
-      const currentNodes = nextNodes;
-      nextNodes = [];
-
-      for (const node of currentNodes) {
-        const nodeDef = machine.nodes[node];
-        const keys = Object.keys(nodeDef.statics);
-
-        // The fact that `key` is unused is likely a bug, but no one has investigated it yet.
-        // TODO: Investigate it.
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        for (const key of Object.keys(nodeDef.statics)) {
-          const segment = keys[0];
-
-          for (const {to, reducer} of nodeDef.statics[segment]) {
-            if (reducer !== `pushPath`)
-              continue;
-
-            if (!skipFirst)
-              suggestion.push(segment);
-
-            nextNodes.push(to);
-          }
-        }
-      }
-
-      skipFirst = false;
-    }
-
-    const json = JSON.stringify(suggestion);
-    if (suggestionsJson.has(json))
-      return;
-
-    suggestions.push(suggestion);
-    suggestionsJson.add(json);
-  };
-
-  for (const {node, state} of branches) {
-    if (state.remainder !== null) {
-      traverseSuggestion([state.remainder], node);
-      continue;
-    }
-
-    const nodeDef = machine.nodes[node];
-    const isFinished = checkIfNodeIsFinished(nodeDef, state);
-
-    for (const [candidate, transitions] of Object.entries(nodeDef.statics))
-      if ((isFinished && candidate !== END_OF_INPUT) || (!candidate.startsWith(`-`) && transitions.some(({reducer}) => reducer === `pushPath`)))
-        traverseSuggestion([...prefix, candidate], node);
-
-    if (!isFinished)
-      continue;
-
-    for (const [test, {to}] of nodeDef.dynamics) {
-      if (to === NODE_ERRORED)
-        continue;
-
-      const tokens = suggest(test, state);
-      if (tokens === null)
-        continue;
-
-      for (const token of tokens) {
-        traverseSuggestion([...prefix, token], node);
-      }
-    }
-  }
-
-  return [...suggestions].sort();
-}
-
-function runMachine(machine: StateMachine, input: Array<string>) {
-  const branches = runMachineInternal(machine, [...input, END_OF_INPUT]);
+function runMachine(machine: StateMachine, input: Array<string>, {endToken = SpecialToken.EndOfInput}: {endToken?: SpecialToken.EndOfInput | SpecialToken.EndOfPartialInput} = {}) {
+  const branches = runMachineInternal(machine, [...input, endToken]);
 
   return selectBestState(input, branches.map(({state}) => {
     return state;
@@ -492,12 +449,18 @@ export function makeNode(): Node {
 }
 
 export function isTerminalNode(node: number) {
-  return node === NODE_SUCCESS || node === NODE_ERRORED;
+  return node === NodeType.SuccessNode || node === NodeType.ErrorNode;
 }
 
 export function cloneTransition(input: Transition, offset: number = 0) {
+  const to = !isTerminalNode(input.to)
+    ? input.to >= NodeType.CustomNode
+      ? input.to + offset - NodeType.CustomNode + 1
+      : input.to + offset
+    : input.to;
+
   return {
-    to: !isTerminalNode(input.to) ? input.to > 2 ? input.to + offset - 2 : input.to + offset : input.to,
+    to,
     reducer: input.reducer,
   };
 }
@@ -517,20 +480,20 @@ export function cloneNode(input: Node, offset: number = 0) {
   return output;
 }
 
-export function registerDynamic<T extends keyof typeof tests, R extends keyof typeof reducers>(machine: StateMachine, from: number, test: Callback<T, typeof tests>, to: number, reducer?: Callback<R, typeof reducers>) {
+export function registerDynamic<T extends keyof typeof tests, R extends keyof typeof reducers>(machine: StateMachine, from: NodeType | number, test: Callback<T, typeof tests>, to: NodeType | number, reducer?: Callback<R, typeof reducers>) {
   machine.nodes[from].dynamics.push([
     test as Callback<keyof typeof tests, typeof tests>,
     {to, reducer: reducer as Callback<keyof typeof reducers, typeof reducers>},
   ]);
 }
 
-export function registerShortcut<R extends keyof typeof reducers>(machine: StateMachine, from: number, to: number, reducer?: Callback<R, typeof reducers>) {
+export function registerShortcut<R extends keyof typeof reducers>(machine: StateMachine, from: NodeType | number, to: NodeType | number, reducer?: Callback<R, typeof reducers>) {
   machine.nodes[from].shortcuts.push(
     {to, reducer: reducer as Callback<keyof typeof reducers, typeof reducers>}
   );
 }
 
-export function registerStatic<R extends keyof typeof reducers>(machine: StateMachine, from: number, test: string, to: number, reducer?: Callback<R, typeof reducers>) {
+export function registerStatic<R extends keyof typeof reducers>(machine: StateMachine, from: NodeType | number, test: string, to: NodeType | number, reducer?: Callback<R, typeof reducers>) {
   const store = !Object.prototype.hasOwnProperty.call(machine.nodes[from].statics, test)
     ? machine.nodes[from].statics[test] = []
     : machine.nodes[from].statics[test];
@@ -544,40 +507,23 @@ type UndefinedKeys<T> = {[P in keyof T]-?: undefined extends T[P] ? P : never}[k
 type UndefinedTupleKeys<T extends Array<unknown>> = UndefinedKeys<Omit<T, keyof []>>;
 type TupleKeys<T> = Exclude<keyof T, keyof []>;
 
-export type CallbackFn<P extends Array<any>, R> = (state: RunState, segment: string, ...args: P) => R;
-export type CallbackFnParameters<T extends CallbackFn<any, any>> = T extends ((state: RunState, segment: string, ...args: infer P) => any) ? P : never;
+export type CallbackFn<P extends Array<any>, R> = (state: RunState, segment: string, segmentIndex: number, ...args: P) => R;
+export type CallbackFnParameters<T extends CallbackFn<any, any>> = T extends ((state: RunState, segment: string, segmentIndex: number, ...args: infer P) => any) ? P : never;
 export type CallbackStore<T extends string, R> = Record<T, CallbackFn<any, R>>;
 export type Callback<T extends string, S extends CallbackStore<T, any>> =
     [TupleKeys<CallbackFnParameters<S[T]>>] extends [UndefinedTupleKeys<CallbackFnParameters<S[T]>>]
       ? (T | [T, ...CallbackFnParameters<S[T]>])
       : [T, ...CallbackFnParameters<S[T]>];
 
-export function execute<T extends string, R, S extends CallbackStore<T, R>>(store: S, callback: Callback<T, S>, state: RunState, segment: string) {
+export function execute<T extends string, R, S extends CallbackStore<T, R>>(store: S, callback: Callback<T, S>, state: RunState, segment: string, segmentIndex: number) {
   // TypeScript's control flow can't properly narrow
   // generic conditionals for some mysterious reason
   if (Array.isArray(callback)) {
     const [name, ...args] = callback as [T, ...CallbackFnParameters<S[T]>];
-    return store[name](state, segment, ...args);
+    return store[name](state, segment, segmentIndex, ...args);
   } else {
-    return store[callback as T](state, segment);
+    return store[callback as T](state, segment, segmentIndex);
   }
-}
-
-export function suggest(callback: Callback<keyof typeof tests, typeof tests>, state: RunState): Array<string> | null {
-  const fn = Array.isArray(callback)
-    ? tests[callback[0]]
-    : tests[callback];
-
-  // @ts-ignore
-  if (typeof fn.suggest === `undefined`)
-    return null;
-
-  const args = Array.isArray(callback)
-    ? callback.slice(1)
-    : [];
-
-  // @ts-ignore
-  return fn.suggest(state, ...args);
 }
 
 export const tests = {
@@ -590,88 +536,131 @@ export const tests = {
   isNotOptionLike: (state: RunState, segment: string) => {
     return state.ignoreOptions || segment === `-` || !segment.startsWith(`-`);
   },
-  isOption: (state: RunState, segment: string, name: string, hidden?: boolean) => {
+  isOption: (state: RunState, segment: string, segmentIndex: number, name: string) => {
     return !state.ignoreOptions && segment === name;
   },
-  isBatchOption: (state: RunState, segment: string, names: Array<string>) => {
-    return !state.ignoreOptions && BATCH_REGEX.test(segment) && [...segment.slice(1)].every(name => names.includes(`-${name}`));
+  isBatchOption: (state: RunState, segment: string, segmentIndex: number, names: Map<string, string>) => {
+    return !state.ignoreOptions && BATCH_REGEX.test(segment) && [...segment.slice(1)].every(name => names.has(`-${name}`));
   },
-  isBoundOption: (state: RunState, segment: string, names: Array<string>, options: Array<OptDefinition>) => {
+  isBoundOption: (state: RunState, segment: string, segmentIndex: number, names: Map<string, string>, options: Array<OptDefinition>) => {
     const optionParsing = segment.match(BINDING_REGEX);
-    return !state.ignoreOptions && !!optionParsing && OPTION_REGEX.test(optionParsing[1]) && names.includes(optionParsing[1])
+    return !state.ignoreOptions && !!optionParsing && OPTION_REGEX.test(optionParsing[1]) && names.has(optionParsing[1])
             // Disallow bound options with no arguments (i.e. booleans)
-            && options.filter(opt => opt.names.includes(optionParsing[1])).every(opt => opt.allowBinding);
+            && options.filter(opt => opt.nameSet.includes(optionParsing[1])).every(opt => opt.allowBinding);
   },
-  isNegatedOption: (state: RunState, segment: string, name: string) => {
+  isNegatedOption: (state: RunState, segment: string, segmentIndex: number, name: string) => {
     return !state.ignoreOptions && segment === `--no-${name.slice(2)}`;
   },
   isHelp: (state: RunState, segment: string) => {
     return !state.ignoreOptions && HELP_REGEX.test(segment);
   },
-  isUnsupportedOption: (state: RunState, segment: string, names: Array<string>) => {
-    return !state.ignoreOptions && segment.startsWith(`-`) && OPTION_REGEX.test(segment) && !names.includes(segment);
+  isUnsupportedOption: (state: RunState, segment: string, segmentIndex: number, names: Map<string, string>) => {
+    return !state.ignoreOptions && segment.startsWith(`-`) && OPTION_REGEX.test(segment) && !names.has(segment);
   },
   isInvalidOption: (state: RunState, segment: string) => {
     return !state.ignoreOptions && segment.startsWith(`-`) && !OPTION_REGEX.test(segment);
   },
 };
 
-// @ts-ignore
-tests.isOption.suggest = (state: RunState, name: string, hidden: boolean = true) => {
-  return !hidden ? [name] : null;
-};
-
 export const reducers = {
-  setCandidateState: (state: RunState, segment: string, candidateState: Partial<RunState>) => {
+  setCandidateState: (state: RunState, segment: string, segmentIndex: number, candidateState: Partial<RunState>) => {
     return {...state, ...candidateState};
   },
-  setSelectedIndex: (state: RunState, segment: string, index: number) => {
+  setSelectedIndex: (state: RunState, segment: string, segmentIndex: number, index: number) => {
     return {...state, selectedIndex: index};
   },
-  pushBatch: (state: RunState, segment: string) => {
-    return {...state, options: state.options.concat([...segment.slice(1)].map(name => ({name: `-${name}`, value: true})))};
+  pushBatch: (state: RunState, segment: string, segmentIndex: number, names: Map<string, string>) => {
+    const options = state.options.slice();
+    const tokens = state.tokens.slice();
+
+    for (let t = 1; t < segment.length; ++t) {
+      const name = names.get(`-${segment[t]}`)!;
+      const slice: [number, number] = t === 1 ? [0, 2] : [t, t + 1];
+
+      options.push({name, value: true});
+      tokens.push({segmentIndex, type: `option`, option: name, slice});
+    }
+
+    return {...state, options, tokens};
   },
-  pushBound: (state: RunState, segment: string) => {
+  pushBound: (state: RunState, segment: string, segmentIndex: number) => {
     const [, name, value] = segment.match(BINDING_REGEX)!;
-    return {...state, options: state.options.concat({name, value})};
+
+    const options = state.options.concat({name, value});
+    const tokens = state.tokens.concat([
+      {segmentIndex, type: `option`, slice: [0, name.length], option: name},
+      {segmentIndex, type: `assign`, slice: [name.length, name.length + 1]},
+      {segmentIndex, type: `value`, slice: [name.length + 1, name.length + value.length + 1]},
+    ]);
+
+    return {...state, options, tokens};
   },
-  pushPath: (state: RunState, segment: string) => {
-    return {...state, path: state.path.concat(segment)};
+  pushPath: (state: RunState, segment: string, segmentIndex: number) => {
+    const path = state.path.concat(segment);
+    const tokens = state.tokens.concat({segmentIndex, type: `path`});
+
+    return {...state, path, tokens};
   },
-  pushPositional: (state: RunState, segment: string) => {
-    return {...state, positionals: state.positionals.concat({value: segment, extra: false})};
+  pushPositional: (state: RunState, segment: string, segmentIndex: number) => {
+    const positionals = state.positionals.concat({value: segment, extra: false});
+    const tokens = state.tokens.concat({segmentIndex, type: `positional`});
+
+    return {...state, positionals, tokens};
   },
-  pushExtra: (state: RunState, segment: string) => {
-    return {...state, positionals: state.positionals.concat({value: segment, extra: true})};
+  pushExtra: (state: RunState, segment: string, segmentIndex: number) => {
+    const positionals = state.positionals.concat({value: segment, extra: true});
+    const tokens = state.tokens.concat({segmentIndex, type: `positional`});
+
+    return {...state, positionals, tokens};
   },
-  pushExtraNoLimits: (state: RunState, segment: string) => {
-    return {...state, positionals: state.positionals.concat({value: segment, extra: NoLimits})};
+  pushExtraNoLimits: (state: RunState, segment: string, segmentIndex: number) => {
+    const positionals = state.positionals.concat({value: segment, extra: NoLimits});
+    const tokens = state.tokens.concat({segmentIndex, type: `positional`});
+
+    return {...state, positionals, tokens};
   },
-  pushTrue: (state: RunState, segment: string, name: string = segment) => {
-    return {...state, options: state.options.concat({name: segment, value: true})};
+  pushTrue: (state: RunState, segment: string, segmentIndex: number, name: string) => {
+    const options = state.options.concat({name, value: true});
+    const tokens = state.tokens.concat({segmentIndex, type: `option`, option: name});
+
+    return {...state, options, tokens};
   },
-  pushFalse: (state: RunState, segment: string, name: string = segment) => {
-    return {...state, options: state.options.concat({name, value: false})};
+  pushFalse: (state: RunState, segment: string, segmentIndex: number, name: string) => {
+    const options = state.options.concat({name, value: false});
+    const tokens = state.tokens.concat({segmentIndex, type: `option`, option: name});
+
+    return {...state, options, tokens};
   },
-  pushUndefined: (state: RunState, segment: string) => {
-    return {...state, options: state.options.concat({name: segment, value: undefined})};
+  pushUndefined: (state: RunState, segment: string, segmentIndex: number, name: string) => {
+    const options = state.options.concat({name: segment, value: undefined});
+    const tokens = state.tokens.concat({segmentIndex, type: `option`, option: segment});
+
+    return {...state, options, tokens};
   },
-  pushStringValue: (state: RunState, segment: string) => {
-    const copy = {...state, options: [...state.options]};
+  pushStringValue: (state: RunState, segment: string, segmentIndex: number) => {
     const lastOption = state.options[state.options.length - 1];
+
+    const options = state.options.slice();
+    const tokens = state.tokens.concat({segmentIndex, type: `value`});
+
     lastOption.value = (lastOption.value ?? []).concat([segment]);
-    return copy;
+
+    return {...state, options, tokens};
   },
-  setStringValue: (state: RunState, segment: string) => {
-    const copy = {...state, options: [...state.options]};
+  setStringValue: (state: RunState, segment: string, segmentIndex: number) => {
     const lastOption = state.options[state.options.length - 1];
+
+    const options = state.options.slice();
+    const tokens = state.tokens.concat({segmentIndex, type: `value`});
+
     lastOption.value = segment;
-    return copy;
+
+    return {...state, options, tokens};
   },
   inhibateOptions: (state: RunState) => {
     return {...state, ignoreOptions: true};
   },
-  useHelp: (state: RunState, segment: string, command: number) => {
+  useHelp: (state: RunState, segment: string, segmentIndex: number, command: number) => {
     const [, /* name */, index] = segment.match(HELP_REGEX)!;
 
     if (typeof index !== `undefined`) {
@@ -680,8 +669,8 @@ export const reducers = {
       return {...state, options: [{name: `-c`, value: String(command)}]};
     }
   },
-  setError: (state: RunState, segment: string, errorMessage: string) => {
-    if (segment === END_OF_INPUT) {
+  setError: (state: RunState, segment: string, segmentIndex: number, errorMessage: string) => {
+    if (segment === SpecialToken.EndOfInput || segment === SpecialToken.EndOfPartialInput) {
       return {...state, errorMessage: `${errorMessage}.`};
     } else {
       return {...state, errorMessage: `${errorMessage} ("${segment}").`};
@@ -704,7 +693,8 @@ export type ArityDefinition = {
 };
 
 export type OptDefinition = {
-  names: Array<string>;
+  preferredName: string;
+  nameSet: Array<string>;
   description?: string;
   arity: number;
   hidden: boolean;
@@ -716,7 +706,7 @@ export class CommandBuilder<Context> {
   public readonly cliIndex: number;
   public readonly cliOpts: Readonly<CliOptions>;
 
-  public readonly allOptionNames: Array<string> = [];
+  public readonly allOptionNames = new Map<string, string>();
   public readonly arity: ArityDefinition = {leading: [], trailing: [], extra: [], proxy: false};
   public readonly options: Array<OptDefinition> = [];
   public readonly paths: Array<Array<string>> = [];
@@ -768,7 +758,7 @@ export class CommandBuilder<Context> {
     this.arity.proxy = true;
   }
 
-  addOption({names, description, arity = 0, hidden = false, required = false, allowBinding = true}: Partial<OptDefinition> & {names: Array<string>}) {
+  addOption({names: nameSet, description, arity = 0, hidden = false, required = false, allowBinding = true}: Partial<OptDefinition> & {names: Array<string>}) {
     if (!allowBinding && arity > 1)
       throw new Error(`The arity cannot be higher than 1 when the option only supports the --arg=value syntax`);
     if (!Number.isInteger(arity))
@@ -776,8 +766,14 @@ export class CommandBuilder<Context> {
     if (arity < 0)
       throw new Error(`The arity must be positive, got ${arity}`);
 
-    this.allOptionNames.push(...names);
-    this.options.push({names, description, arity, hidden, required, allowBinding});
+    const preferredName = nameSet.reduce((longestName, name) => {
+      return name.length > longestName.length ? name : longestName;
+    }, ``);
+
+    for (const name of nameSet)
+      this.allOptionNames.set(name, preferredName);
+
+    this.options.push({preferredName, nameSet, description, arity, hidden, required, allowBinding});
   }
 
   setContext(context: Context) {
@@ -788,6 +784,8 @@ export class CommandBuilder<Context> {
     const segments = [this.cliOpts.binaryName];
 
     const detailedOptionList: Array<{
+      preferredName: string;
+      nameSet: Array<string>;
       definition: string;
       description: string;
       required: boolean;
@@ -797,7 +795,7 @@ export class CommandBuilder<Context> {
       segments.push(...this.paths[0]);
 
     if (detailed) {
-      for (const {names, arity, hidden, description, required} of this.options) {
+      for (const {preferredName, nameSet, arity, hidden, description, required} of this.options) {
         if (hidden)
           continue;
 
@@ -805,10 +803,10 @@ export class CommandBuilder<Context> {
         for (let t = 0; t < arity; ++t)
           args.push(` #${t}`);
 
-        const definition = `${names.join(`,`)}${args.join(``)}`;
+        const definition = `${nameSet.join(`,`)}${args.join(``)}`;
 
         if (!inlineOptions && description) {
-          detailedOptionList.push({definition, description, required});
+          detailedOptionList.push({preferredName, nameSet, definition, description, required});
         } else {
           segments.push(required ? `<${definition}>` : `[${definition}]`);
         }
@@ -834,15 +832,15 @@ export class CommandBuilder<Context> {
       throw new Error(`Assertion failed: No context attached`);
 
     const machine = makeStateMachine();
-    let firstNode = NODE_INITIAL;
+    let firstNode = NodeType.InitialNode;
 
     const candidateUsage = this.usage().usage;
     const requiredOptions = this.options
       .filter(opt => opt.required)
-      .map(opt => opt.names);
+      .map(opt => opt.nameSet);
 
     firstNode = injectNode(machine, makeNode());
-    registerStatic(machine, NODE_INITIAL, START_OF_INPUT, firstNode, [`setCandidateState`, {candidateUsage, requiredOptions}]);
+    registerStatic(machine, NodeType.InitialNode, SpecialToken.StartOfInput, firstNode, [`setCandidateState`, {candidateUsage, requiredOptions}]);
 
     const positionalArgument = this.arity.proxy
       ? `always`
@@ -875,13 +873,15 @@ export class CommandBuilder<Context> {
         const helpNode = injectNode(machine, makeNode());
         registerDynamic(machine, lastPathNode, `isHelp`, helpNode, [`useHelp`, this.cliIndex]);
         registerDynamic(machine, helpNode, `always`, helpNode, `pushExtra`);
-        registerStatic(machine, helpNode, END_OF_INPUT, NODE_SUCCESS, [`setSelectedIndex`, HELP_COMMAND_INDEX]);
+        registerStatic(machine, helpNode, SpecialToken.EndOfInput, NodeType.SuccessNode, [`setSelectedIndex`, HELP_COMMAND_INDEX]);
 
         this.registerOptions(machine, lastPathNode);
       }
 
-      if (this.arity.leading.length > 0)
-        registerStatic(machine, lastPathNode, END_OF_INPUT, NODE_ERRORED, [`setError`, `Not enough positional arguments`]);
+      if (this.arity.leading.length > 0) {
+        registerStatic(machine, lastPathNode, SpecialToken.EndOfInput, NodeType.ErrorNode, [`setError`, `Not enough positional arguments`]);
+        registerStatic(machine, lastPathNode, SpecialToken.EndOfPartialInput, NodeType.SuccessNode, [`setSelectedIndex`, this.cliIndex]);
+      }
 
       let lastLeadingNode = lastPathNode;
       for (let t = 0; t < this.arity.leading.length; ++t) {
@@ -890,8 +890,10 @@ export class CommandBuilder<Context> {
         if (!this.arity.proxy || t + 1 !== this.arity.leading.length)
           this.registerOptions(machine, nextLeadingNode);
 
-        if (this.arity.trailing.length > 0 || t + 1 !== this.arity.leading.length)
-          registerStatic(machine, nextLeadingNode, END_OF_INPUT, NODE_ERRORED, [`setError`, `Not enough positional arguments`]);
+        if (this.arity.trailing.length > 0 || t + 1 !== this.arity.leading.length) {
+          registerStatic(machine, nextLeadingNode, SpecialToken.EndOfInput, NodeType.ErrorNode, [`setError`, `Not enough positional arguments`]);
+          registerStatic(machine, nextLeadingNode, SpecialToken.EndOfPartialInput, NodeType.SuccessNode, [`setSelectedIndex`, this.cliIndex]);
+        }
 
         registerDynamic(machine, lastLeadingNode, `isNotOptionLike`, nextLeadingNode, `pushPositional`);
         lastLeadingNode = nextLeadingNode;
@@ -927,8 +929,10 @@ export class CommandBuilder<Context> {
         lastExtraNode = extraShortcutNode;
       }
 
-      if (this.arity.trailing.length > 0)
-        registerStatic(machine, lastExtraNode, END_OF_INPUT, NODE_ERRORED, [`setError`, `Not enough positional arguments`]);
+      if (this.arity.trailing.length > 0) {
+        registerStatic(machine, lastExtraNode, SpecialToken.EndOfInput, NodeType.ErrorNode, [`setError`, `Not enough positional arguments`]);
+        registerStatic(machine, lastExtraNode, SpecialToken.EndOfPartialInput, NodeType.SuccessNode, [`setSelectedIndex`, this.cliIndex]);
+      }
 
       let lastTrailingNode = lastExtraNode;
       for (let t = 0; t < this.arity.trailing.length; ++t) {
@@ -937,15 +941,18 @@ export class CommandBuilder<Context> {
         if (!this.arity.proxy)
           this.registerOptions(machine, nextTrailingNode);
 
-        if (t + 1 < this.arity.trailing.length)
-          registerStatic(machine, nextTrailingNode, END_OF_INPUT, NODE_ERRORED, [`setError`, `Not enough positional arguments`]);
+        if (t + 1 < this.arity.trailing.length) {
+          registerStatic(machine, nextTrailingNode, SpecialToken.EndOfInput, NodeType.ErrorNode, [`setError`, `Not enough positional arguments`]);
+          registerStatic(machine, nextTrailingNode, SpecialToken.EndOfPartialInput, NodeType.SuccessNode, [`setSelectedIndex`, this.cliIndex]);
+        }
 
         registerDynamic(machine, lastTrailingNode, `isNotOptionLike`, nextTrailingNode, `pushPositional`);
         lastTrailingNode = nextTrailingNode;
       }
 
-      registerDynamic(machine, lastTrailingNode, positionalArgument, NODE_ERRORED, [`setError`, `Extraneous positional argument`]);
-      registerStatic(machine, lastTrailingNode, END_OF_INPUT, NODE_SUCCESS, [`setSelectedIndex`, this.cliIndex]);
+      registerDynamic(machine, lastTrailingNode, positionalArgument, NodeType.ErrorNode, [`setError`, `Extraneous positional argument`]);
+      registerStatic(machine, lastTrailingNode, SpecialToken.EndOfInput, NodeType.SuccessNode, [`setSelectedIndex`, this.cliIndex]);
+      registerStatic(machine, lastTrailingNode, SpecialToken.EndOfPartialInput, NodeType.SuccessNode, [`setSelectedIndex`, this.cliIndex]);
     }
 
     return {
@@ -956,22 +963,18 @@ export class CommandBuilder<Context> {
 
   private registerOptions(machine: StateMachine, node: number) {
     registerDynamic(machine, node, [`isOption`, `--`], node, `inhibateOptions`);
-    registerDynamic(machine, node, [`isBatchOption`, this.allOptionNames], node, `pushBatch`);
+    registerDynamic(machine, node, [`isBatchOption`, this.allOptionNames], node, [`pushBatch`, this.allOptionNames]);
     registerDynamic(machine, node, [`isBoundOption`, this.allOptionNames, this.options], node, `pushBound`);
-    registerDynamic(machine, node, [`isUnsupportedOption`, this.allOptionNames], NODE_ERRORED, [`setError`, `Unsupported option name`]);
-    registerDynamic(machine, node, [`isInvalidOption`], NODE_ERRORED, [`setError`, `Invalid option name`]);
+    registerDynamic(machine, node, [`isUnsupportedOption`, this.allOptionNames], NodeType.ErrorNode, [`setError`, `Unsupported option name`]);
+    registerDynamic(machine, node, [`isInvalidOption`], NodeType.ErrorNode, [`setError`, `Invalid option name`]);
 
     for (const option of this.options) {
-      const longestName = option.names.reduce((longestName, name) => {
-        return name.length > longestName.length ? name : longestName;
-      }, ``);
-
       if (option.arity === 0) {
-        for (const name of option.names) {
-          registerDynamic(machine, node, [`isOption`, name, option.hidden || name !== longestName], node, `pushTrue`);
+        for (const name of option.nameSet) {
+          registerDynamic(machine, node, [`isOption`, name], node, [`pushTrue`, option.preferredName]);
 
           if (name.startsWith(`--`) && !name.startsWith(`--no-`)) {
-            registerDynamic(machine, node, [`isNegatedOption`, name], node, [`pushFalse`, name]);
+            registerDynamic(machine, node, [`isNegatedOption`, name], node, [`pushFalse`, option.preferredName]);
           }
         }
       } else {
@@ -979,18 +982,18 @@ export class CommandBuilder<Context> {
         let lastNode = injectNode(machine, makeNode());
 
         // We register transitions from the starting node to this new node
-        for (const name of option.names)
-          registerDynamic(machine, node, [`isOption`, name, option.hidden || name !== longestName], lastNode, `pushUndefined`);
-
+        for (const name of option.nameSet)
+          registerDynamic(machine, node, [`isOption`, name], lastNode, [`pushUndefined`, option.preferredName]);
 
         // For each argument, we inject a new node at the end and we
         // register a transition from the current node to this new node
         for (let t = 0; t < option.arity; ++t) {
           const nextNode = injectNode(machine, makeNode());
 
-          // We can provide better errors when another option or END_OF_INPUT is encountered
-          registerStatic(machine, lastNode, END_OF_INPUT, NODE_ERRORED, `setOptionArityError`);
-          registerDynamic(machine, lastNode, `isOptionLike`, NODE_ERRORED, `setOptionArityError`);
+          // We can provide better errors when another option or EndOfInput is encountered
+          registerStatic(machine, lastNode, SpecialToken.EndOfInput, NodeType.ErrorNode, `setOptionArityError`);
+          registerStatic(machine, lastNode, SpecialToken.EndOfPartialInput, NodeType.ErrorNode, `setOptionArityError`);
+          registerDynamic(machine, lastNode, `isOptionLike`, NodeType.ErrorNode, `setOptionArityError`);
 
           // If the option has a single argument, no need to store it in an array
           const action: keyof typeof reducers = option.arity === 1
@@ -1067,11 +1070,12 @@ export class CliBuilder<Context> {
     return {
       machine,
       contexts,
-      process: (input: Array<string>) => {
-        return runMachine(machine, input);
-      },
-      suggest: (input: Array<string>, partial: boolean) => {
-        return suggestMachine(machine, input, partial);
+      process: (input: Array<string>, {partial}: {partial?: boolean} = {}) => {
+        const endToken = partial
+          ? SpecialToken.EndOfPartialInput
+          : SpecialToken.EndOfInput;
+
+        return runMachine(machine, input, {endToken});
       },
     };
   }
