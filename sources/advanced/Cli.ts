@@ -194,7 +194,13 @@ export type MaybeProvidedContext<Context extends BaseContext> =
 
 export type ProcessOptions<Context extends BaseContext> =
     & MaybeProvidedContext<Context>
-    & {input: Array<string>, partial?: boolean};
+    & {
+      input: Array<string>,
+      /**
+       * @deprecated Experimental setting, exact behavior may change
+       */
+      partial?: boolean,
+    };
 
 /**
  * An all-in-one helper that simultaneously instantiate a CLI and immediately

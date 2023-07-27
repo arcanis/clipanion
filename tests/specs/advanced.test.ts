@@ -211,13 +211,13 @@ describe(`Advanced`, () => {
       tokens: [{segmentIndex: 0, type: `path`}, {segmentIndex: 1, type: `option`, option: `--foo`}, {segmentIndex: 2, type: `positional`}],
     }, {
       input: [`main`, `-fb`],
-      tokens: [{segmentIndex: 0, type: `path`}, {segmentIndex: 1, type: `option`, slice: [0, 2], option: `--foo`}, {segmentIndex: 1, type: `option`, slice: [2, 1], option: `--bar`}],
+      tokens: [{segmentIndex: 0, type: `path`}, {segmentIndex: 1, type: `option`, slice: [0, 2], option: `--foo`}, {segmentIndex: 1, type: `option`, slice: [2, 3], option: `--bar`}],
     }, {
       input: [`main`, `--hello`, `world`, `bar`],
       tokens: [{segmentIndex: 0, type: `path`}, {segmentIndex: 1, type: `option`, option: `--hello`}, {segmentIndex: 2, type: `value`}, {segmentIndex: 3, type: `positional`}],
     }, {
       input: [`main`, `--hello=world`, `bar`],
-      tokens: [{segmentIndex: 0, type: `path`}, {segmentIndex: 1, type: `option`, slice: [0, 7], option: `--hello`}, {segmentIndex: 1, type: `assign`, slice: [7, 1]}, {segmentIndex: 1, type: `value`, slice: [8, 5]}, {segmentIndex: 2, type: `positional`}],
+      tokens: [{segmentIndex: 0, type: `path`}, {segmentIndex: 1, type: `option`, slice: [0, 7], option: `--hello`}, {segmentIndex: 1, type: `assign`, slice: [7, 8]}, {segmentIndex: 1, type: `value`, slice: [8, 13]}, {segmentIndex: 2, type: `positional`}],
     }, {
       input: [`required-args`],
       tokens: [{segmentIndex: 0, type: `path`}],

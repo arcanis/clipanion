@@ -37,12 +37,6 @@ export type PositionalToken = TokenBase & {
   slice?: undefined;
 };
 
-export type OptionDashToken = TokenBase & {
-  type: `dash`;
-  slice?: [number, number];
-  option?: string;
-};
-
 export type OptionToken = TokenBase & {
   type: `option`;
   slice?: [number, number];
@@ -62,7 +56,6 @@ export type ValueToken = TokenBase & {
 export type Token =
   | PathToken
   | PositionalToken
-  | OptionDashToken
   | OptionToken
   | AssignToken
   | ValueToken;
@@ -553,7 +546,7 @@ export const tests = {
     const optionParsing = segment.match(BINDING_REGEX);
     return !state.ignoreOptions && !!optionParsing && OPTION_REGEX.test(optionParsing[1]) && names.has(optionParsing[1])
             // Disallow bound options with no arguments (i.e. booleans)
-            && options.filter(opt => opt.aliases.includes(optionParsing[1])).every(opt => opt.allowBinding);
+            && options.filter(opt => opt.nameSet.includes(optionParsing[1])).every(opt => opt.allowBinding);
   },
   isNegatedOption: (state: RunState, segment: string, segmentIndex: number, name: string) => {
     return !state.ignoreOptions && segment === `--no-${name.slice(2)}`;
@@ -582,7 +575,7 @@ export const reducers = {
 
     for (let t = 1; t < segment.length; ++t) {
       const name = names.get(`-${segment[t]}`)!;
-      const slice: [number, number] = t === 1 ? [0, 2] : [t, 1];
+      const slice: [number, number] = t === 1 ? [0, 2] : [t, t + 1];
 
       options.push({name, value: true});
       tokens.push({segmentIndex, type: `option`, option: name, slice});
@@ -596,8 +589,8 @@ export const reducers = {
     const options = state.options.concat({name, value});
     const tokens = state.tokens.concat([
       {segmentIndex, type: `option`, slice: [0, name.length], option: name},
-      {segmentIndex, type: `assign`, slice: [name.length, 1]},
-      {segmentIndex, type: `value`, slice: [name.length + 1, value.length]},
+      {segmentIndex, type: `assign`, slice: [name.length, name.length + 1]},
+      {segmentIndex, type: `value`, slice: [name.length + 1, name.length + value.length + 1]},
     ]);
 
     return {...state, options, tokens};
@@ -700,8 +693,8 @@ export type ArityDefinition = {
 };
 
 export type OptDefinition = {
-  name: string;
-  aliases: Array<string>;
+  preferredName: string;
+  nameSet: Array<string>;
   description?: string;
   arity: number;
   hidden: boolean;
@@ -765,7 +758,7 @@ export class CommandBuilder<Context> {
     this.arity.proxy = true;
   }
 
-  addOption({names, description, arity = 0, hidden = false, required = false, allowBinding = true}: Partial<OptDefinition> & {names: Array<string>}) {
+  addOption({names: nameSet, description, arity = 0, hidden = false, required = false, allowBinding = true}: Partial<OptDefinition> & {names: Array<string>}) {
     if (!allowBinding && arity > 1)
       throw new Error(`The arity cannot be higher than 1 when the option only supports the --arg=value syntax`);
     if (!Number.isInteger(arity))
@@ -773,14 +766,14 @@ export class CommandBuilder<Context> {
     if (arity < 0)
       throw new Error(`The arity must be positive, got ${arity}`);
 
-    const longestName = names.reduce((longestName, name) => {
+    const preferredName = nameSet.reduce((longestName, name) => {
       return name.length > longestName.length ? name : longestName;
     }, ``);
 
-    for (const name of names)
-      this.allOptionNames.set(name, longestName);
+    for (const name of nameSet)
+      this.allOptionNames.set(name, preferredName);
 
-    this.options.push({name: longestName, aliases: names, description, arity, hidden, required, allowBinding});
+    this.options.push({preferredName, nameSet, description, arity, hidden, required, allowBinding});
   }
 
   setContext(context: Context) {
@@ -791,8 +784,8 @@ export class CommandBuilder<Context> {
     const segments = [this.cliOpts.binaryName];
 
     const detailedOptionList: Array<{
-      name: string;
-      aliases: Array<string>;
+      preferredName: string;
+      nameSet: Array<string>;
       definition: string;
       description: string;
       required: boolean;
@@ -802,7 +795,7 @@ export class CommandBuilder<Context> {
       segments.push(...this.paths[0]);
 
     if (detailed) {
-      for (const {name, aliases, arity, hidden, description, required} of this.options) {
+      for (const {preferredName, nameSet, arity, hidden, description, required} of this.options) {
         if (hidden)
           continue;
 
@@ -810,10 +803,10 @@ export class CommandBuilder<Context> {
         for (let t = 0; t < arity; ++t)
           args.push(` #${t}`);
 
-        const definition = `${aliases.join(`,`)}${args.join(``)}`;
+        const definition = `${nameSet.join(`,`)}${args.join(``)}`;
 
         if (!inlineOptions && description) {
-          detailedOptionList.push({name, aliases, definition, description, required});
+          detailedOptionList.push({preferredName, nameSet, definition, description, required});
         } else {
           segments.push(required ? `<${definition}>` : `[${definition}]`);
         }
@@ -844,7 +837,7 @@ export class CommandBuilder<Context> {
     const candidateUsage = this.usage().usage;
     const requiredOptions = this.options
       .filter(opt => opt.required)
-      .map(opt => opt.aliases);
+      .map(opt => opt.nameSet);
 
     firstNode = injectNode(machine, makeNode());
     registerStatic(machine, NodeType.InitialNode, SpecialToken.StartOfInput, firstNode, [`setCandidateState`, {candidateUsage, requiredOptions}]);
@@ -977,11 +970,11 @@ export class CommandBuilder<Context> {
 
     for (const option of this.options) {
       if (option.arity === 0) {
-        for (const name of option.aliases) {
-          registerDynamic(machine, node, [`isOption`, name], node, [`pushTrue`, option.name]);
+        for (const name of option.nameSet) {
+          registerDynamic(machine, node, [`isOption`, name], node, [`pushTrue`, option.preferredName]);
 
           if (name.startsWith(`--`) && !name.startsWith(`--no-`)) {
-            registerDynamic(machine, node, [`isNegatedOption`, name], node, [`pushFalse`, option.name]);
+            registerDynamic(machine, node, [`isNegatedOption`, name], node, [`pushFalse`, option.preferredName]);
           }
         }
       } else {
@@ -989,8 +982,8 @@ export class CommandBuilder<Context> {
         let lastNode = injectNode(machine, makeNode());
 
         // We register transitions from the starting node to this new node
-        for (const name of option.aliases)
-          registerDynamic(machine, node, [`isOption`, name], lastNode, [`pushUndefined`, option.name]);
+        for (const name of option.nameSet)
+          registerDynamic(machine, node, [`isOption`, name], lastNode, [`pushUndefined`, option.preferredName]);
 
         // For each argument, we inject a new node at the end and we
         // register a transition from the current node to this new node

@@ -1,8 +1,8 @@
+import {Proxy}   from '../options/Proxy';
 import {Command} from '../Command';
-import {Proxy}   from '../options';
 
 /**
- * A command that prints the clipanion definitions.
+ * A command that prints the clipanion tokens.
  */
 export class TokensCommand extends Command<any> {
   static paths = [[`--clipanion=tokens`]];
