@@ -178,8 +178,7 @@ describe(`Advanced`, () => {
 
         hello = Option.String(`--hello`);
 
-        arg1 = Option.String({required: false});
-        arg2 = Option.Rest();
+        arg = Option.Rest();
 
         async execute() {}
       },
@@ -868,6 +867,22 @@ describe(`Advanced`, () => {
 
     expect(cli.process([`hello`])).to.contain({optionalThing: undefined, requiredThing: `hello`});
     expect(cli.process([`hello`, `world`])).to.contain({optionalThing: `hello`, requiredThing: `world`});
+  });
+
+
+  it.skip(`should allow rest arguments to follow an optional positional argument`, async () => {
+    class CommandA extends Command {
+      optionalThing = Option.String({required: false});
+      restThing = Option.Rest();
+
+      async execute() {
+        throw new Error(`not implemented, just testing usage()`);
+      }
+    }
+
+    const cli = Cli.from([CommandA]);
+
+    expect(cli.process([`hello`, `world`])).to.contain({optionalThing: `hello`, restThing: [`world`]});
   });
 
   it(`should support required positionals after rest arguments`, async () => {
