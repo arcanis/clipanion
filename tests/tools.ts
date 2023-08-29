@@ -49,3 +49,17 @@ export const runCli = async (cli: Cli | (() => Array<CommandClass>), args: Array
   });
 };
 
+export const trim = (parts: TemplateStringsArray, ...args: Array<string>) => {
+  const content = parts
+    .reduce((acc, part, i) => acc + part + (args[i] ?? ``), ``)
+    .trimEnd();
+
+  const minLeadingSpaces = Math.min(
+    ...(content.match(/^ */gm) ?? []).filter(m => m !== ``).map(m => m.length)
+  );
+
+  const indentations = new RegExp(`^ {${minLeadingSpaces}}`, `gm`);
+  const minimumIndentation = content.replace(indentations, ``);
+
+  return minimumIndentation.trimStart().concat(`\n`);
+};

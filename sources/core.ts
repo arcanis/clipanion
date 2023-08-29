@@ -867,6 +867,15 @@ export class CommandBuilder<Context> {
         const nextPathNode = injectNode(machine, makeNode());
         registerStatic(machine, lastPathNode, path[t], nextPathNode, `pushPath`);
         lastPathNode = nextPathNode;
+
+        if (t + 1 < path.length) {
+          // Allow to pass `-h` (without anything after it) after each part of a path.
+          // Note that we do not do this for the last part, otherwise there would be
+          // some redundancy with the `useHelp` attached later.
+          const helpNode = injectNode(machine, makeNode());
+          registerDynamic(machine, lastPathNode, `isHelp`, helpNode, [`useHelp`, this.cliIndex]);
+          registerStatic(machine, helpNode, SpecialToken.EndOfInput, NodeType.SuccessNode, [`setSelectedIndex`, HELP_COMMAND_INDEX]);
+        }
       }
 
       if (this.arity.leading.length > 0 || !this.arity.proxy) {

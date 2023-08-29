@@ -3,7 +3,7 @@ import vm                                                        from 'vm';
 
 import {Cli, Command, CliOptions, Option, Builtins, BaseContext} from '../../sources/advanced';
 import {expect}                                                  from '../expect';
-import {log, runCli}                                             from '../tools';
+import {log, runCli, trim}                                       from '../tools';
 
 const prefix = `\u001b[1m$ \u001b[22m`;
 
@@ -96,7 +96,7 @@ describe(`Advanced`, () => {
         }
 
         class CommandB extends Command {
-          foo = Option.Boolean(`--fobar`);
+          foo = Option.Boolean(`--foobar`);
           async execute() {log(this);}
         }
 
@@ -137,7 +137,7 @@ describe(`Advanced`, () => {
         }
 
         class CommandB extends Command {
-          foo = Option.Boolean(`--fobar`);
+          foo = Option.Boolean(`--foobar`);
           async execute() {log(this);}
         }
 
@@ -146,6 +146,83 @@ describe(`Advanced`, () => {
 
         expect(await runCli(cli, [`-h`])).to.equal(cli.usage(null));
         expect(await runCli(cli, [`--help`])).to.equal(cli.usage(null));
+      });
+
+      it(`should print the matched commands when the requested help path matches a command and its subcommands`, async () => {
+        const cli = new Cli({
+          enableColors: false, // required for the assertion below
+        });
+
+        cli.register(Builtins.HelpCommand);
+
+        class CommandA extends Command {
+          static paths = [[`a`]];
+          static usage = {}
+
+          async execute() {}
+        }
+
+        class CommandA1 extends Command {
+          static paths = [[`a`, `one`]];
+          static usage = {}
+
+          async execute() {}
+        }
+
+        cli.register(CommandA);
+        cli.register(CommandA1);
+
+        expect(await runCli(cli, [`a`, `--help`])).to.equal(trim`
+          Multiple commands match your selection:
+
+            0. ... a
+            1. ... a one
+
+          Run again with -h=<index> to see the longer details of any of those commands.
+        `);
+      });
+
+      it(`should print the matched commands when the requested help path matches multiple commands`, async () => {
+        const cli = new Cli({
+          enableColors: false, // required for the assertion below
+        });
+
+        cli.register(Builtins.HelpCommand);
+
+        class CommandA extends Command {
+          static paths = [[`a`]];
+          static usage = {}
+
+          async execute() {}
+        }
+
+        class CommandA1 extends Command {
+          static paths = [[`a`, `one`]];
+          static usage = {}
+
+          async execute() {}
+        }
+
+        class CommandA2 extends Command {
+          static paths = [[`a`, `two`]];
+          static usage = {}
+
+          async execute() {}
+        }
+
+        cli.register(CommandA);
+        cli.register(CommandA1);
+        cli.register(CommandA2);
+
+        expect(await runCli(cli, [`a`, `--help`])).to.equal(trim`
+          Multiple commands match your selection:
+
+            0. ... a
+            1. ... a one
+            2. ... a two
+
+          Run again with -h=<index> to see the longer details of any of those commands.
+        `);
       });
     });
 
