@@ -205,7 +205,9 @@ describe(`Advanced`, () => {
 
         class CommandA2 extends Command {
           static paths = [[`a`, `two`]];
-          static usage = {}
+          static usage = Command.Usage({
+            description: `This one has a description`,
+          })
 
           async execute() {}
         }
@@ -223,6 +225,9 @@ describe(`Advanced`, () => {
 
           Run again with -h=<index> to see the longer details of any of those commands.
         `);
+
+        expect(await runCli(cli, [`a`, `-h=2`])).to.equal(cli.usage(CommandA2, {detailed: true}));
+        expect(await runCli(cli, [`a`, `-h=2`])).to.equal(await runCli(cli, [`a`, `two`, `--help`]));
       });
     });
 
