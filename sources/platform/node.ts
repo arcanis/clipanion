@@ -1,7 +1,10 @@
 import {AsyncLocalStorage} from 'async_hooks';
+import fs                  from 'fs';
+import path                from 'path';
 import tty                 from 'tty';
 
 import {BaseContext}       from '../advanced/Cli';
+import {lazyFactory}       from '../lazy';
 
 export function getDefaultColorDepth() {
   if (tty && `getColorDepth` in tty.WriteStream.prototype)
@@ -53,3 +56,21 @@ export function getCaptureActivator(context: BaseContext) {
   };
 }
 
+export async function lazyFileSystem<T>(args: Array<string>, {cwd, pattern}: {cwd: string, pattern: string}) {
+  const extractDefault = (mod: any) => (mod.default || mod) as T;
+
+  return lazyFactory(args, async (segment, ctx: string = cwd) => {
+    const commandFile = path.join(ctx, pattern.replace(`{}`, segment));
+    const commandDir = path.join(ctx, segment);
+
+    const [commandFileStat, commandDirStat] = await Promise.all([
+      fs.promises.stat(commandFile).catch(() => null),
+      fs.promises.stat(commandDir).catch(() => null),
+    ]);
+
+    return {
+      context: commandDirStat?.isDirectory() ? commandDir : null,
+      node: commandFileStat?.isFile() ? extractDefault(await import(commandFile)) : null,
+    };
+  });
+}

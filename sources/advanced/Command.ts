@@ -84,6 +84,13 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
   declare [`constructor`]: CommandClass<Context>;
 
   /**
+   * Return true if the given parameter is a command class.
+   */
+  static isCommandClass<Context extends BaseContext = BaseContext>(value: unknown): value is CommandClass<Context> {
+    return typeof value === `function` && typeof value.prototype === `object` && value.prototype instanceof Command;
+  }
+
+  /**
    * @deprecated Do not use this; prefer the static `paths` property instead.
    */
   paths?: undefined;

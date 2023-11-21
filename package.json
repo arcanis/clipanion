@@ -59,6 +59,7 @@
     "postpack": "rm -rf lib",
     "lint": "eslint --max-warnings 0 .",
     "test": "jest",
+    "demo-yarn": "node --require ts-node/register demos/yarn/cli.ts",
     "demo": "node --require ts-node/register demos/advanced.ts"
   },
   "publishConfig": {
