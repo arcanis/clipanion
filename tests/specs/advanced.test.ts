@@ -2,7 +2,6 @@ import * as t                                                    from 'typanion'
 import vm                                                        from 'vm';
 
 import {Cli, Command, CliOptions, Option, Builtins, BaseContext} from '../../sources/advanced';
-import {expect}                                                  from '../expect';
 import {log, runCli, trim}                                       from '../tools';
 
 const prefix = `\u001b[1m$ \u001b[22m`;
@@ -32,21 +31,21 @@ describe(`Advanced`, () => {
           async execute() {}
         });
 
-        expect(cli.process([`-h`]).path).to.deep.equal([]);
+        expect(cli.process([`-h`]).path).toEqual([]);
 
         cli.register(Builtins.HelpCommand);
-        expect(cli.process([`-h`]).path).to.deep.equal([`-h`]);
+        expect(cli.process([`-h`]).path).toEqual([`-h`]);
 
-        expect(cli.process([`b`, `--help`]).path).to.deep.equal([`b`]);
-        expect(cli.process([`b`, `one`, `--help`]).path).to.deep.equal([`b`, `one`]);
+        expect(cli.process([`b`, `--help`]).path).toEqual([`b`]);
+        expect(cli.process([`b`, `one`, `--help`]).path).toEqual([`b`, `one`]);
       });
 
       it(`should display the usage`, async () => {
         const cli = new Cli();
         cli.register(Builtins.HelpCommand);
 
-        expect(await runCli(cli, [`-h`])).to.equal(cli.usage(null));
-        expect(await runCli(cli, [`--help`])).to.equal(cli.usage(null));
+        expect(await runCli(cli, [`-h`])).toEqual(cli.usage(null));
+        expect(await runCli(cli, [`--help`])).toEqual(cli.usage(null));
       });
 
       it(`should display the usage per-command`, async () => {
@@ -62,9 +61,9 @@ describe(`Advanced`, () => {
 
         cli.register(CommandA);
 
-        expect(await runCli(cli, [`foo`, `-h`])).to.equal(cli.usage(CommandA));
-        expect(await runCli(cli, [`foo`, `--help`])).to.equal(cli.usage(CommandA));
-        expect(await runCli(cli, [`foo`, `--help`, `--foo`])).to.equal(cli.usage(CommandA));
+        expect(await runCli(cli, [`foo`, `-h`])).toEqual(cli.usage(CommandA));
+        expect(await runCli(cli, [`foo`, `--help`])).toEqual(cli.usage(CommandA));
+        expect(await runCli(cli, [`foo`, `--help`, `--foo`])).toEqual(cli.usage(CommandA));
       });
 
       it(`should display the command usage if there's a single one and it's the default`, async () => {
@@ -80,8 +79,8 @@ describe(`Advanced`, () => {
 
         cli.register(CommandA);
 
-        expect(await runCli(cli, [`-h`])).to.equal(cli.usage(CommandA));
-        expect(await runCli(cli, [`--help`])).to.equal(cli.usage(CommandA));
+        expect(await runCli(cli, [`-h`])).toEqual(cli.usage(CommandA));
+        expect(await runCli(cli, [`--help`])).toEqual(cli.usage(CommandA));
       });
 
       it(`should print the command usage if there are no documented named commands apart the default one`, async () => {
@@ -103,8 +102,8 @@ describe(`Advanced`, () => {
         cli.register(CommandA);
         cli.register(CommandB);
 
-        expect(await runCli(cli, [`-h`])).to.equal(cli.usage(CommandB));
-        expect(await runCli(cli, [`--help`])).to.equal(cli.usage(CommandB));
+        expect(await runCli(cli, [`-h`])).toEqual(cli.usage(CommandB));
+        expect(await runCli(cli, [`--help`])).toEqual(cli.usage(CommandB));
       });
 
       it(`should print the general help if there's a single named command`, async () => {
@@ -120,8 +119,8 @@ describe(`Advanced`, () => {
 
         cli.register(CommandA);
 
-        expect(await runCli(cli, [`-h`])).to.equal(cli.usage(null));
-        expect(await runCli(cli, [`--help`])).to.equal(cli.usage(null));
+        expect(await runCli(cli, [`-h`])).toEqual(cli.usage(null));
+        expect(await runCli(cli, [`--help`])).toEqual(cli.usage(null));
       });
 
       it(`should print the general help if there are documented named commands apart the default one`, async () => {
@@ -144,8 +143,8 @@ describe(`Advanced`, () => {
         cli.register(CommandA);
         cli.register(CommandB);
 
-        expect(await runCli(cli, [`-h`])).to.equal(cli.usage(null));
-        expect(await runCli(cli, [`--help`])).to.equal(cli.usage(null));
+        expect(await runCli(cli, [`-h`])).toEqual(cli.usage(null));
+        expect(await runCli(cli, [`--help`])).toEqual(cli.usage(null));
       });
 
       it(`should print the matched commands when the requested help path matches a command and its subcommands`, async () => {
@@ -172,7 +171,7 @@ describe(`Advanced`, () => {
         cli.register(CommandA);
         cli.register(CommandA1);
 
-        expect(await runCli(cli, [`a`, `--help`])).to.equal(trim`
+        expect(await runCli(cli, [`a`, `--help`])).toEqual(trim`
           Multiple commands match your selection:
 
             0. ... a
@@ -216,7 +215,7 @@ describe(`Advanced`, () => {
         cli.register(CommandA1);
         cli.register(CommandA2);
 
-        expect(await runCli(cli, [`a`, `--help`])).to.equal(trim`
+        expect(await runCli(cli, [`a`, `--help`])).toEqual(trim`
           Multiple commands match your selection:
 
             0. ... a
@@ -226,8 +225,8 @@ describe(`Advanced`, () => {
           Run again with -h=<index> to see the longer details of any of those commands.
         `);
 
-        expect(await runCli(cli, [`a`, `-h=2`])).to.equal(cli.usage(CommandA2, {detailed: true}));
-        expect(await runCli(cli, [`a`, `-h=2`])).to.equal(await runCli(cli, [`a`, `two`, `--help`]));
+        expect(await runCli(cli, [`a`, `-h=2`])).toEqual(cli.usage(CommandA2, {detailed: true}));
+        expect(await runCli(cli, [`a`, `-h=2`])).toEqual(await runCli(cli, [`a`, `two`, `--help`]));
       });
     });
 
@@ -236,16 +235,16 @@ describe(`Advanced`, () => {
         const cli = new Cli({binaryVersion: `2.3.4`});
         cli.register(Builtins.VersionCommand);
 
-        expect(await runCli(cli, [`-v`])).to.equal(`2.3.4\n`);
-        expect(await runCli(cli, [`--version`])).to.equal(`2.3.4\n`);
+        expect(await runCli(cli, [`-v`])).toEqual(`2.3.4\n`);
+        expect(await runCli(cli, [`--version`])).toEqual(`2.3.4\n`);
       });
 
       it(`should display "<unknown>" when no version is specified`, async () => {
         const cli = new Cli();
         cli.register(Builtins.VersionCommand);
 
-        expect(await runCli(cli, [`-v`])).to.equal(`<unknown>\n`);
-        expect(await runCli(cli, [`--version`])).to.equal(`<unknown>\n`);
+        expect(await runCli(cli, [`-v`])).toEqual(`<unknown>\n`);
+        expect(await runCli(cli, [`--version`])).toEqual(`<unknown>\n`);
       });
     });
   });
@@ -312,7 +311,7 @@ describe(`Advanced`, () => {
 
     for (const {input, tokens} of TOKEN_EXPECTATIONS) {
       it(`should tokenize "${input.join(` `)}"`, () => {
-        expect(cli.process({input, partial: true}).tokens).to.deep.equal(tokens);
+        expect(cli.process({input, partial: true}).tokens).toEqual(tokens);
       });
     }
   });
@@ -339,7 +338,7 @@ describe(`Advanced`, () => {
       `--help`,
     ]);
 
-    expect(output).to.include(`${prefix}... <command>\n`);
+    expect(output).toContain(`${prefix}... <command>\n`);
   });
 
   it(`should print the help message when using --help`, async () => {
@@ -356,7 +355,7 @@ describe(`Advanced`, () => {
       `--help`,
     ]);
 
-    expect(output).to.equal(`${prefix}... [--foo]\n`);
+    expect(output).toEqual(`${prefix}... [--foo]\n`);
   });
 
   it(`shouldn't detect --help past the -- separator`, async () => {
@@ -373,7 +372,7 @@ describe(`Advanced`, () => {
       `--help`,
     ]);
 
-    expect(output).to.equal(`Running CommandA\n`);
+    expect(output).toEqual(`Running CommandA\n`);
   });
 
   it(`shouldn't detect --help on proxies`, async () => {
@@ -389,7 +388,7 @@ describe(`Advanced`, () => {
       `--help`,
     ]);
 
-    expect(output).to.equal(`Running CommandA\n["--help"]\n`);
+    expect(output).toEqual(`Running CommandA\n["--help"]\n`);
   });
 
   it(`should replace binary name in command help`, async () => {
@@ -406,8 +405,8 @@ describe(`Advanced`, () => {
       `--help`,
     ]);
 
-    expect(output).to.equal(`${prefix}... add\n`);
-    expect(output).not.to.equal(`$0`);
+    expect(output).toEqual(`${prefix}... add\n`);
+    expect(output).not.toEqual(`$0`);
   });
 
   it(`should expose Cli options on the MiniCli`, async () => {
@@ -431,7 +430,7 @@ describe(`Advanced`, () => {
 
     const output = await runCli(cli, []);
 
-    expect(JSON.parse(output)).to.contain(binaryInfo);
+    expect(JSON.parse(output)).toMatchObject(binaryInfo);
   });
 
   it(`should allow calling a command from another`, async () => {
@@ -457,7 +456,7 @@ describe(`Advanced`, () => {
       ];
     }, [`foo`]);
 
-    expect(output).to.equal(`Running CommandA\nRunning CommandB\n`);
+    expect(output).toEqual(`Running CommandA\nRunning CommandB\n`);
   });
 
   it(`should support inheritance of options`, async () => {
@@ -478,7 +477,7 @@ describe(`Advanced`, () => {
       ];
     }, [`--foo`, `hello`]);
 
-    expect(output).to.equal(`Running CommandB\n"hello"\n`);
+    expect(output).toEqual(`Running CommandB\n"hello"\n`);
   });
 
   it(`should support inheritance of positionals (consumed starting from the superclass)`, async () => {
@@ -500,7 +499,7 @@ describe(`Advanced`, () => {
       ];
     }, [`hello`, `world`]);
 
-    expect(output).to.equal(`Running CommandB\n"hello"\n"world"\n`);
+    expect(output).toEqual(`Running CommandB\n"hello"\n"world"\n`);
   });
 
   it(`derives positional argument names from the property name`, async () => {
@@ -517,7 +516,7 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([CommandA]);
 
-    expect(cli.usage(CommandA)).to.equal(`\u001b[1m$ \u001b[22m... workspace <workspaceName> [extra] <scriptName>\n`);
+    expect(cli.usage(CommandA)).toEqual(`\u001b[1m$ \u001b[22m... workspace <workspaceName> [extra] <scriptName>\n`);
   });
 
   it(`derives rest argument names from the property name`, async () => {
@@ -532,7 +531,7 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([CommandA]);
 
-    expect(cli.usage(CommandA)).to.equal(`\u001b[1m$ \u001b[22m... clean <workspaceNames> <workspaceNames> ...\n`);
+    expect(cli.usage(CommandA)).toEqual(`\u001b[1m$ \u001b[22m... clean <workspaceNames> <workspaceNames> ...\n`);
   });
 
   it(`supports populating strings with environment variables`, async () => {
@@ -546,7 +545,7 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([CommandA]);
 
-    expect(cli.process([], {env: {TEST_FOO: `bar`}})).to.contain({foo: `bar`});
+    expect(cli.process([], {env: {TEST_FOO: `bar`}})).toMatchObject({foo: `bar`});
   });
 
   it(`overrides defaults with environment variables`, async () => {
@@ -560,7 +559,7 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([CommandA]);
 
-    expect(cli.process([], {env: {TEST_FOO: `bar`}})).to.contain({foo: `bar`});
+    expect(cli.process([], {env: {TEST_FOO: `bar`}})).toMatchObject({foo: `bar`});
   });
 
   it(`overrides environment variables with options`, async () => {
@@ -574,7 +573,7 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([CommandA]);
 
-    expect(cli.process([`--foo=qux`], {env: {TEST_FOO: `bar`}})).to.contain({foo: `qux`});
+    expect(cli.process([`--foo=qux`], {env: {TEST_FOO: `bar`}})).toMatchObject({foo: `qux`});
   });
 
   it(`supports strings that act like booleans if not bound to a value`, async () => {
@@ -596,18 +595,18 @@ describe(`Advanced`, () => {
 
     let cli = Cli.from([CommandA]);
 
-    expect(cli.process([])).to.contain({enableDebugger: false});
-    expect(cli.process([`--break`])).to.contain({enableDebugger: true});
-    expect(cli.process([`--no-break`])).to.contain({enableDebugger: false});
-    expect(cli.process([`--break=1234`])).to.contain({enableDebugger: `1234`});
-    expect(() => { cli.process([`--break`, `1234`]);}).to.throw(Error);
-    expect(() => { cli.process([`--no-break=1234`]);}).to.throw(Error);
+    expect(cli.process([])).toMatchObject({enableDebugger: false});
+    expect(cli.process([`--break`])).toMatchObject({enableDebugger: true});
+    expect(cli.process([`--no-break`])).toMatchObject({enableDebugger: false});
+    expect(cli.process([`--break=1234`])).toMatchObject({enableDebugger: `1234`});
+    expect(() => { cli.process([`--break`, `1234`]);}).toThrow(Error);
+    expect(() => { cli.process([`--no-break=1234`]);}).toThrow(Error);
 
     cli = Cli.from([InvertedCommandA]);
 
-    expect(cli.process([])).to.contain({enableDebugger: true});
-    expect(cli.process([`--break`])).to.contain({enableDebugger: true});
-    expect(cli.process([`--no-break`])).to.contain({enableDebugger: false});
+    expect(cli.process([])).toMatchObject({enableDebugger: true});
+    expect(cli.process([`--break`])).toMatchObject({enableDebugger: true});
+    expect(cli.process([`--no-break`])).toMatchObject({enableDebugger: false});
   });
 
   it(`should report the stacktrace when an error is thrown`, async () => {
@@ -619,7 +618,7 @@ describe(`Advanced`, () => {
       return [
         CommandA,
       ];
-    }, [])).to.be.rejectedWith(`at CommandA.execute`);
+    }, [])).rejects.toThrow(`at CommandA.execute`);
   });
 
   it(`should report the stacktrace when an error is thrown from another context`, async () => {
@@ -631,7 +630,7 @@ describe(`Advanced`, () => {
       return [
         CommandA,
       ];
-    }, [])).to.be.rejectedWith(`at CommandA.execute`);
+    }, [])).rejects.toThrow(`at CommandA.execute`);
   });
 
   it(`shouldn't crash when throwing non-error exceptions`, async () => {
@@ -643,7 +642,7 @@ describe(`Advanced`, () => {
       return [
         CommandA,
       ];
-    }, [])).to.be.rejectedWith(`non-error rejection`);
+    }, [])).rejects.toThrow(`non-error rejection`);
   });
 
   it(`shouldn't crash when throwing non-error exceptions`, async () => {
@@ -655,12 +654,12 @@ describe(`Advanced`, () => {
     const cli = Cli.from([CommandA]);
     const usage = cli.usage(CommandA);
 
-    expect(usage).not.to.contain(`thisNameIsntUsed`);
-    expect(usage).to.contain(`prettyName`);
+    expect(usage).not.toContain(`thisNameIsntUsed`);
+    expect(usage).toContain(`prettyName`);
 
     const command = cli.process([`foo`]);
 
-    expect((command as CommandA).thisNameIsntUsed).to.eq(`foo`);
+    expect((command as CommandA).thisNameIsntUsed).toEqual(`foo`);
   });
 
   it(`should use default error handler when no custom logic is registered`, async () => {
@@ -672,7 +671,7 @@ describe(`Advanced`, () => {
       return [
         CommandA,
       ];
-    }, [])).to.be.rejectedWith(`default error`);
+    }, [])).rejects.toThrow(`default error`);
   });
 
   it(`should allow to override error handler`, async () => {
@@ -690,9 +689,9 @@ describe(`Advanced`, () => {
       return [
         CommandA,
       ];
-    }, [])).to.be.rejectedWith(`command failed`);
+    }, [])).rejects.toThrow(`command failed`);
 
-    expect(catchCalled).to.be.true;
+    expect(catchCalled).toEqual(true);
   });
 
   it(`should not throw if custom error handler swallows error`, async () => {
@@ -705,7 +704,7 @@ describe(`Advanced`, () => {
       return [
         CommandA,
       ];
-    }, [])).to.eventually.equal(``);
+    }, [])).resolves.toEqual(``);
   });
 
   it(`should allow to rethrow error to parent class(es)`, async () => {
@@ -743,9 +742,9 @@ describe(`Advanced`, () => {
       return [
         CommandB,
       ];
-    }, [])).to.be.rejectedWith(`command failed`);
+    }, [])).rejects.toThrow(`command failed`);
 
-    expect(Object.values(calls).every(Boolean)).to.be.true;
+    expect(Object.values(calls).every(Boolean)).toEqual(true);
   });
 
   it(`should extract counter options from complex options`, async () => {
@@ -756,19 +755,19 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([CommandA]);
 
-    expect(cli.process([])).to.contain({verbose: 0});
-    expect(cli.process([`-v`])).to.contain({verbose: 1});
-    expect(cli.process([`-vv`])).to.contain({verbose: 2});
-    expect(cli.process([`-vvv`])).to.contain({verbose: 3});
-    expect(cli.process([`-vvvv`])).to.contain({verbose: 4});
+    expect(cli.process([])).toMatchObject({verbose: 0});
+    expect(cli.process([`-v`])).toMatchObject({verbose: 1});
+    expect(cli.process([`-vv`])).toMatchObject({verbose: 2});
+    expect(cli.process([`-vvv`])).toMatchObject({verbose: 3});
+    expect(cli.process([`-vvvv`])).toMatchObject({verbose: 4});
 
-    expect(cli.process([`-v`, `-v`])).to.contain({verbose: 2});
-    expect(cli.process([`--verbose`, `--verbose`])).to.contain({verbose: 2});
-    expect(cli.process([`-v`, `--verbose`])).to.contain({verbose: 2});
-    expect(cli.process([`--verbose`, `-v`])).to.contain({verbose: 2});
+    expect(cli.process([`-v`, `-v`])).toMatchObject({verbose: 2});
+    expect(cli.process([`--verbose`, `--verbose`])).toMatchObject({verbose: 2});
+    expect(cli.process([`-v`, `--verbose`])).toMatchObject({verbose: 2});
+    expect(cli.process([`--verbose`, `-v`])).toMatchObject({verbose: 2});
 
-    expect(cli.process([`-vvvv`, `--no-verbose`])).to.contain({verbose: 0});
-    expect(cli.process([`--no-verbose`, `-vvvv`])).to.contain({verbose: 4});
+    expect(cli.process([`-vvvv`, `--no-verbose`])).toMatchObject({verbose: 0});
+    expect(cli.process([`--no-verbose`, `-vvvv`])).toMatchObject({verbose: 4});
   });
 
   it(`should print flags with a description separately`, async () => {
@@ -786,7 +785,7 @@ describe(`Advanced`, () => {
     const cli = Cli.from([CommandA]);
 
     // eslint-disable-next-line no-control-regex
-    expect(cli.usage(CommandA, {detailed: true})).to.match(/\u001b\[1m\$ \u001b\[22m\.\.\. greet \[--message #0\]\n\n\u001b\[1m━━━ Options .*\n\n +\S*--verbose *\S* +Log output\n +\S*--output #0 *\S* +The output directory\n/);
+    expect(cli.usage(CommandA, {detailed: true})).toMatch(/\u001b\[1m\$ \u001b\[22m\.\.\. greet \[--message #0\]\n\n\u001b\[1m━━━ Options .*\n\n +\S*--verbose *\S* +Log output\n +\S*--output #0 *\S* +The output directory\n/);
   });
 
   it(`should support tuples`, async () => {
@@ -797,7 +796,7 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([PointCommand]);
 
-    expect(cli.process([`--point`, `1`, `2`, `3`])).to.deep.contain({point: [`1`, `2`, `3`]});
+    expect(cli.process([`--point`, `1`, `2`, `3`])).toMatchObject({point: [`1`, `2`, `3`]});
   });
 
   it(`should extract tuples from complex options surrounded by rest arguments`, async () => {
@@ -811,10 +810,10 @@ describe(`Advanced`, () => {
 
     const point = {point: [`1`, `2`, `3`]};
 
-    expect(cli.process([`--point`, `1`, `2`, `3`])).to.deep.contain(point);
-    expect(cli.process([`--point`, `1`, `2`, `3`, `thing1`, `thing2`])).to.deep.contain(point);
-    expect(cli.process([`thing1`, `--point`, `1`, `2`, `3`, `thing2`])).to.deep.contain(point);
-    expect(cli.process([`thing1`, `thing2`, `--point`, `1`, `2`, `3`])).to.deep.contain(point);
+    expect(cli.process([`--point`, `1`, `2`, `3`])).toMatchObject(point);
+    expect(cli.process([`--point`, `1`, `2`, `3`, `thing1`, `thing2`])).toMatchObject(point);
+    expect(cli.process([`thing1`, `--point`, `1`, `2`, `3`, `thing2`])).toMatchObject(point);
+    expect(cli.process([`thing1`, `thing2`, `--point`, `1`, `2`, `3`])).toMatchObject(point);
   });
 
   it(`should throw acceptable errors when tuple length is not finite`, async () => {
@@ -825,7 +824,7 @@ describe(`Advanced`, () => {
 
     expect(() => {
       Cli.from([PointCommand]);
-    }).to.throw(`The arity must be an integer, got Infinity`);
+    }).toThrow(`The arity must be an integer, got Infinity`);
   });
 
   it(`should throw acceptable errors when tuple length is not an integer`, async () => {
@@ -837,7 +836,7 @@ describe(`Advanced`, () => {
 
     expect(() => {
       Cli.from([PointCommand]);
-    }).to.throw(`The arity must be an integer, got 1.5`);
+    }).toThrow(`The arity must be an integer, got 1.5`);
   });
 
   it(`should throw acceptable errors when tuple length is not positive`, async () => {
@@ -849,7 +848,7 @@ describe(`Advanced`, () => {
 
     expect(() => {
       Cli.from([PointCommand]);
-    }).to.throw(`The arity must be positive, got -1`);
+    }).toThrow(`The arity must be positive, got -1`);
   });
 
   it(`should throw acceptable errors when not enough arguments are passed to a tuple`, async () => {
@@ -870,7 +869,7 @@ describe(`Advanced`, () => {
       [`--point`, `1`, `-abcd`],
       [`--point`, `1`, `2`, `--bar=baz`],
     ]) {
-      expect(() => cli.process(args)).to.throw(error);
+      expect(() => cli.process(args)).toThrow(error);
     }
   });
 
@@ -882,9 +881,9 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([IncludeCommand]);
 
-    expect(cli.process([])).to.deep.contain({include: []});
-    expect(cli.process([`--include`, `foo`])).to.deep.contain({include: [`foo`]});
-    expect(cli.process([`--include`, `foo`, `--include`, `bar`])).to.deep.contain({include: [`foo`, `bar`]});
+    expect(cli.process([])).toMatchObject({include: []});
+    expect(cli.process([`--include`, `foo`])).toMatchObject({include: [`foo`]});
+    expect(cli.process([`--include`, `foo`, `--include`, `bar`])).toMatchObject({include: [`foo`, `bar`]});
   });
 
   it(`should extract tuple arrays from complex options`, async () => {
@@ -895,22 +894,22 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([IncludeCommand]);
 
-    expect(cli.process([])).to.deep.contain({position: []});
+    expect(cli.process([])).toMatchObject({position: []});
 
     expect(cli.process(
       [`--position`, `1`, `2`, `3`]
-    )).to.deep.contain({position: [[`1`, `2`, `3`]]});
+    )).toMatchObject({position: [[`1`, `2`, `3`]]});
 
     expect(cli.process([
       `--position`, `1`, `2`, `3`,
       `--position`, `4`, `5`, `6`,
-    ])).to.deep.contain({position: [[`1`, `2`, `3`], [`4`, `5`, `6`]]});
+    ])).toMatchObject({position: [[`1`, `2`, `3`], [`4`, `5`, `6`]]});
 
     expect(cli.process([
       `--position`, `1`, `2`, `3`,
       `--position`, `4`, `5`, `6`,
       `--position`, `7`, `8`, `9`,
-    ])).to.deep.contain({position: [[`1`, `2`, `3`], [`4`, `5`, `6`], [`7`, `8`, `9`]]});
+    ])).toMatchObject({position: [[`1`, `2`, `3`], [`4`, `5`, `6`], [`7`, `8`, `9`]]});
   });
 
   it(`should support optional string positionals`, async () => {
@@ -921,8 +920,8 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([ThingCommand]);
 
-    expect(cli.process([])).to.contain({thing: undefined});
-    expect(cli.process([`hello`])).to.contain({thing: `hello`});
+    expect(cli.process([])).toMatchObject({thing: undefined});
+    expect(cli.process([`hello`])).toMatchObject({thing: `hello`});
   });
 
   it(`should support optional string positionals after required string positionals`, async () => {
@@ -934,8 +933,8 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([CopyCommand]);
 
-    expect(cli.process([`hello`])).to.contain({optionalThing: undefined});
-    expect(cli.process([`hello`, `world`])).to.contain({optionalThing: `world`});
+    expect(cli.process([`hello`])).toMatchObject({optionalThing: undefined});
+    expect(cli.process([`hello`, `world`])).toMatchObject({optionalThing: `world`});
   });
 
   it(`should support optional string positionals before required string positionals`, async () => {
@@ -947,8 +946,8 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([CopyCommand]);
 
-    expect(cli.process([`hello`])).to.contain({optionalThing: undefined, requiredThing: `hello`});
-    expect(cli.process([`hello`, `world`])).to.contain({optionalThing: `hello`, requiredThing: `world`});
+    expect(cli.process([`hello`])).toMatchObject({optionalThing: undefined, requiredThing: `hello`});
+    expect(cli.process([`hello`, `world`])).toMatchObject({optionalThing: `hello`, requiredThing: `world`});
   });
 
 
@@ -964,7 +963,7 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([CommandA]);
 
-    expect(cli.process([`hello`, `world`])).to.contain({optionalThing: `hello`, restThing: [`world`]});
+    expect(cli.process([`hello`, `world`])).toMatchObject({optionalThing: `hello`, restThing: [`world`]});
   });
 
   it(`should support required positionals after rest arguments`, async () => {
@@ -976,17 +975,17 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([CopyCommand]);
 
-    expect(cli.process([`dest`])).to.deep.contain({
+    expect(cli.process([`dest`])).toMatchObject({
       sources: [],
       destination: `dest`,
     });
 
-    expect(cli.process([`src`, `dest`])).to.deep.contain({
+    expect(cli.process([`src`, `dest`])).toMatchObject({
       sources: [`src`],
       destination: `dest`,
     });
 
-    expect(cli.process([`src1`, `src2`, `dest`])).to.deep.contain({
+    expect(cli.process([`src1`, `src2`, `dest`])).toMatchObject({
       sources: [`src1`, `src2`],
       destination: `dest`,
     });
@@ -1000,10 +999,10 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([CopyCommand]);
 
-    expect(() => cli.process([])).to.throw();
-    expect(cli.process([`src1`])).to.deep.contain({sources: [`src1`]});
-    expect(cli.process([`src1`, `src2`])).to.deep.contain({sources: [`src1`, `src2`]});
-    expect(cli.process([`src1`, `src2`, `src3`])).to.deep.contain({sources: [`src1`, `src2`, `src3`]});
+    expect(() => cli.process([])).toThrow();
+    expect(cli.process([`src1`])).toMatchObject({sources: [`src1`]});
+    expect(cli.process([`src1`, `src2`])).toMatchObject({sources: [`src1`, `src2`]});
+    expect(cli.process([`src1`, `src2`, `src3`])).toMatchObject({sources: [`src1`, `src2`, `src3`]});
   });
 
   it(`should support required positionals after rest arguments with a minimum required length`, async () => {
@@ -1015,16 +1014,16 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([CopyCommand]);
 
-    expect(() => cli.process([])).to.throw();
-    expect(() => cli.process([`src`])).to.throw();
-    expect(() => cli.process([`dest`])).to.throw();
+    expect(() => cli.process([])).toThrow();
+    expect(() => cli.process([`src`])).toThrow();
+    expect(() => cli.process([`dest`])).toThrow();
 
-    expect(cli.process([`src`, `dest`])).to.deep.contain({
+    expect(cli.process([`src`, `dest`])).toMatchObject({
       sources: [`src`],
       destination: `dest`,
     });
 
-    expect(cli.process([`src1`, `src2`, `dest`])).to.deep.contain({
+    expect(cli.process([`src1`, `src2`, `dest`])).toMatchObject({
       sources: [`src1`, `src2`],
       destination: `dest`,
     });
@@ -1042,49 +1041,49 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([CopyCommand]);
 
-    expect(cli.process([`src`, `dest`])).to.deep.contain({
+    expect(cli.process([`src`, `dest`])).toMatchObject({
       sources: [`src`],
       destination: `dest`,
       force: false,
       reflink: false,
     });
 
-    expect(cli.process([`src1`, `src2`, `dest`])).to.deep.contain({
+    expect(cli.process([`src1`, `src2`, `dest`])).toMatchObject({
       sources: [`src1`, `src2`],
       destination: `dest`,
       force: false,
       reflink: false,
     });
 
-    expect(cli.process([`src1`, `--force`, `src2`, `dest`])).to.deep.contain({
+    expect(cli.process([`src1`, `--force`, `src2`, `dest`])).toMatchObject({
       sources: [`src1`, `src2`],
       destination: `dest`,
       force: true,
       reflink: false,
     });
 
-    expect(cli.process([`src1`, `src2`, `--force`, `dest`])).to.deep.contain({
+    expect(cli.process([`src1`, `src2`, `--force`, `dest`])).toMatchObject({
       sources: [`src1`, `src2`],
       destination: `dest`,
       force: true,
       reflink: false,
     });
 
-    expect(cli.process([`src1`, `src2`, `--reflink`, `dest`])).to.deep.contain({
+    expect(cli.process([`src1`, `src2`, `--reflink`, `dest`])).toMatchObject({
       sources: [`src1`, `src2`],
       destination: `dest`,
       force: false,
       reflink: true,
     });
 
-    expect(cli.process([`src1`, `--reflink=always`, `src2`, `dest`])).to.deep.contain({
+    expect(cli.process([`src1`, `--reflink=always`, `src2`, `dest`])).toMatchObject({
       sources: [`src1`, `src2`],
       destination: `dest`,
       force: false,
       reflink: `always`,
     });
 
-    expect(() => cli.process([`dest`])).to.throw();
+    expect(() => cli.process([`dest`])).toThrow();
   });
 
   it(`should support proxies`, async () => {
@@ -1095,10 +1094,10 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([CopyCommand]);
 
-    expect(cli.process([])).to.deep.contain({args: []});
-    expect(cli.process([`foo`])).to.deep.contain({args: [`foo`]});
-    expect(cli.process([`foo`, `--bar`])).to.deep.contain({args: [`foo`, `--bar`]});
-    expect(cli.process([`foo`, `--bar`, `--baz=1`])).to.deep.contain({args: [`foo`, `--bar`, `--baz=1`]});
+    expect(cli.process([])).toMatchObject({args: []});
+    expect(cli.process([`foo`])).toMatchObject({args: [`foo`]});
+    expect(cli.process([`foo`, `--bar`])).toMatchObject({args: [`foo`, `--bar`]});
+    expect(cli.process([`foo`, `--bar`, `--baz=1`])).toMatchObject({args: [`foo`, `--bar`, `--baz=1`]});
   });
 
   it(`should support proxies with a minimum required length`, async () => {
@@ -1109,10 +1108,10 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([CopyCommand]);
 
-    expect(() => cli.process([])).to.throw();
-    expect(cli.process([`foo`])).to.deep.contain({args: [`foo`]});
-    expect(cli.process([`foo`, `--bar`])).to.deep.contain({args: [`foo`, `--bar`]});
-    expect(cli.process([`foo`, `--bar`, `--baz=1`])).to.deep.contain({args: [`foo`, `--bar`, `--baz=1`]});
+    expect(() => cli.process([])).toThrow();
+    expect(cli.process([`foo`])).toMatchObject({args: [`foo`]});
+    expect(cli.process([`foo`, `--bar`])).toMatchObject({args: [`foo`, `--bar`]});
+    expect(cli.process([`foo`, `--bar`, `--baz=1`])).toMatchObject({args: [`foo`, `--bar`, `--baz=1`]});
   });
 
   it(`should not allow negating options with arity 1 that already start with "--no-"`, async () => {
@@ -1123,10 +1122,10 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([FooCommand]);
 
-    expect(() => cli.process([`--no-redacted`])).not.to.throw();
-    expect(() => cli.process([`--redacted`])).to.throw(`Unsupported option name ("--redacted")`);
-    expect(() => cli.process([`--no-no-redacted`])).to.throw(`Unsupported option name ("--no-no-redacted")`);
-    expect(() => cli.process([`--no-no-no-redacted`])).to.throw(`Unsupported option name ("--no-no-no-redacted")`);
+    expect(() => cli.process([`--no-redacted`])).not.toThrow();
+    expect(() => cli.process([`--redacted`])).toThrow(`Unsupported option name ("--redacted")`);
+    expect(() => cli.process([`--no-no-redacted`])).toThrow(`Unsupported option name ("--no-no-redacted")`);
+    expect(() => cli.process([`--no-no-no-redacted`])).toThrow(`Unsupported option name ("--no-no-no-redacted")`);
   });
 
   it(`should extract required string options from complex options`, async () => {
@@ -1137,9 +1136,9 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([IncludeCommand]);
 
-    expect(() => cli.process([])).to.throw(`Command not found; did you mean:`);
-    expect(cli.process([`--foo`, `bar`])).to.deep.contain({foo: `bar`});
-    expect(cli.process([`--foo`, `bar`, `--foo`, `baz`])).to.deep.contain({foo: `baz`});
+    expect(() => cli.process([])).toThrow(`Command not found; did you mean:`);
+    expect(cli.process([`--foo`, `bar`])).toMatchObject({foo: `bar`});
+    expect(cli.process([`--foo`, `bar`, `--foo`, `baz`])).toMatchObject({foo: `baz`});
   });
 
   it(`should extract required array options from complex options`, async () => {
@@ -1150,9 +1149,9 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([IncludeCommand]);
 
-    expect(() => cli.process([])).to.throw(`Command not found; did you mean:`);
-    expect(cli.process([`--foo`, `bar`])).to.deep.contain({foo: [`bar`]});
-    expect(cli.process([`--foo`, `bar`, `--foo`, `baz`])).to.deep.contain({foo: [`bar`, `baz`]});
+    expect(() => cli.process([])).toThrow(`Command not found; did you mean:`);
+    expect(cli.process([`--foo`, `bar`])).toMatchObject({foo: [`bar`]});
+    expect(cli.process([`--foo`, `bar`, `--foo`, `baz`])).toMatchObject({foo: [`bar`, `baz`]});
   });
 
   it(`should extract required boolean options from complex options`, async () => {
@@ -1163,10 +1162,10 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([IncludeCommand]);
 
-    expect(() => cli.process([])).to.throw(`Command not found; did you mean:`);
-    expect(cli.process([`--foo`])).to.deep.contain({foo: true});
-    expect(cli.process([`--foo`, `--foo`])).to.deep.contain({foo: true});
-    expect(cli.process([`--no-foo`])).to.deep.contain({foo: false});
+    expect(() => cli.process([])).toThrow(`Command not found; did you mean:`);
+    expect(cli.process([`--foo`])).toMatchObject({foo: true});
+    expect(cli.process([`--foo`, `--foo`])).toMatchObject({foo: true});
+    expect(cli.process([`--no-foo`])).toMatchObject({foo: false});
   });
 
   it(`should extract required boolean options from complex options (multiple names)`, async () => {
@@ -1177,11 +1176,11 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([IncludeCommand]);
 
-    expect(() => cli.process([])).to.throw(`Command not found; did you mean:`);
-    expect(cli.process([`--foo`])).to.deep.contain({foo: true});
-    expect(cli.process([`-f`])).to.deep.contain({foo: true});
-    expect(cli.process([`--foo`, `-f`])).to.deep.contain({foo: true});
-    expect(cli.process([`--no-foo`])).to.deep.contain({foo: false});
+    expect(() => cli.process([])).toThrow(`Command not found; did you mean:`);
+    expect(cli.process([`--foo`])).toMatchObject({foo: true});
+    expect(cli.process([`-f`])).toMatchObject({foo: true});
+    expect(cli.process([`--foo`, `-f`])).toMatchObject({foo: true});
+    expect(cli.process([`--no-foo`])).toMatchObject({foo: false});
   });
 
   it(`should extract required counter options from complex options`, async () => {
@@ -1192,10 +1191,10 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([IncludeCommand]);
 
-    expect(() => cli.process([])).to.throw(`Command not found; did you mean:`);
-    expect(cli.process([`--foo`])).to.deep.contain({foo: 1});
-    expect(cli.process([`--foo`, `--foo`])).to.deep.contain({foo: 2});
-    expect(cli.process([`--no-foo`])).to.deep.contain({foo: 0});
+    expect(() => cli.process([])).toThrow(`Command not found; did you mean:`);
+    expect(cli.process([`--foo`])).toMatchObject({foo: 1});
+    expect(cli.process([`--foo`, `--foo`])).toMatchObject({foo: 2});
+    expect(cli.process([`--no-foo`])).toMatchObject({foo: 0});
   });
 
   it(`should disambiguate commands by required options`, async () => {
@@ -1222,10 +1221,10 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([RootCommand, FooCommand, BarCommand, FooBarCommand]);
 
-    expect(await runCli(cli, [])).to.equal(`Running RootCommand\n`);
-    expect(await runCli(cli, [`--foo`])).to.equal(`Running FooCommand\n`);
-    expect(await runCli(cli, [`--bar`])).to.equal(`Running BarCommand\n`);
-    expect(await runCli(cli, [`--foo`, `--bar`])).to.equal(`Running FooBarCommand\n`);
+    expect(await runCli(cli, [])).toEqual(`Running RootCommand\n`);
+    expect(await runCli(cli, [`--foo`])).toEqual(`Running FooCommand\n`);
+    expect(await runCli(cli, [`--bar`])).toEqual(`Running BarCommand\n`);
+    expect(await runCli(cli, [`--foo`, `--bar`])).toEqual(`Running FooBarCommand\n`);
   });
 
   it(`should disambiguate an inheriting command from the parent by required options`, async () => {
@@ -1244,10 +1243,10 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([FooCommand, FooBarCommand]);
 
-    await expect(runCli(cli, [])).to.be.rejectedWith(`Command not found; did you mean one of:`);
-    expect(await runCli(cli, [`--foo`])).to.equal(`Running FooCommand\n`);
-    await expect(runCli(cli, [`--bar`])).to.be.rejectedWith(`Command not found; did you mean:`);
-    expect(await runCli(cli, [`--foo`, `--bar`])).to.equal(`Running FooBarCommand\n`);
+    await expect(runCli(cli, [])).rejects.toThrow(`Command not found; did you mean one of:`);
+    expect(await runCli(cli, [`--foo`])).toEqual(`Running FooCommand\n`);
+    await expect(runCli(cli, [`--bar`])).rejects.toThrow(`Command not found; did you mean:`);
+    expect(await runCli(cli, [`--foo`, `--bar`])).toEqual(`Running FooBarCommand\n`);
   });
 
   it(`should support --help even for commands with required options`, async () => {
@@ -1264,7 +1263,7 @@ describe(`Advanced`, () => {
 
     cli.register(CommandA);
 
-    expect(await runCli(cli, [`foo`, `--help`])).to.equal(cli.usage(CommandA));
+    expect(await runCli(cli, [`foo`, `--help`])).toEqual(cli.usage(CommandA));
   });
 
   it(`should support --help even when used before other arguments`, async () => {
@@ -1280,7 +1279,7 @@ describe(`Advanced`, () => {
 
     cli.register(CommandA);
 
-    expect(await runCli(cli, [`foo`, `--help`, `--foo`])).to.equal(cli.usage(CommandA));
+    expect(await runCli(cli, [`foo`, `--help`, `--foo`])).toEqual(cli.usage(CommandA));
   });
 
   it(`should support --help even when used before required options`, async () => {
@@ -1296,7 +1295,7 @@ describe(`Advanced`, () => {
 
     cli.register(CommandA);
 
-    expect(await runCli(cli, [`foo`, `--help`, `--foo`])).to.equal(cli.usage(CommandA));
+    expect(await runCli(cli, [`foo`, `--help`, `--foo`])).toEqual(cli.usage(CommandA));
   });
 
   it(`should show the reason if the single branch errors`, async () => {
@@ -1310,7 +1309,7 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([BaseCommand]);
 
-    await expect(runCli(cli, [])).to.be.rejectedWith(`Not enough positional arguments.`);
+    await expect(runCli(cli, [])).rejects.toThrow(`Not enough positional arguments.`);
   });
 
   it(`should show the common reason if all branches error with the same reason`, async () => {
@@ -1328,7 +1327,7 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([BaseCommand, FooCommand]);
 
-    await expect(runCli(cli, [])).to.be.rejectedWith(`Not enough positional arguments.`);
+    await expect(runCli(cli, [])).rejects.toThrow(`Not enough positional arguments.`);
   });
 
   it(`should treat arity 0 as booleans`, async () => {
@@ -1342,8 +1341,8 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([PointCommand]);
 
-    expect(cli.process([`--point`])).to.deep.contain({point: true});
-    expect(cli.process([`--thing`, `--thing`, `--no-thing`, `--thing`])).to.deep.contain({thing: [true, true, false, true]});
+    expect(cli.process([`--point`])).toMatchObject({point: true});
+    expect(cli.process([`--thing`, `--thing`, `--no-thing`, `--thing`])).toMatchObject({thing: [true, true, false, true]});
   });
 
   it(`should validate the command when it has a schema`, async () => {
@@ -1361,10 +1360,10 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([FooCommand]);
 
-    await expect(runCli(cli, [`--foo`])).to.eventually.equal(``);
-    await expect(runCli(cli, [`--bar`])).to.eventually.equal(``);
+    await expect(runCli(cli, [`--foo`])).resolves.toEqual(``);
+    await expect(runCli(cli, [`--bar`])).resolves.toEqual(``);
 
-    await expect(runCli(cli, [`--foo`, `--bar`])).to.be.rejectedWith(`property "foo" forbids using property "bar"`);
+    await expect(runCli(cli, [`--foo`, `--bar`])).rejects.toThrow(`property "foo" forbids using property "bar"`);
   });
 
   it(`should coerce options when requested (strings)`, async () => {
@@ -1378,8 +1377,8 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([FooCommand]);
 
-    await expect(runCli(cli, [`--foo`, `42`])).to.eventually.equal(`Running FooCommand\n42\n`);
-    await expect(runCli(cli, [`--foo`, `ab`])).to.be.rejectedWith(`Invalid value for --foo: expected a number`);
+    await expect(runCli(cli, [`--foo`, `42`])).resolves.toEqual(`Running FooCommand\n42\n`);
+    await expect(runCli(cli, [`--foo`, `ab`])).rejects.toThrow(`Invalid value for --foo: expected a number`);
   });
 
   it(`should coerce options when requested (array)`, async () => {
@@ -1393,8 +1392,8 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([FooCommand]);
 
-    await expect(runCli(cli, [`--foo`, `42`, `--foo`, `21`])).to.eventually.equal(`Running FooCommand\n[42,21]\n`);
-    await expect(runCli(cli, [`--foo`, `test`])).to.be.rejectedWith(`Invalid value for --foo[0]: expected a number (got "test")`);
+    await expect(runCli(cli, [`--foo`, `42`, `--foo`, `21`])).resolves.toEqual(`Running FooCommand\n[42,21]\n`);
+    await expect(runCli(cli, [`--foo`, `test`])).rejects.toThrow(`Invalid value for --foo[0]: expected a number (got "test")`);
   });
 
   it(`should coerce options when requested (array of tuples)`, async () => {
@@ -1408,8 +1407,8 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([FooCommand]);
 
-    await expect(runCli(cli, [`--foo`, `42`, `true`, `--foo`, `21`, `false`])).to.eventually.equal(`Running FooCommand\n[[42,true],[21,false]]\n`);
-    await expect(runCli(cli, [`--foo`, `42`, `test`])).to.be.rejectedWith(`Invalid value for --foo[0][1]: expected a boolean (got "test")`);
+    await expect(runCli(cli, [`--foo`, `42`, `true`, `--foo`, `21`, `false`])).resolves.toEqual(`Running FooCommand\n[[42,true],[21,false]]\n`);
+    await expect(runCli(cli, [`--foo`, `42`, `test`])).rejects.toThrow(`Invalid value for --foo[0][1]: expected a boolean (got "test")`);
   });
 
   it(`should coerce positionals when requested`, async () => {
@@ -1423,8 +1422,8 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([FooCommand]);
 
-    await expect(runCli(cli, [`42`])).to.eventually.equal(`Running FooCommand\n42\n`);
-    await expect(runCli(cli, [`ab`])).to.be.rejectedWith(`Invalid value for foo: expected a number`);
+    await expect(runCli(cli, [`42`])).resolves.toEqual(`Running FooCommand\n42\n`);
+    await expect(runCli(cli, [`ab`])).rejects.toThrow(`Invalid value for foo: expected a number`);
   });
 
   it(`should skip coercion for booleans`, async () => {
@@ -1439,32 +1438,32 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([FooCommand]);
 
-    await expect(runCli(cli, [`--foo=42`])).to.eventually.equal(`Running FooCommand\n42\nfalse\n`);
-    await expect(runCli(cli, [`--foo`])).to.eventually.equal(`Running FooCommand\ntrue\nfalse\n`);
+    await expect(runCli(cli, [`--foo=42`])).resolves.toEqual(`Running FooCommand\n42\nfalse\n`);
+    await expect(runCli(cli, [`--foo`])).resolves.toEqual(`Running FooCommand\ntrue\nfalse\n`);
   });
 
   it(`should capture stdout if requested`, async () => {
     class FooCommand extends Command {
       async execute() {
-        console.log(`foo`);
+        process.stdout.write(`foo\n`);
       }
     }
 
     const cli = Cli.from([FooCommand], {enableCapture: true});
 
-    await expect(runCli(cli, [])).to.eventually.equal(`foo\n`);
+    await expect(runCli(cli, [])).resolves.toEqual(`foo\n`);
   });
 
   it(`should capture stderr if requested`, async () => {
     class FooCommand extends Command {
       async execute() {
-        console.error(`foo`);
+        process.stderr.write(`foo\n`);
       }
     }
 
     const cli = Cli.from([FooCommand], {enableCapture: true});
 
-    await expect(runCli(cli, [])).to.eventually.equal(`foo\n`);
+    await expect(runCli(cli, [])).resolves.toEqual(`foo\n`);
   });
 
   it(`shouldn't require the context if empty`, async () => {
@@ -1475,9 +1474,7 @@ describe(`Advanced`, () => {
 
     const cli = Cli.from([FooCommand]);
 
-    // This is a type-only test
-    // eslint-disable-next-line no-constant-condition
-    await expect(cli.run([])).to.eventually.be.fulfilled;
+    await expect(cli.run([])).resolves.toEqual(0);
   });
 
   it(`should require the context if custom`, async () => {
@@ -1502,7 +1499,7 @@ describe(`Advanced`, () => {
       cli.run([], {});
     }
 
-    await expect(cli.run([], {cwd: `/`})).to.eventually.equal(42);
-    await expect(cli.run([], {...Cli.defaultContext, cwd: `/`})).to.eventually.equal(42);
+    await expect(cli.run([], {cwd: `/`})).resolves.toEqual(42);
+    await expect(cli.run([], {...Cli.defaultContext, cwd: `/`})).resolves.toEqual(42);
   });
 });

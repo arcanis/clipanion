@@ -1,5 +1,4 @@
 import {Command, Option, run} from '../../sources/advanced';
-import {expect}               from '../expect';
 import {log, useContext}      from '../tools';
 
 class TestCommand extends Command {
@@ -69,7 +68,7 @@ describe(`Advanced`, () => {
                     process.stdout.write = stdoutWrite;
                     process.stderr.write = stderrWrite;
                   }
-                })).to.eventually.equal(expectation.join(``));
+                })).resolves.toEqual(expectation.join(``));
               });
             }
           }
