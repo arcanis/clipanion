@@ -1,6 +1,5 @@
 import {HELP_COMMAND_INDEX}                       from '../../sources/constants';
 import {CliBuilderCallback, CliBuilder, NoLimits} from '../../sources/core';
-import {expect}                                   from '../expect';
 
 const makeCli = (definitions: Array<CliBuilderCallback<{}>>) => {
   return CliBuilder.build<{}>(definitions.map(cb => {
@@ -18,7 +17,7 @@ describe(`Core`, () => {
     ]);
 
     const {selectedIndex} = cli.process([]);
-    expect(selectedIndex).to.equal(0);
+    expect(selectedIndex).toEqual(0);
   });
 
   it(`should select the default command when using mandatory positional arguments`, () => {
@@ -30,7 +29,7 @@ describe(`Core`, () => {
     ]);
 
     const {selectedIndex} = cli.process([`foo`, `bar`]);
-    expect(selectedIndex).to.equal(0);
+    expect(selectedIndex).toEqual(0);
   });
 
   it(`should select commands by their path`, () => {
@@ -44,10 +43,10 @@ describe(`Core`, () => {
     ]);
 
     const {selectedIndex: selectedIndex1} = cli.process([`foo`]);
-    expect(selectedIndex1).to.equal(0);
+    expect(selectedIndex1).toEqual(0);
 
     const {selectedIndex: selectedIndex2} = cli.process([`bar`]);
-    expect(selectedIndex2).to.equal(1);
+    expect(selectedIndex2).toEqual(1);
   });
 
   it(`should select commands by their mandatory positional arguments`, () => {
@@ -61,7 +60,7 @@ describe(`Core`, () => {
     ]);
 
     const {selectedIndex} = cli.process([`foo`]);
-    expect(selectedIndex).to.equal(1);
+    expect(selectedIndex).toEqual(1);
   });
 
   it(`should select commands by their simple options`, () => {
@@ -75,10 +74,10 @@ describe(`Core`, () => {
     ]);
 
     const {selectedIndex: selectedIndex1} = cli.process([`-x`]);
-    expect(selectedIndex1).to.equal(0);
+    expect(selectedIndex1).toEqual(0);
 
     const {selectedIndex: selectedIndex2} = cli.process([`-y`]);
-    expect(selectedIndex2).to.equal(1);
+    expect(selectedIndex2).toEqual(1);
   });
 
   it(`should allow options to precede the command paths`, () => {
@@ -94,10 +93,10 @@ describe(`Core`, () => {
     ]);
 
     const {selectedIndex: selectedIndex1} = cli.process([`-x`, `foo`]);
-    expect(selectedIndex1).to.equal(0);
+    expect(selectedIndex1).toEqual(0);
 
     const {selectedIndex: selectedIndex2} = cli.process([`-y`, `bar`]);
-    expect(selectedIndex2).to.equal(1);
+    expect(selectedIndex2).toEqual(1);
   });
 
   it(`should select commands by their complex values`, () => {
@@ -111,10 +110,10 @@ describe(`Core`, () => {
     ]);
 
     const {selectedIndex: selectedIndex1} = cli.process([`-x`, `foo`]);
-    expect(selectedIndex1).to.equal(0);
+    expect(selectedIndex1).toEqual(0);
 
     const {selectedIndex: selectedIndex2} = cli.process([`-y`, `bar`]);
-    expect(selectedIndex2).to.equal(1);
+    expect(selectedIndex2).toEqual(1);
   });
 
   it(`should prefer longer paths over mandatory arguments`, () => {
@@ -128,7 +127,7 @@ describe(`Core`, () => {
     ]);
 
     const {selectedIndex} = cli.process([`foo`]);
-    expect(selectedIndex).to.equal(0);
+    expect(selectedIndex).toEqual(0);
   });
 
   it(`should prefer longer paths over mandatory arguments (reversed)`, () => {
@@ -142,7 +141,7 @@ describe(`Core`, () => {
     ]);
 
     const {selectedIndex} = cli.process([`foo`]);
-    expect(selectedIndex).to.equal(1);
+    expect(selectedIndex).toEqual(1);
   });
 
   it(`should prefer longer paths over mandatory arguments (prefixed)`, () => {
@@ -157,7 +156,7 @@ describe(`Core`, () => {
     ]);
 
     const {selectedIndex} = cli.process([`prfx`, `foo`]);
-    expect(selectedIndex).to.equal(0);
+    expect(selectedIndex).toEqual(0);
   });
 
   it(`should prefer longer paths over optional arguments`, () => {
@@ -171,7 +170,7 @@ describe(`Core`, () => {
     ]);
 
     const {selectedIndex} = cli.process([`foo`]);
-    expect(selectedIndex).to.equal(0);
+    expect(selectedIndex).toEqual(0);
   });
 
   it(`should prefer longer paths over optional arguments (reversed)`, () => {
@@ -185,7 +184,7 @@ describe(`Core`, () => {
     ]);
 
     const {selectedIndex} = cli.process([`foo`]);
-    expect(selectedIndex).to.equal(1);
+    expect(selectedIndex).toEqual(1);
   });
 
   it(`should prefer longer paths over optional arguments (prefixed)`, () => {
@@ -200,7 +199,7 @@ describe(`Core`, () => {
     ]);
 
     const {selectedIndex} = cli.process([`prfx`, `foo`]);
-    expect(selectedIndex).to.equal(0);
+    expect(selectedIndex).toEqual(0);
   });
 
   it(`should prefer mandatory arguments over optional arguments`, () => {
@@ -214,7 +213,7 @@ describe(`Core`, () => {
     ]);
 
     const {selectedIndex} = cli.process([`foo`]);
-    expect(selectedIndex).to.equal(0);
+    expect(selectedIndex).toEqual(0);
   });
 
   it(`should prefer mandatory arguments over optional arguments (reversed)`, () => {
@@ -228,7 +227,7 @@ describe(`Core`, () => {
     ]);
 
     const {selectedIndex} = cli.process([`foo`]);
-    expect(selectedIndex).to.equal(1);
+    expect(selectedIndex).toEqual(1);
   });
 
   it(`should fallback from path to mandatory arguments if needed`, () => {
@@ -242,7 +241,7 @@ describe(`Core`, () => {
     ]);
 
     const {selectedIndex} = cli.process([`bar`]);
-    expect(selectedIndex).to.equal(1);
+    expect(selectedIndex).toEqual(1);
   });
 
   it(`should fallback from path to mandatory arguments if needed (reversed)`, () => {
@@ -256,7 +255,7 @@ describe(`Core`, () => {
     ]);
 
     const {selectedIndex} = cli.process([`bar`]);
-    expect(selectedIndex).to.equal(0);
+    expect(selectedIndex).toEqual(0);
   });
 
   it(`should fallback from path to mandatory arguments if needed (prefixed)`, () => {
@@ -271,7 +270,7 @@ describe(`Core`, () => {
     ]);
 
     const {selectedIndex} = cli.process([`prfx`, `bar`]);
-    expect(selectedIndex).to.equal(1);
+    expect(selectedIndex).toEqual(1);
   });
 
   it(`should fallback from path to optional arguments if needed`, () => {
@@ -285,7 +284,7 @@ describe(`Core`, () => {
     ]);
 
     const {selectedIndex} = cli.process([`bar`]);
-    expect(selectedIndex).to.equal(1);
+    expect(selectedIndex).toEqual(1);
   });
 
   it(`should fallback from path to optional arguments if needed (reversed)`, () => {
@@ -299,7 +298,7 @@ describe(`Core`, () => {
     ]);
 
     const {selectedIndex} = cli.process([`bar`]);
-    expect(selectedIndex).to.equal(0);
+    expect(selectedIndex).toEqual(0);
   });
 
   it(`should fallback from path to optional arguments if needed (prefixed)`, () => {
@@ -314,7 +313,7 @@ describe(`Core`, () => {
     ]);
 
     const {selectedIndex} = cli.process([`prfx`, `bar`]);
-    expect(selectedIndex).to.equal(1);
+    expect(selectedIndex).toEqual(1);
   });
 
   it(`should extract booleans from simple options`, () => {
@@ -325,7 +324,7 @@ describe(`Core`, () => {
     ]);
 
     const {options} = cli.process([`-x`]);
-    expect(options).to.deep.equal([
+    expect(options).toEqual([
       {name: `-x`, value: true},
     ]);
   });
@@ -339,7 +338,7 @@ describe(`Core`, () => {
     ]);
 
     const {options} = cli.process([`-xy`]);
-    expect(options).to.deep.equal([
+    expect(options).toEqual([
       {name: `-x`, value: true},
       {name: `-y`, value: true},
     ]);
@@ -353,7 +352,7 @@ describe(`Core`, () => {
     ]);
 
     const {options} = cli.process([`--no-foo`]);
-    expect(options).to.deep.equal([
+    expect(options).toEqual([
       {name: `--foo`, value: false},
     ]);
   });
@@ -366,7 +365,7 @@ describe(`Core`, () => {
     ]);
 
     const {options} = cli.process([`-x`, `foo`]);
-    expect(options).to.deep.equal([
+    expect(options).toEqual([
       {name: `-x`, value: `foo`},
     ]);
   });
@@ -379,7 +378,7 @@ describe(`Core`, () => {
     ]);
 
     const {options} = cli.process([`--foo=foo`]);
-    expect(options).to.deep.equal([
+    expect(options).toEqual([
       {name: `--foo`, value: `foo`},
     ]);
   });
@@ -392,7 +391,7 @@ describe(`Core`, () => {
     ]);
 
     const {options} = cli.process([`--foo`, `-`]);
-    expect(options).to.deep.equal([
+    expect(options).toEqual([
       {name: `--foo`, value: `-`},
     ]);
   });
@@ -405,7 +404,7 @@ describe(`Core`, () => {
     ]);
 
     const {options} = cli.process([`--foo`, `bar`, `--foo`, `baz`]);
-    expect(options).to.deep.equal([
+    expect(options).toEqual([
       {name: `--foo`, value: `bar`},
       {name: `--foo`, value: `baz`},
     ]);
@@ -419,7 +418,7 @@ describe(`Core`, () => {
     ]);
 
     const {options} = cli.process([`--foo=bar`, `--foo=baz`]);
-    expect(options).to.deep.equal([
+    expect(options).toEqual([
       {name: `--foo`, value: `bar`},
       {name: `--foo`, value: `baz`},
     ]);
@@ -433,7 +432,7 @@ describe(`Core`, () => {
     ]);
 
     const {options} = cli.process([`--foo`, `bar`, `--foo=baz`]);
-    expect(options).to.deep.equal([
+    expect(options).toEqual([
       {name: `--foo`, value: `bar`},
       {name: `--foo`, value: `baz`},
     ]);
@@ -447,7 +446,7 @@ describe(`Core`, () => {
     ]);
 
     const {positionals} = cli.process([`foo`, `bar`, `baz`]);
-    expect(positionals).to.deep.equal([
+    expect(positionals).toEqual([
       {value: `foo`, extra: NoLimits},
       {value: `bar`, extra: NoLimits},
       {value: `baz`, extra: NoLimits},
@@ -463,7 +462,7 @@ describe(`Core`, () => {
     ]);
 
     const {positionals} = cli.process([`src1`, `src2`, `src3`, `dest`]);
-    expect(positionals).to.deep.equal([
+    expect(positionals).toEqual([
       {value: `src1`, extra: NoLimits},
       {value: `src2`, extra: NoLimits},
       {value: `src3`, extra: NoLimits},
@@ -481,7 +480,7 @@ describe(`Core`, () => {
     ]);
 
     const {positionals} = cli.process([`foo`, `src1`, `src2`, `src3`, `dest`]);
-    expect(positionals).to.deep.equal([
+    expect(positionals).toEqual([
       {value: `foo`, extra: false},
       {value: `src1`, extra: NoLimits},
       {value: `src2`, extra: NoLimits},
@@ -501,12 +500,12 @@ describe(`Core`, () => {
 
     const {options, positionals} = cli.process([`src1`, `--foo`, `src2`, `--bar`, `baz`, `src3`]);
 
-    expect(options).to.deep.equal([
+    expect(options).toEqual([
       {name: `--foo`, value: true},
       {name: `--bar`, value: `baz`},
     ]);
 
-    expect(positionals).to.deep.equal([
+    expect(positionals).toEqual([
       {value: `src1`, extra: NoLimits},
       {value: `src2`, extra: NoLimits},
       {value: `src3`, extra: NoLimits},
@@ -524,10 +523,10 @@ describe(`Core`, () => {
 
     const {options, positionals} = cli.process([`foo`, `--`, `-x`]);
 
-    expect(options).to.deep.equal([
+    expect(options).toEqual([
     ]);
 
-    expect(positionals).to.deep.equal([
+    expect(positionals).toEqual([
       {value: `-x`, extra: true},
     ]);
   });
@@ -544,10 +543,10 @@ describe(`Core`, () => {
 
     const {options, positionals} = cli.process([`foo`, `foo`, `-x`]);
 
-    expect(options).to.deep.equal([
+    expect(options).toEqual([
     ]);
 
-    expect(positionals).to.deep.equal([
+    expect(positionals).toEqual([
       {value: `foo`, extra: false},
       {value: `-x`, extra: NoLimits},
     ]);
@@ -566,11 +565,11 @@ describe(`Core`, () => {
 
     const {options, positionals} = cli.process([`foo`, `pos1`, `-x`, `pos2`, `proxy`]);
 
-    expect(options).to.deep.equal([
+    expect(options).toEqual([
       {name: `-x`, value: true},
     ]);
 
-    expect(positionals).to.deep.equal([
+    expect(positionals).toEqual([
       {value: `pos1`, extra: false},
       {value: `pos2`, extra: false},
       {value: `proxy`, extra: NoLimits},
@@ -587,12 +586,12 @@ describe(`Core`, () => {
     ]);
 
     const {selectedIndex, options, positionals} = cli.process([`foo`, `-x`]);
-    expect(selectedIndex).to.equal(0);
+    expect(selectedIndex).toEqual(0);
 
-    expect(options).to.deep.equal([
+    expect(options).toEqual([
     ]);
 
-    expect(positionals).to.deep.equal([
+    expect(positionals).toEqual([
       {value: `-x`, extra: NoLimits},
     ]);
   });
@@ -609,7 +608,7 @@ describe(`Core`, () => {
     ]);
 
     const {selectedIndex} = cli.process([`foo`]);
-    expect(selectedIndex).to.equal(0);
+    expect(selectedIndex).toEqual(0);
   });
 
   it(`should aggregate the options as they are found`, () => {
@@ -625,7 +624,7 @@ describe(`Core`, () => {
     ]);
 
     const {options: options1} = cli.process([`-x`, `-u`, `foo`, `-y`, `-v`, `bar`, `-y`]);
-    expect(options1).to.deep.equal([
+    expect(options1).toEqual([
       {name: `-x`, value: true},
       {name: `-u`, value: `foo`},
       {name: `-y`, value: true},
@@ -634,7 +633,7 @@ describe(`Core`, () => {
     ]);
 
     const {options: options2} = cli.process([`-z`, `-y`, `-x`]);
-    expect(options2).to.deep.equal([
+    expect(options2).toEqual([
       {name: `-z`, value: true},
       {name: `-y`, value: true},
       {name: `-x`, value: true},
@@ -650,7 +649,7 @@ describe(`Core`, () => {
     ]);
 
     const {positionals} = cli.process([`foo`, `bar`]);
-    expect(positionals).to.deep.equal([
+    expect(positionals).toEqual([
       {value: `foo`, extra: false},
       {value: `bar`, extra: false},
     ]);
@@ -665,7 +664,7 @@ describe(`Core`, () => {
     ]);
 
     const {positionals} = cli.process([`foo`, `bar`]);
-    expect(positionals).to.deep.equal([
+    expect(positionals).toEqual([
       {value: `foo`, extra: true},
       {value: `bar`, extra: true},
     ]);
@@ -680,10 +679,10 @@ describe(`Core`, () => {
     ]);
 
     const {positionals: positionals1} = cli.process([]);
-    expect(positionals1).to.deep.equal([]);
+    expect(positionals1).toEqual([]);
 
     const {positionals: positionals2} = cli.process([`foo`]);
-    expect(positionals2).to.deep.equal([
+    expect(positionals2).toEqual([
       {value: `foo`, extra: true},
     ]);
   });
@@ -697,12 +696,12 @@ describe(`Core`, () => {
     ]);
 
     const {positionals: positionals1} = cli.process([`foo`]);
-    expect(positionals1).to.deep.equal([
+    expect(positionals1).toEqual([
       {value: `foo`, extra: false},
     ]);
 
     const {positionals: positionals2} = cli.process([`foo`, `bar`]);
-    expect(positionals2).to.deep.equal([
+    expect(positionals2).toEqual([
       {value: `foo`, extra: false},
       {value: `bar`, extra: true},
     ]);
@@ -716,7 +715,7 @@ describe(`Core`, () => {
     ]);
 
     const {positionals} = cli.process([`--foo`, `--bar`]);
-    expect(positionals).to.deep.equal([
+    expect(positionals).toEqual([
       {value: `--foo`, extra: NoLimits},
       {value: `--bar`, extra: NoLimits},
     ]);
@@ -731,7 +730,7 @@ describe(`Core`, () => {
 
     expect(() => {
       cli.process([`--foo`]);
-    }).to.throw(`Unsupported option name ("--foo")`);
+    }).toThrow(`Unsupported option name ("--foo")`);
   });
 
   it(`should throw acceptable errors when passing extraneous arguments`, () => {
@@ -743,7 +742,7 @@ describe(`Core`, () => {
 
     expect(() => {
       cli.process([`foo`]);
-    }).to.throw(`Extraneous positional argument ("foo")`);
+    }).toThrow(`Extraneous positional argument ("foo")`);
   });
 
   it(`should print the help when there's no argv on a CLI without default command`, () => {
@@ -754,7 +753,7 @@ describe(`Core`, () => {
     ]);
 
     const {selectedIndex} = cli.process([]);
-    expect(selectedIndex).to.equal(HELP_COMMAND_INDEX);
+    expect(selectedIndex).toEqual(HELP_COMMAND_INDEX);
   });
 
   it(`should throw acceptable errors when a command is incomplete (multiple choices)`, () => {
@@ -768,7 +767,7 @@ describe(`Core`, () => {
     ]);
 
     const {selectedIndex} = cli.process([]);
-    expect(selectedIndex).to.equal(HELP_COMMAND_INDEX);
+    expect(selectedIndex).toEqual(HELP_COMMAND_INDEX);
   });
 
   it(`should throw acceptable errors when using an incomplete path`, () => {
@@ -780,7 +779,7 @@ describe(`Core`, () => {
 
     expect(() => {
       cli.process([`foo`]);
-    }).to.throw(`Command not found; did you mean`);
+    }).toThrow(`Command not found; did you mean`);
   });
 
   it(`should throw acceptable errors when omitting mandatory positional arguments`, () => {
@@ -792,7 +791,7 @@ describe(`Core`, () => {
 
     expect(() => {
       cli.process([]);
-    }).to.throw(`Not enough positional arguments`);
+    }).toThrow(`Not enough positional arguments`);
   });
 
   it(`should throw acceptable errors when writing invalid arguments`, () => {
@@ -804,7 +803,7 @@ describe(`Core`, () => {
 
     expect(() => {
       cli.process([`-%#@$%#()@`]);
-    }).to.throw(`Invalid option name ("-%#@$%#()@")`);
+    }).toThrow(`Invalid option name ("-%#@$%#()@")`);
   });
 
   it(`should throw acceptable errors when writing bound boolean arguments`, () => {
@@ -816,6 +815,6 @@ describe(`Core`, () => {
 
     expect(() => {
       cli.process([`--foo=bar`]);
-    }).to.throw(`Invalid option name ("--foo=bar")`);
+    }).toThrow(`Invalid option name ("--foo=bar")`);
   });
 });
