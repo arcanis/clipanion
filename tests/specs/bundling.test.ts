@@ -1,7 +1,7 @@
-import {nodeResolve}              from '@rollup/plugin-node-resolve';
-import {execUtils}                from '@yarnpkg/core';
+import {nodeResolve}                     from '@rollup/plugin-node-resolve';
+import {execUtils}                       from '@yarnpkg/core';
 import {xfs, PortablePath, npath, ppath} from '@yarnpkg/fslib';
-import {rollup}                   from 'rollup';
+import {rollup}                          from 'rollup';
 
 const packPromise = xfs.mktempPromise().then(async packDir => {
   const packPath = ppath.join(packDir, `corepack.tgz`);
@@ -15,7 +15,7 @@ const packPromise = xfs.mktempPromise().then(async packDir => {
 });
 
 describe(`Tree shaking`, () => {
-  it(`should only keep the command Options used in the bundle`, async function () {
+  it(`should only keep the command Options used in the bundle`, async () => {
     await xfs.mktempPromise(async tempDir => {
       const packPath = await packPromise;
 
@@ -50,7 +50,7 @@ describe(`Tree shaking`, () => {
 });
 
 describe(`Browser support`, () => {
-  it(`should only keep the command Options used in the bundle`, async function () {
+  it(`should only keep the command Options used in the bundle`, async () => {
     await xfs.mktempPromise(async tempDir => {
       const packPath = await packPromise;
 

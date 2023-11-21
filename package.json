@@ -40,7 +40,7 @@
     "@yarnpkg/core": "^2.3.1",
     "@yarnpkg/eslint-config": "yarnpkg/berry#workspace=@yarnpkg/eslint-config",
     "@yarnpkg/fslib": "^3.0.1",
-    "eslint": "^7.16.0",
+    "eslint": "^8.54.0",
     "eslint-plugin-arca": "^0.10.0",
     "eslint-plugin-react": "^7.21.5",
     "get-stream": "^5.1.0",

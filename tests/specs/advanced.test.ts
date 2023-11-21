@@ -156,14 +156,14 @@ describe(`Advanced`, () => {
 
         class CommandA extends Command {
           static paths = [[`a`]];
-          static usage = {}
+          static usage = {};
 
           async execute() {}
         }
 
         class CommandA1 extends Command {
           static paths = [[`a`, `one`]];
-          static usage = {}
+          static usage = {};
 
           async execute() {}
         }
@@ -190,14 +190,14 @@ describe(`Advanced`, () => {
 
         class CommandA extends Command {
           static paths = [[`a`]];
-          static usage = {}
+          static usage = {};
 
           async execute() {}
         }
 
         class CommandA1 extends Command {
           static paths = [[`a`, `one`]];
-          static usage = {}
+          static usage = {};
 
           async execute() {}
         }
@@ -206,7 +206,7 @@ describe(`Advanced`, () => {
           static paths = [[`a`, `two`]];
           static usage = Command.Usage({
             description: `This one has a description`,
-          })
+          });
 
           async execute() {}
         }
@@ -1102,7 +1102,7 @@ describe(`Advanced`, () => {
 
   it(`should support proxies with a minimum required length`, async () => {
     class CopyCommand extends Command {
-      args = Option.Proxy({required: 1})
+      args = Option.Proxy({required: 1});
       async execute() {}
     }
 
@@ -1334,7 +1334,7 @@ describe(`Advanced`, () => {
     class PointCommand extends Command {
       point = Option.String(`--point`, {arity: 0});
 
-      thing = Option.Array(`--thing`, {arity: 0})
+      thing = Option.Array(`--thing`, {arity: 0});
 
       async execute() {}
     }
