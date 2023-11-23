@@ -330,7 +330,7 @@ async function resolveRunParameters(args: Array<any>) {
   if (typeof resolvedArgv === `undefined`)
     throw new Error(`The argv parameter must be provided when running Clipanion outside of a Node context`);
 
-  if (typeof resolvedCommandClasses === `function`)
+  if (typeof resolvedCommandClasses === `function` && !Command.isCommandClass(resolvedCommandClasses))
     resolvedCommandClasses = resolvedCommandClasses(resolvedArgv);
 
   resolvedCommandClasses = await resolvedCommandClasses;
