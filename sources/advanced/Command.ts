@@ -91,6 +91,19 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
   }
 
   /**
+   * Return all exported command definitions from a module exports object.
+   */
+  static extractFromModuleExports<Context extends BaseContext>(exports: any): Array<CommandClass<Context>> {
+    if (Command.isCommandClass<Context>(exports))
+      return [exports];
+
+    if (typeof exports === `object` && exports !== null)
+      return Object.values(exports).filter((val: unknown): val is CommandClass<Context> => Command.isCommandClass(exports));
+
+    return [];
+  }
+
+  /**
    * @deprecated Do not use this; prefer the static `paths` property instead.
    */
   paths?: undefined;
