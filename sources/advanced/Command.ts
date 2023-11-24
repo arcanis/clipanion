@@ -98,7 +98,7 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
       return [exports];
 
     if (typeof exports === `object` && exports !== null)
-      return Object.values(exports).filter((val: unknown): val is CommandClass<Context> => Command.isCommandClass(exports));
+      return Object.values(exports).filter((exportedValue: unknown): exportedValue is CommandClass<Context> => Command.isCommandClass(exportedValue));
 
     return [];
   }
