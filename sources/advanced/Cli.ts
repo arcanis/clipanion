@@ -413,11 +413,11 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
    * @param cwd The directory from which the commands will be loaded
    * @returns A function that will load the commands when called
    */
-  static lazyFileSystem<Context extends BaseContext = BaseContext>(opts: {cwd: string, pattern: string}) {
+  static lazyFileSystem<Context extends BaseContext = BaseContext>(opts: {cwd: string, pattern: string, fallback?: () => Promise<Array<CommandClass<Context>>>}) {
     return async (args: Array<string>) => {
       const commands = await platform.lazyFileSystem(args, opts);
 
-      return commands.flatMap((val: unknown): Array<CommandClass<Context>> => {
+      const flatCommands = commands.flatMap((val: unknown): Array<CommandClass<Context>> => {
         if (Command.isCommandClass<Context>(val))
           return [val];
 
@@ -426,6 +426,11 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
 
         return [];
       });
+
+      if (flatCommands.length === 0 && typeof opts.fallback !== `undefined`)
+        return await opts.fallback();
+
+      return flatCommands;
     };
   }
 
@@ -441,9 +446,14 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
    * @param tree The tree from which the commands will be loaded
    * @returns A function that will load the commands when called
    */
-  static lazyTree<Context extends BaseContext = BaseContext>(tree: LazyTree<CommandClass<Context>>) {
+  static lazyTree<Context extends BaseContext = BaseContext>(tree: LazyTree<CommandClass<Context>>, {fallback}: {fallback?: () => Promise<Array<CommandClass<Context>>>} = {}) {
     return async (args: Array<string>) => {
-      return lazyTree(args, tree);
+      const commands = await lazyTree(args, tree);
+
+      if (commands.length === 0 && typeof fallback !== `undefined`)
+        return await fallback();
+
+      return commands;
     };
   }
 
