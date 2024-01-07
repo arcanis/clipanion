@@ -4,7 +4,7 @@ import {HELP_COMMAND_INDEX}                                     from '../constan
 import {CliBuilder, CommandBuilder}                             from '../core';
 import {ErrorMeta}                                              from '../errors';
 import {formatMarkdownish, ColorFormat, richFormat, textFormat} from '../format';
-import * as platform                                            from '../platform';
+import * as platform                                            from '../platform/node';
 
 import {CommandClass, Command, Definition}                      from './Command';
 import {HelpCommand}                                            from './HelpCommand';
