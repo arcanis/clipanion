@@ -12,7 +12,7 @@
     "option",
     "command"
   ],
-  "version": "4.0.0-rc.2",
+  "version": "4.0.0-rc.3",
   "main": "sources/advanced/index.ts",
   "license": "MIT",
   "sideEffects": false,
