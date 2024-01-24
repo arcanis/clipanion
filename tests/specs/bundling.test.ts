@@ -74,7 +74,7 @@ describe(`Browser support`, () => {
 
       await rollup({
         input: npath.fromPortablePath(`${tempDir}/index.js`),
-        plugins: [nodeResolve({preferBuiltins: true})],
+        plugins: [nodeResolve({preferBuiltins: false})],
         onwarn: warning => warnings.push(warning),
       });
 
