@@ -1,5 +1,5 @@
-import {Readable, Writable}                                     from 'stream';
 import * as platform                                            from 'clipanion/platform';
+import {Readable, Writable}                                     from 'stream';
 
 import {HELP_COMMAND_INDEX}                                     from '../constants';
 import {CliBuilder, CommandBuilder}                             from '../core';

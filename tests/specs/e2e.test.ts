@@ -18,7 +18,7 @@ describe(`E2E`, () => {
       expect(added.code).toEqual(0);
 
       await xfs.writeFilePromise(`${tempDir}/index.cjs` as PortablePath,
-`const {Command, Option, runExit} = require('clipanion');
+        `const {Command, Option, runExit} = require('clipanion');
  
 runExit(class MainCommand extends Command {
   name = Option.String();
@@ -29,7 +29,7 @@ runExit(class MainCommand extends Command {
 })`,
       );
 
-      const result = await execUtils.execvp(`node`, [`${tempDir}/index.cjs`, 'World'], {cwd: tempDir});
+      const result = await execUtils.execvp(`node`, [`${tempDir}/index.cjs`, `World`], {cwd: tempDir});
       expect(result).toEqual({
         code: 0,
         stderr: ``,
@@ -54,7 +54,7 @@ runExit(class MainCommand extends Command {
       expect(added.code).toEqual(0);
 
       await xfs.writeFilePromise(`${tempDir}/index.mjs` as PortablePath,
-`import {Command, Option, runExit} from 'clipanion';
+        `import {Command, Option, runExit} from 'clipanion';
  
 runExit(class MainCommand extends Command {
   name = Option.String();
@@ -65,7 +65,7 @@ runExit(class MainCommand extends Command {
 })`,
       );
 
-      const result = await execUtils.execvp(`node`, [`${tempDir}/index.mjs`, 'World'], {cwd: tempDir});
+      const result = await execUtils.execvp(`node`, [`${tempDir}/index.mjs`, `World`], {cwd: tempDir});
       expect(result).toEqual({
         code: 0,
         stderr: ``,
@@ -93,9 +93,9 @@ runExit(class MainCommand extends Command {
 
       const tsconfig = {
         compilerOptions: {
-          target: 'esnext',
-          module: 'node16',
-          moduleResolution: 'node16',
+          target: `esnext`,
+          module: `node16`,
+          moduleResolution: `node16`,
           skipLibCheck: true,
           noEmit: true,
         },
@@ -103,7 +103,7 @@ runExit(class MainCommand extends Command {
       await xfs.writeFilePromise(`${tempDir}/tsconfig.json` as PortablePath, JSON.stringify(tsconfig, null, 2));
 
       await xfs.writeFilePromise(`${tempDir}/index.ts` as PortablePath,
-`import {Command, Option, runExit} from 'clipanion';
+        `import {Command, Option, runExit} from 'clipanion';
 import * as P from 'clipanion/platform';
 `,
       );
