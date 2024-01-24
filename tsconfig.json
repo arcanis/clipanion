@@ -7,7 +7,8 @@
       "DOM",
       "ES2018"
     ],
-    "module": "commonjs",
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "noEmit": true,
     "skipLibCheck": true,
     "strict": true,
