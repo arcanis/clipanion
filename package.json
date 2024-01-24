@@ -66,6 +66,26 @@
     "browser": {
       "./lib/platform/node.js": "./lib/platform/browser.js",
       "./lib/platform/node.mjs": "./lib/platform/browser.mjs"
+    },
+    "exports": {
+      ".": {
+        "types": "./lib/advanced/index.d.ts",
+        "require": "./lib/advanced/index.js",
+        "import": "./lib/advanced/index.mjs"
+      },
+      "./platform": {
+        "node": {
+          "types": "./lib/platform/node.d.ts",
+          "require": "./lib/platform/node.js",
+          "import": "./lib/platform/node.mjs"
+        },
+        "browser": {
+          "types": "./lib/platform/browser.d.ts",
+          "require": "./lib/platform/browser.js",
+          "import": "./lib/platform/browser.mjs"
+        }
+      },
+      "./package.json": "./package.json"
     }
   },
   "files": [
