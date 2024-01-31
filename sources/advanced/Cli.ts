@@ -4,8 +4,8 @@ import {HELP_COMMAND_INDEX}                                     from '../constan
 import {CliBuilder, CommandBuilder}                             from '../core';
 import {ErrorMeta}                                              from '../errors';
 import {formatMarkdownish, ColorFormat, richFormat, textFormat} from '../format';
-import {LazyTree, lazyTree}                                     from '../lazy';
-import * as platform                                            from '../platform';
+import {lazyTree, LazyTree}                                     from '../lazy';
+import * as platform                                            from '../platform/node';
 
 import {CommandClass, Command, Definition}                      from './Command';
 import {HelpCommand}                                            from './HelpCommand';
@@ -446,9 +446,9 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
    * @param tree The tree from which the commands will be loaded
    * @returns A function that will load the commands when called
    */
-  static lazyTree<Context extends BaseContext = BaseContext>(tree: LazyTree<CommandClass<Context>>, {fallback}: {fallback?: () => Promise<Array<CommandClass<Context>>>} = {}) {
+  static lazyTree<TNode, Context extends BaseContext = BaseContext>(tree: LazyTree<TNode>, {fallback, mapper}: {fallback?: () => Promise<Array<CommandClass<Context>>>, mapper: (value: TNode) => Promise<Array<CommandClass<Context>>>}) {
     return async (args: Array<string>) => {
-      const commands = await lazyTree(args, tree);
+      const commands = await lazyTree(args, tree, mapper);
 
       if (commands.length === 0 && typeof fallback !== `undefined`)
         return await fallback();

@@ -46,23 +46,22 @@ export async function lazyFactory<TContext, TRet>(args: Array<string>, factory: 
 }
 
 export type LazyTree<T> = {
-  [key: string]:
-  | (() => Promise<T>)
-  | LazyTree<T>
+  [key: string]: {
+    value?: T;
+    children?: LazyTree<T>;
+  };
 };
 
-export async function lazyTree<T>(args: Array<string>, tree: LazyTree<T>) {
+export async function lazyTree<T, TMap>(args: Array<string>, tree: LazyTree<T>, map: (val: T) => Promise<Array<TMap>>): Promise<Array<TMap>> {
   return lazyFactory(args, async (segment, ctx: LazyTree<T> = tree) => {
     if (!Object.prototype.hasOwnProperty.call(ctx, segment))
       return null;
 
-    const val = ctx[segment];
-    if (typeof val === `function`)
-      return {context: null, node: await val()};
+    const node = ctx[segment];
 
-    if (typeof val.default === `function`)
-      return {context: val, node: await val.default()};
-
-    return {context: val, node: null};
+    return {
+      context: node.children ?? null,
+      node: node.value != null ? await map(node.value) : null,
+    };
   });
 }

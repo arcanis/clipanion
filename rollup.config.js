@@ -1,6 +1,5 @@
 import ts         from '@rollup/plugin-typescript';
 import path       from 'path';
-import copy       from 'rollup-plugin-copy';
 import multiInput from 'rollup-plugin-multi-input';
 
 // Since we're using `multiInput`, the entries output path are already set.
@@ -26,7 +25,6 @@ export default {
   external: [
     `tty`,
     `typanion`,
-    `../platform`,
   ],
   plugins: [
     multiInput({
@@ -35,11 +33,6 @@ export default {
     ts({
       tsconfig: `tsconfig.dist.json`,
       include: `./sources/**/*`,
-    }),
-    copy({
-      targets: [
-        {src: `./sources/platform/package.json`, dest: `./lib/platform/`},
-      ],
     }),
   ],
 };
