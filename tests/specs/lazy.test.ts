@@ -4,7 +4,9 @@ describe(`Lazy commands`, () => {
   it(`should lazy-load commands based on the arguments`, async () => {
     const commands = await lazyTree([`foo`], {
       foo: {value: 1},
-    });
+    }, async val => [
+      val,
+    ]);
 
     expect(commands).toEqual([
       1,
