@@ -2,9 +2,7 @@ name: Pages
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
+  page_build:
 
 jobs:
   build:
@@ -17,7 +15,7 @@ jobs:
         run: cd website && curl https://raw.githubusercontent.com/arcanis/mael.dev-docs/main/install.sh | tee /dev/stderr | bash
 
       - name: Upload Artifact
-        uses: actions/upload-pages-artifact@v1
+        uses: actions/upload-pages-artifact@v3
         with:
           path: ./website/build
 
@@ -36,4 +34,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v2
+        uses: actions/deploy-pages@v4
