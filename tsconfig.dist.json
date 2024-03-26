@@ -5,7 +5,8 @@
     "rootDir": "sources",
     "outDir": "lib",
     "types": [
-      "node"
+      "node",
+      "rollup"
     ]
   },
   "include": [

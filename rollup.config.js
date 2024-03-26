@@ -32,7 +32,6 @@ export default {
     }),
     ts({
       tsconfig: `tsconfig.dist.json`,
-      include: `./sources/**/*`,
     }),
   ],
 };
