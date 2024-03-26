@@ -116,7 +116,33 @@ class MyCommand extends Command {
 
 While it works just fine, if you have a lot of commands that each have their own sets of dependencies (here `lodash`), the overall startup time may suffer. This is because the `import` statements will always be eagerly evaluated, even if the command doesn't end up being selected for execution.
 
-To solve this problem you can move your imports inside the body of the `execute` function - thus making sure they'll only be evaluated if actually relevant:
+Clipanion provides a solution via the experimental `Cli.lazyFileSystem` and `Cli.lazyTree` functions. The first one will dynamically load commands from the filesystem based on the arguments provided to the command:
+
+```ts twoslash
+import {Cli, runExit} from 'clipanion';
+// ---cut---
+runExit(Cli.lazyFileSystem({
+    cwd: `${__dirname}/commands`,
+    pattern: `{}.ts`,
+}));
+```
+
+Whereas the second one allows you to statically define the list of commands that can be loaded, but defer their evaluation until they are needed. This strategy is a little more complex to use as you need to maintain the command list yourself, but it doesn't depend on the filesystem and thus work .
+
+```ts
+import {Cli, runExit} from 'clipanion';
+// ---cut---
+runExit(Cli.lazyTree({
+    install: async () => import(`./commands/install`),
+    config: {
+        default: async () => import(`./commands/config`),
+        get: async () => import(`./commands/config/get`),
+        set: async () => import(`./commands/config/set`),
+    },
+}));
+```
+
+Another option is to move your imports inside the body of the `execute` function. This makes sure they'll only be evaluated if actually relevant:
 
 ```ts twoslash
 import {Command} from 'clipanion';
