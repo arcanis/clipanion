@@ -6,6 +6,7 @@ export {CommandClass, Usage, Definition} from './Command';
 export {Token} from '../core';
 export {UsageError, ErrorMeta, ErrorWithMeta} from '../errors';
 export {formatMarkdownish, ColorFormat} from '../format';
+export {LazyTree} from '../lazy';
 
 export {run, runExit} from './Cli';
 

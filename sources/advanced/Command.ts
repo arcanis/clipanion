@@ -84,6 +84,26 @@ export abstract class Command<Context extends BaseContext = BaseContext> {
   declare [`constructor`]: CommandClass<Context>;
 
   /**
+   * Return true if the given parameter is a command class.
+   */
+  static isCommandClass<Context extends BaseContext = BaseContext>(value: unknown): value is CommandClass<Context> {
+    return typeof value === `function` && typeof value.prototype === `object` && value.prototype instanceof Command;
+  }
+
+  /**
+   * Return all exported command definitions from a module exports object.
+   */
+  static extractFromModuleExports<Context extends BaseContext>(exports: any): Array<CommandClass<Context>> {
+    if (Command.isCommandClass<Context>(exports))
+      return [exports];
+
+    if (typeof exports === `object` && exports !== null)
+      return Object.values(exports).filter((exportedValue: unknown): exportedValue is CommandClass<Context> => Command.isCommandClass(exportedValue));
+
+    return [];
+  }
+
+  /**
    * @deprecated Do not use this; prefer the static `paths` property instead.
    */
   paths?: undefined;

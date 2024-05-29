@@ -4,6 +4,7 @@ import {HELP_COMMAND_INDEX}                                     from '../constan
 import {CliBuilder, CommandBuilder}                             from '../core';
 import {ErrorMeta}                                              from '../errors';
 import {formatMarkdownish, ColorFormat, richFormat, textFormat} from '../format';
+import {lazyTree, LazyTree}                                     from '../lazy';
 import * as platform                                            from '../platform/node';
 
 import {CommandClass, Command, Definition}                      from './Command';
@@ -75,11 +76,13 @@ export type RunContext<Context extends BaseContext = BaseContext> =
   & UserContext<Context>;
 
 export type RunCommand<Context extends BaseContext = BaseContext> =
+  | ((args: Array<string>) => RunCommand<Context>)
+  | Promise<CommandClass<Context> | Array<CommandClass<Context>>>
   | Array<CommandClass<Context>>
   | CommandClass<Context>;
 
 export type RunCommandNoContext<Context extends BaseContext = BaseContext> =
-  UserContextKeys<Context> extends never
+  [UserContextKeys<Context>] extends [never]
     ? RunCommand<Context>
     : never;
 
@@ -229,9 +232,10 @@ export async function runExit(...args: Array<any>) {
     resolvedCommandClasses,
     resolvedArgv,
     resolvedContext,
-  } = resolveRunParameters(args);
+  } = await resolveRunParameters(args);
 
   const cli = Cli.from(resolvedCommandClasses, resolvedOptions);
+
   return cli.runExit(resolvedArgv, resolvedContext);
 }
 
@@ -262,13 +266,13 @@ export async function run(...args: Array<any>) {
     resolvedCommandClasses,
     resolvedArgv,
     resolvedContext,
-  } = resolveRunParameters(args);
+  } = await resolveRunParameters(args);
 
   const cli = Cli.from(resolvedCommandClasses, resolvedOptions);
   return cli.run(resolvedArgv, resolvedContext);
 }
 
-function resolveRunParameters(args: Array<any>) {
+async function resolveRunParameters(args: Array<any>) {
   let resolvedOptions: any;
   let resolvedCommandClasses: any;
   let resolvedArgv: any;
@@ -277,13 +281,16 @@ function resolveRunParameters(args: Array<any>) {
   if (typeof process !== `undefined` && typeof process.argv !== `undefined`)
     resolvedArgv = process.argv.slice(2);
 
+  const isCommandArg = (arg: any) =>
+    arg && (Command.isCommandClass(arg) || Array.isArray(arg) || typeof arg === `function` || `then` in arg);
+
   switch (args.length) {
     case 1: {
       resolvedCommandClasses = args[0];
     } break;
 
     case 2: {
-      if (args[0] && (args[0].prototype instanceof Command) || Array.isArray(args[0])) {
+      if (isCommandArg(args[0])) {
         resolvedCommandClasses = args[0];
         if (Array.isArray(args[1])) {
           resolvedArgv = args[1];
@@ -301,7 +308,7 @@ function resolveRunParameters(args: Array<any>) {
         resolvedOptions = args[0];
         resolvedCommandClasses = args[1];
         resolvedArgv = args[2];
-      } else if (args[0] && (args[0].prototype instanceof Command) || Array.isArray(args[0])) {
+      } else if (isCommandArg(args[0])) {
         resolvedCommandClasses = args[0];
         resolvedArgv = args[1];
         resolvedContext = args[2];
@@ -322,6 +329,11 @@ function resolveRunParameters(args: Array<any>) {
 
   if (typeof resolvedArgv === `undefined`)
     throw new Error(`The argv parameter must be provided when running Clipanion outside of a Node context`);
+
+  if (typeof resolvedCommandClasses === `function` && !Command.isCommandClass(resolvedCommandClasses))
+    resolvedCommandClasses = resolvedCommandClasses(resolvedArgv);
+
+  resolvedCommandClasses = await resolvedCommandClasses;
 
   return {
     resolvedOptions,
@@ -369,7 +381,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
    * @param commandClasses The Commands to register
    * @returns The created `Cli` instance
    */
-  static from<Context extends BaseContext = BaseContext>(commandClasses: RunCommand<Context>, options: Partial<CliOptions> = {}) {
+  static from<Context extends BaseContext = BaseContext>(commandClasses: Exclude<RunCommand<Context>, Promise<any> | Function>, options: Partial<CliOptions> = {}) {
     const cli = new Cli<Context>(options);
 
     const resolvedCommandClasses = Array.isArray(commandClasses)
@@ -380,6 +392,69 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
       cli.register(commandClass);
 
     return cli;
+  }
+
+  /**
+   * Return a function that can lazily load commands from the filesystem.
+   *
+   * This function is intended to be used conjointly with `runExit`, to avoid
+   * loading ALL the commands from an application when you only need one.
+   *
+   * For this function to work, it's assumed that the provided directory
+   * structure has a 1:1 mapping to the command paths. For instance, if you
+   * have a command whose path is `foo bar`, it should be located at
+   * `<cwd>/foo/bar.ts`.
+   *
+   * Since `lazyFileSystem` relies on the filesystem, it won't work in runtimes
+   * that don't implement the Node.js `fs` module, or where the filesystem 1:1
+   * mapping doesn't apply (for example if you bundle your CLI). In those cases,
+   * you should use `lazyTree` instead.
+   *
+   * @param cwd The directory from which the commands will be loaded
+   * @returns A function that will load the commands when called
+   */
+  static lazyFileSystem<Context extends BaseContext = BaseContext>(opts: {cwd: string, pattern: string, fallback?: () => Promise<Array<CommandClass<Context>>>}) {
+    return async (args: Array<string>) => {
+      const commands = await platform.lazyFileSystem(args, opts);
+
+      const flatCommands = commands.flatMap((val: unknown): Array<CommandClass<Context>> => {
+        if (Command.isCommandClass<Context>(val))
+          return [val];
+
+        if (typeof val === `object` && val !== null)
+          return Object.values(val).filter((val: unknown) => Command.isCommandClass(val));
+
+        return [];
+      });
+
+      if (flatCommands.length === 0 && typeof opts.fallback !== `undefined`)
+        return await opts.fallback();
+
+      return flatCommands;
+    };
+  }
+
+  /**
+   * Return a function that can lazily load commands from the provided tree.
+   *
+   * This function is intended to be used conjointly with `runExit`, to avoid
+   * loading ALL the commands from an application when you only need one.
+   *
+   * Unlike `lazyFileSystem`, this function doesn't rely on the filesystem and
+   * can be used in any runtime. It's also suitable for CLI distributed bundled.
+   *
+   * @param tree The tree from which the commands will be loaded
+   * @returns A function that will load the commands when called
+   */
+  static lazyTree<TNode, Context extends BaseContext = BaseContext>(tree: LazyTree<TNode>, {fallback, mapper}: {fallback?: () => Promise<Array<CommandClass<Context>>>, mapper: (value: TNode) => Promise<Array<CommandClass<Context>>>}) {
+    return async (args: Array<string>) => {
+      const commands = await lazyTree(args, tree, mapper);
+
+      if (commands.length === 0 && typeof fallback !== `undefined`)
+        return await fallback();
+
+      return commands;
+    };
   }
 
   constructor({binaryLabel, binaryName: binaryNameOpt = `...`, binaryVersion, enableCapture = false, enableColors}: Partial<CliOptions> = {}) {
@@ -448,8 +523,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
         command.tokens = state.tokens;
 
         return command;
-      } break;
-
+      }
       default: {
         const {commandClass} = contexts[state.selectedIndex!];
 
@@ -471,8 +545,7 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
           error[errorCommandSymbol] = command;
           throw error;
         }
-      } break;
-    }
+      }    }
   }
 
   async run(input: Command<Context> | Array<string>, context: VoidIfEmpty<Omit<Context, keyof BaseContext>>): Promise<number>;
