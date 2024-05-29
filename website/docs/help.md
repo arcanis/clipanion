@@ -76,9 +76,9 @@ A second example
   $ my-app my-command --with-parameter
 ```
 
-## The `help` command
+## The `--help` flag
 
-The builtin `help` command prints the list of available commands. To add it, simply import and register it:
+The builtin `--help` flag prints the list of available commands. To add it, simply import and register it:
 
 ```ts
 import {Cli, Builtins} from "clipanion";
@@ -93,7 +93,7 @@ cli.register(Builtins.HelpCommand);
 ```
 
 ```
-$ my-app help
+$ my-app --help
 ```
 
 ```
