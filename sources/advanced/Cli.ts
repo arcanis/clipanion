@@ -545,7 +545,9 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
   async runExit(input: Command<Context> | Array<string>, context: VoidIfEmpty<Omit<Context, keyof BaseContext>>): Promise<void>;
   async runExit(input: Command<Context> | Array<string>, context: MakeOptional<Context, keyof BaseContext>): Promise<void>;
   async runExit(input: Command<Context> | Array<string>, context: any) {
-    process.exitCode = await this.run(input, context);
+    const result = await this.run(input, context);
+    const exitCode = typeof result === 'number' ? result : (result && result.code) || 1;
+    process.exitCode = exitCode;
   }
 
   definition(commandClass: CommandClass<Context>, {colored = false}: {colored?: boolean} = {}): Definition | null {
