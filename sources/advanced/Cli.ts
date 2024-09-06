@@ -83,115 +83,6 @@ export type RunCommandNoContext<Context extends BaseContext = BaseContext> =
     ? RunCommand<Context>
     : never;
 
-export type CliOptions = Readonly<{
-  /**
-   * The label of the binary.
-   *
-   * Shown at the top of the usage information.
-   */
-  binaryLabel?: string,
-
-  /**
-   * The name of the binary.
-   *
-   * Included in the path and the examples of the definitions.
-   */
-  binaryName: string,
-
-  /**
-   * The version of the binary.
-   *
-   * Shown at the top of the usage information.
-   */
-  binaryVersion?: string,
-
-  /**
-   * If `true`, the Cli will hook into the process standard streams to catch
-   * the output produced by console.log and redirect them into the context
-   * streams. Note: stdin isn't captured at the moment.
-   *
-   * @default
-   * false
-   */
-  enableCapture: boolean,
-
-  /**
-   * If `true`, the Cli will use colors in the output. If `false`, it won't.
-   * If `undefined`, Clipanion will infer the correct value from the env.
-   */
-  enableColors?: boolean,
-}>;
-
-export type MiniCli<Context extends BaseContext> = CliOptions & {
-  /**
-   * Returns an Array representing the definitions of all registered commands.
-   */
-  definitions(): Array<Definition>;
-
-  /**
-   * Get the definition of a particular command.
-   */
-  definition(command: CommandClass<Context>): Definition | null;
-
-  /**
-   * Formats errors using colors.
-   *
-   * @param error The error to format. If `error.name` is `'Error'`, it is replaced with `'Internal Error'`.
-   * @param opts.command The command whose usage will be included in the formatted error.
-   */
-  error(error: Error, opts?: {command?: Command<Context> | null}): string;
-
-  /**
-   * Returns a rich color format if colors are enabled, or a plain text format otherwise.
-   *
-   * @param colored Forcefully enable or disable colors.
-   */
-  format(colored?: boolean): ColorFormat;
-
-  /**
-   * Compiles a command and its arguments using the `CommandBuilder`.
-   *
-   * @param input An array containing the name of the command and its arguments
-   *
-   * @returns The compiled `Command`, with its properties populated with the arguments.
-   */
-  process(input: Array<string>, context?: Partial<Context>): Command<Context>;
-
-  /**
-   * Runs a command.
-   *
-   * @param input An array containing the name of the command and its arguments
-   * @param context Overrides the Context of the main `Cli` instance
-   *
-   * @returns The exit code of the command
-   */
-  run(input: Array<string>, context?: Partial<Context>): Promise<number>;
-
-  /**
-   * Returns the usage of a command.
-   *
-   * @param command The `Command` whose usage will be returned or `null` to return the usage of all commands.
-   * @param opts.detailed If `true`, the usage of a command will also include its description, details, and examples. Doesn't have any effect if `command` is `null` or doesn't have a `usage` property.
-   * @param opts.prefix The prefix displayed before each command. Defaults to `$`.
-   */
-  usage(command?: CommandClass<Context> | Command<Context> | null, opts?: {detailed?: boolean, prefix?: string}): string;
-};
-
-export type MandatoryContextKeys<Context extends BaseContext> = keyof MandatoryContext<Context>;
-
-export type MandatoryContext<Context extends BaseContext> = {
-  [K in Exclude<keyof Context, keyof BaseContext> as undefined extends Context[K] ? never : K]: Context[K];
-};
-
-export type UserProvidedContext<Context extends BaseContext> =
-  & MandatoryContext<Context>
-  & Partial<Omit<Context, MandatoryContextKeys<Context>>>;
-
-export type MaybeProvidedContext<Context extends BaseContext> =
-  MandatoryContextKeys<Context> extends never
-    ? {context?: UserProvidedContext<Context>}
-    : {context: UserProvidedContext<Context>};
-
 export type ProcessOptions<Context extends BaseContext> =
     & MaybeProvidedContext<Context>
     & {
@@ -784,6 +675,10 @@ export class Cli<Context extends BaseContext = BaseContext> implements Omit<Mini
     } else {
       if (error.stack) {
         result += `${error.stack.replace(/^.*\n/, ``)}\n`;
+      }
+      if (error.cause) {
+        result += `\nCaused by:\n`;
+        result += this.error(error.cause, {colored, command});
       }
     }
 
