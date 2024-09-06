@@ -95,5 +95,5 @@
   "files": [
     "lib"
   ],
-  "packageManager": "yarn@4.0.2"
+  "packageManager": "yarn@4.4.1"
 }
