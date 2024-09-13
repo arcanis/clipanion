@@ -130,7 +130,7 @@ describe(`Advanced`, () => {
         class CommandA extends Command {
           camelCase = Option.String(`--camelCase`);
           async execute() {
-            expect(this.camelCase).toBe("foo");
+            expect(this.camelCase).toBe(`foo`);
           }
         }
 
