@@ -123,6 +123,22 @@ describe(`Advanced`, () => {
         expect(await runCli(cli, [`--help`])).toEqual(cli.usage(null));
       });
 
+      it(`should support camelCase in parameter name`, async () => {
+        expect.assertions(1);
+        const cli = new Cli();
+
+        class CommandA extends Command {
+          camelCase = Option.String(`--camelCase`);
+          async execute() {
+            expect(this.camelCase).toBe("foo");
+          }
+        }
+
+        cli.register(CommandA);
+
+        await runCli(cli, [`--camelCase=foo`]);
+      });
+
       it(`should print the general help if there are documented named commands apart the default one`, async () => {
         const cli = new Cli();
         cli.register(Builtins.HelpCommand);
