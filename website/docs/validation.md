@@ -32,7 +32,7 @@ import {Command, Option} from 'clipanion';
 // ---cut---
 import * as t from 'typanion';
 
-const isPort = t.applyCascade(t.isNumber(), [
+const isPort = t.cascade(t.isNumber(), [
     t.isInteger(),
     t.isInInclusiveRange(1, 65535),
 ]);
