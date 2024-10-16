@@ -19,8 +19,9 @@ export function Boolean(descriptor: string, initialValueBase: BooleanFlags | boo
   const nameSet = new Set(optNames);
 
   return makeCommandOption({
-    definition(builder) {
+    definition(builder, key) {
       builder.addOption({
+        key,
         names: optNames,
 
         allowBinding: false,
@@ -29,10 +30,11 @@ export function Boolean(descriptor: string, initialValueBase: BooleanFlags | boo
         hidden: opts.hidden,
         description: opts.description,
         required: opts.required,
+        initialValue,
       });
     },
 
-    transformer(builer, key, state) {
+    transformer(builder, key, state) {
       let currentValue = initialValue;
 
       for (const {name, value} of state.options) {

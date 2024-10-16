@@ -693,6 +693,7 @@ export type ArityDefinition = {
 };
 
 export type OptDefinition = {
+  key: string;
   preferredName: string;
   nameSet: Array<string>;
   description?: string;
@@ -700,6 +701,7 @@ export type OptDefinition = {
   hidden: boolean;
   required: boolean;
   allowBinding: boolean;
+  initialValue: any;
 };
 
 export class CommandBuilder<Context> {
@@ -726,7 +728,7 @@ export class CommandBuilder<Context> {
     Object.assign(this.arity, {leading, trailing, extra, proxy});
   }
 
-  addPositional({name = `arg`, required = true}: {name?: string, required?: boolean} = {}) {
+  addPositional({name = `arg`, required = true}: {key: string, name?: string, required?: boolean}) {
     if (!required && this.arity.extra === NoLimits)
       throw new Error(`Optional parameters cannot be declared when using .rest() or .proxy()`);
     if (!required && this.arity.trailing.length > 0)
@@ -741,24 +743,24 @@ export class CommandBuilder<Context> {
     }
   }
 
-  addRest({name = `arg`, required = 0}: {name?: string, required?: number} = {}) {
+  addRest({key, name = `arg`, required = 0}: {key: string, name?: string, required?: number}) {
     if (this.arity.extra === NoLimits)
       throw new Error(`Infinite lists cannot be declared multiple times in the same command`);
     if (this.arity.trailing.length > 0)
       throw new Error(`Infinite lists cannot be declared after the required trailing positional arguments`);
 
     for (let t = 0; t < required; ++t)
-      this.addPositional({name});
+      this.addPositional({key, name});
 
     this.arity.extra = NoLimits;
   }
 
-  addProxy({required = 0}: {name?: string, required?: number} = {}) {
-    this.addRest({required});
+  addProxy({key, required = 0}: {key: string, name?: string, required?: number}) {
+    this.addRest({key, required});
     this.arity.proxy = true;
   }
 
-  addOption({names: nameSet, description, arity = 0, hidden = false, required = false, allowBinding = true}: Partial<OptDefinition> & {names: Array<string>}) {
+  addOption({key, names: nameSet, description, arity = 0, hidden = false, required = false, allowBinding = true, initialValue = undefined}: Partial<OptDefinition> & {key: string, names: Array<string>}) {
     if (!allowBinding && arity > 1)
       throw new Error(`The arity cannot be higher than 1 when the option only supports the --arg=value syntax`);
     if (!Number.isInteger(arity))
@@ -773,7 +775,16 @@ export class CommandBuilder<Context> {
     for (const name of nameSet)
       this.allOptionNames.set(name, preferredName);
 
-    this.options.push({preferredName, nameSet, description, arity, hidden, required, allowBinding});
+    let descriptionWithDefault: string | undefined = undefined;
+
+    if (description && initialValue !== undefined)
+      descriptionWithDefault = `${description} [default: ${initialValue}]`;
+    else if (description)
+      descriptionWithDefault = description;
+    else if (initialValue !== undefined)
+      descriptionWithDefault = `[default: ${initialValue}]`;
+
+    this.options.push({key, preferredName, nameSet, description: descriptionWithDefault, arity, hidden, required, allowBinding, initialValue});
   }
 
   setContext(context: Context) {
@@ -784,18 +795,20 @@ export class CommandBuilder<Context> {
     const segments = [this.cliOpts.binaryName];
 
     const detailedOptionList: Array<{
+      key: string;
       preferredName: string;
       nameSet: Array<string>;
       definition: string;
       description: string;
       required: boolean;
+      initialValue: any;
     }> = [];
 
     if (this.paths.length > 0)
       segments.push(...this.paths[0]);
 
     if (detailed) {
-      for (const {preferredName, nameSet, arity, hidden, description, required} of this.options) {
+      for (const {key, preferredName, nameSet, arity, hidden, description, required, initialValue} of this.options) {
         if (hidden)
           continue;
 
@@ -806,7 +819,7 @@ export class CommandBuilder<Context> {
         const definition = `${nameSet.join(`,`)}${args.join(``)}`;
 
         if (!inlineOptions && description) {
-          detailedOptionList.push({preferredName, nameSet, definition, description, required});
+          detailedOptionList.push({key, preferredName, nameSet, definition, description, required, initialValue});
         } else {
           segments.push(required ? `<${definition}>` : `[${definition}]`);
         }

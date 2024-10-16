@@ -24,6 +24,7 @@ export function Rest(opts: RestFlags = {}) {
   return makeCommandOption({
     definition(builder, key) {
       builder.addRest({
+        key,
         name: opts.name ?? key,
         required: opts.required,
       });

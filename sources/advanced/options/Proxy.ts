@@ -22,6 +22,7 @@ export function Proxy(opts: ProxyFlags = {}) {
   return makeCommandOption({
     definition(builder, key) {
       builder.addProxy({
+        key,
         name: opts.name ?? key,
         required: opts.required,
       });

@@ -42,8 +42,9 @@ function StringOption<T = string, Arity extends number = 1>(descriptor: string, 
   const nameSet = new Set(optNames);
 
   return makeCommandOption({
-    definition(builder) {
+    definition(builder, key) {
       builder.addOption({
+        key,
         names: optNames,
 
         arity: opts.tolerateBoolean ? 0 : arity,
@@ -51,6 +52,7 @@ function StringOption<T = string, Arity extends number = 1>(descriptor: string, 
         hidden: opts.hidden,
         description: opts.description,
         required: opts.required,
+        initialValue,
       });
     },
 
@@ -89,6 +91,7 @@ function StringPositional<T = string>(opts: StringPositionalFlags<T> = {}) {
   return makeCommandOption({
     definition(builder, key) {
       builder.addPositional({
+        key,
         name: opts.name ?? key,
         required: opts.required,
       });

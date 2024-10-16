@@ -23,8 +23,8 @@ describe(`Core`, () => {
   it(`should select the default command when using mandatory positional arguments`, () => {
     const cli = makeCli([
       b => {
-        b.addPositional();
-        b.addPositional();
+        b.addPositional({key: `x`});
+        b.addPositional({key: `y`});
       },
     ]);
 
@@ -55,7 +55,7 @@ describe(`Core`, () => {
         // Nothing to do
       },
       b => {
-        b.addPositional();
+        b.addPositional({key: `x`});
       },
     ]);
 
@@ -66,10 +66,10 @@ describe(`Core`, () => {
   it(`should select commands by their simple options`, () => {
     const cli = makeCli([
       b => {
-        b.addOption({names: [`-x`]});
+        b.addOption({key: `x`, names: [`-x`]});
       },
       b => {
-        b.addOption({names: [`-y`]});
+        b.addOption({key: `y`, names: [`-y`]});
       },
     ]);
 
@@ -84,11 +84,11 @@ describe(`Core`, () => {
     const cli = makeCli([
       b => {
         b.addPath([`foo`]);
-        b.addOption({names: [`-x`]});
+        b.addOption({key: `x`, names: [`-x`]});
       },
       b => {
         b.addPath([`bar`]);
-        b.addOption({names: [`-y`]});
+        b.addOption({key: `y`, names: [`-y`]});
       },
     ]);
 
@@ -102,10 +102,10 @@ describe(`Core`, () => {
   it(`should select commands by their complex values`, () => {
     const cli = makeCli([
       b => {
-        b.addOption({names: [`-x`], arity: 1});
+        b.addOption({key: `x`, names: [`-x`], arity: 1});
       },
       b => {
-        b.addOption({names: [`-y`], arity: 1});
+        b.addOption({key: `y`, names: [`-y`], arity: 1});
       },
     ]);
 
@@ -122,7 +122,7 @@ describe(`Core`, () => {
         b.addPath([`foo`]);
       },
       b => {
-        b.addPositional();
+        b.addPositional({key: `x`});
       },
     ]);
 
@@ -133,7 +133,7 @@ describe(`Core`, () => {
   it(`should prefer longer paths over mandatory arguments (reversed)`, () => {
     const cli = makeCli([
       b => {
-        b.addPositional();
+        b.addPositional({key: `x`});
       },
       b => {
         b.addPath([`foo`]);
@@ -151,7 +151,7 @@ describe(`Core`, () => {
       },
       b => {
         b.addPath([`prfx`]);
-        b.addPositional();
+        b.addPositional({key: `x`});
       },
     ]);
 
@@ -165,7 +165,7 @@ describe(`Core`, () => {
         b.addPath([`foo`]);
       },
       b => {
-        b.addPositional({required: false});
+        b.addPositional({key: `x`, required: false});
       },
     ]);
 
@@ -176,7 +176,7 @@ describe(`Core`, () => {
   it(`should prefer longer paths over optional arguments (reversed)`, () => {
     const cli = makeCli([
       b => {
-        b.addPositional({required: false});
+        b.addPositional({key: `x`, required: false});
       },
       b => {
         b.addPath([`foo`]);
@@ -194,7 +194,7 @@ describe(`Core`, () => {
       },
       b => {
         b.addPath([`prfx`]);
-        b.addPositional({required: false});
+        b.addPositional({key: `x`, required: false});
       },
     ]);
 
@@ -205,10 +205,10 @@ describe(`Core`, () => {
   it(`should prefer mandatory arguments over optional arguments`, () => {
     const cli = makeCli([
       b => {
-        b.addPositional();
+        b.addPositional({key: `x`});
       },
       b => {
-        b.addPositional({required: false});
+        b.addPositional({key: `y`, required: false});
       },
     ]);
 
@@ -219,10 +219,10 @@ describe(`Core`, () => {
   it(`should prefer mandatory arguments over optional arguments (reversed)`, () => {
     const cli = makeCli([
       b => {
-        b.addPositional({required: false});
+        b.addPositional({key: `x`, required: false});
       },
       b => {
-        b.addPositional();
+        b.addPositional({key: `x`});
       },
     ]);
 
@@ -236,7 +236,7 @@ describe(`Core`, () => {
         b.addPath([`foo`]);
       },
       b => {
-        b.addPositional();
+        b.addPositional({key: `x`});
       },
     ]);
 
@@ -247,7 +247,7 @@ describe(`Core`, () => {
   it(`should fallback from path to mandatory arguments if needed (reversed)`, () => {
     const cli = makeCli([
       b => {
-        b.addPositional();
+        b.addPositional({key: `x`});
       },
       b => {
         b.addPath([`foo`]);
@@ -265,7 +265,7 @@ describe(`Core`, () => {
       },
       b => {
         b.addPath([`prfx`]);
-        b.addPositional();
+        b.addPositional({key: `x`});
       },
     ]);
 
@@ -279,7 +279,7 @@ describe(`Core`, () => {
         b.addPath([`foo`]);
       },
       b => {
-        b.addPositional({required: false});
+        b.addPositional({key: `x`, required: false});
       },
     ]);
 
@@ -290,7 +290,7 @@ describe(`Core`, () => {
   it(`should fallback from path to optional arguments if needed (reversed)`, () => {
     const cli = makeCli([
       b => {
-        b.addPositional({required: false});
+        b.addPositional({key: `x`, required: false});
       },
       b => {
         b.addPath([`foo`]);
@@ -308,7 +308,7 @@ describe(`Core`, () => {
       },
       b => {
         b.addPath([`prfx`]);
-        b.addPositional();
+        b.addPositional({key: `x`});
       },
     ]);
 
@@ -319,7 +319,7 @@ describe(`Core`, () => {
   it(`should extract booleans from simple options`, () => {
     const cli = makeCli([
       b => {
-        b.addOption({names: [`-x`]});
+        b.addOption({key: `x`, names: [`-x`]});
       },
     ]);
 
@@ -332,8 +332,8 @@ describe(`Core`, () => {
   it(`should extract booleans from batch options`, () => {
     const cli = makeCli([
       b => {
-        b.addOption({names: [`-x`]});
-        b.addOption({names: [`-y`]});
+        b.addOption({key: `x`, names: [`-x`]});
+        b.addOption({key: `y`, names: [`-y`]});
       },
     ]);
 
@@ -347,7 +347,7 @@ describe(`Core`, () => {
   it(`should invert booleans when using --no-`, () => {
     const cli = makeCli([
       b => {
-        b.addOption({names: [`--foo`]});
+        b.addOption({key: `foo`, names: [`--foo`]});
       },
     ]);
 
@@ -360,7 +360,7 @@ describe(`Core`, () => {
   it(`should extract strings from complex options`, () => {
     const cli = makeCli([
       b => {
-        b.addOption({names: [`-x`], arity: 1});
+        b.addOption({key: `x`, names: [`-x`], arity: 1});
       },
     ]);
 
@@ -373,7 +373,7 @@ describe(`Core`, () => {
   it(`should extract strings from complex options (=)`, () => {
     const cli = makeCli([
       b => {
-        b.addOption({names: [`--foo`], arity: 1});
+        b.addOption({key: `foo`, names: [`--foo`], arity: 1});
       },
     ]);
 
@@ -386,7 +386,7 @@ describe(`Core`, () => {
   it(`shouldn't consider '-' as an option`, () => {
     const cli = makeCli([
       b => {
-        b.addOption({names: [`--foo`], arity: 1});
+        b.addOption({key: `foo`, names: [`--foo`], arity: 1});
       },
     ]);
 
@@ -399,7 +399,7 @@ describe(`Core`, () => {
   it(`should extract arrays from complex options`, () => {
     const cli = makeCli([
       b => {
-        b.addOption({names: [`--foo`], arity: 1});
+        b.addOption({key: `foo`, names: [`--foo`], arity: 1});
       },
     ]);
 
@@ -413,7 +413,7 @@ describe(`Core`, () => {
   it(`should extract arrays from complex options (=)`, () => {
     const cli = makeCli([
       b => {
-        b.addOption({names: [`--foo`], arity: 1});
+        b.addOption({key: `foo`, names: [`--foo`], arity: 1});
       },
     ]);
 
@@ -427,7 +427,7 @@ describe(`Core`, () => {
   it(`should extract arrays from complex options (mixed)`, () => {
     const cli = makeCli([
       b => {
-        b.addOption({names: [`--foo`], arity: 1});
+        b.addOption({key: `foo`, names: [`--foo`], arity: 1});
       },
     ]);
 
@@ -441,7 +441,7 @@ describe(`Core`, () => {
   it(`should support rest arguments`, () => {
     const cli = makeCli([
       b => {
-        b.addRest();
+        b.addRest({key: `x`});
       },
     ]);
 
@@ -456,8 +456,8 @@ describe(`Core`, () => {
   it(`should support rest arguments followed by mandatory arguments`, () => {
     const cli = makeCli([
       b => {
-        b.addRest();
-        b.addPositional();
+        b.addRest({key: `x`});
+        b.addPositional({key: `y`});
       },
     ]);
 
@@ -473,9 +473,9 @@ describe(`Core`, () => {
   it(`should support rest arguments between mandatory arguments`, () => {
     const cli = makeCli([
       b => {
-        b.addPositional();
-        b.addRest();
-        b.addPositional();
+        b.addPositional({key: `x`});
+        b.addRest({key: `y`});
+        b.addPositional({key: `z`});
       },
     ]);
 
@@ -492,9 +492,9 @@ describe(`Core`, () => {
   it(`should support option arguments in between rest arguments`, () => {
     const cli = makeCli([
       b => {
-        b.addOption({names: [`--foo`]});
-        b.addOption({names: [`--bar`], arity: 1});
-        b.addRest();
+        b.addOption({key: `foo`, names: [`--foo`]});
+        b.addOption({key: `bar`, names: [`--bar`], arity: 1});
+        b.addRest({key: `x`});
       },
     ]);
 
@@ -516,8 +516,8 @@ describe(`Core`, () => {
     const cli = makeCli([
       b => {
         b.addPath([`foo`]);
-        b.addOption({names: [`-x`]});
-        b.addPositional({required: false});
+        b.addOption({key: `x`, names: [`-x`]});
+        b.addPositional({key: `y`, required: false});
       },
     ]);
 
@@ -535,9 +535,9 @@ describe(`Core`, () => {
     const cli = makeCli([
       b => {
         b.addPath([`foo`]);
-        b.addOption({names: [`-x`]});
-        b.addPositional();
-        b.addProxy();
+        b.addOption({key: `x`, names: [`-x`]});
+        b.addPositional({key: `y`});
+        b.addProxy({key: `z`});
       },
     ]);
 
@@ -556,10 +556,10 @@ describe(`Core`, () => {
     const cli = makeCli([
       b => {
         b.addPath([`foo`]);
-        b.addOption({names: [`-x`]});
-        b.addPositional();
-        b.addPositional();
-        b.addProxy();
+        b.addOption({key: `x`, names: [`-x`]});
+        b.addPositional({key: `y`});
+        b.addPositional({key: `z`});
+        b.addProxy({key: `a`});
       },
     ]);
 
@@ -580,8 +580,8 @@ describe(`Core`, () => {
     const cli = makeCli([
       b => {
         b.addPath([`foo`]);
-        b.addOption({names: [`-x`]});
-        b.addProxy();
+        b.addOption({key: `x`, names: [`-x`]});
+        b.addProxy({key: `y`});
       },
     ]);
 
@@ -603,7 +603,7 @@ describe(`Core`, () => {
       },
       b => {
         b.addPath([`foo`]);
-        b.addProxy({required: 1});
+        b.addProxy({key: `x`, required: 1});
       },
     ]);
 
@@ -614,12 +614,12 @@ describe(`Core`, () => {
   it(`should aggregate the options as they are found`, () => {
     const cli = makeCli([
       b => {
-        b.addOption({names: [`-x`]});
-        b.addOption({names: [`-y`]});
-        b.addOption({names: [`-z`]});
-        b.addOption({names: [`-u`], arity: 1});
-        b.addOption({names: [`-v`], arity: 1});
-        b.addOption({names: [`-w`], arity: 1});
+        b.addOption({key: `x`, names: [`-x`]});
+        b.addOption({key: `y`, names: [`-y`]});
+        b.addOption({key: `z`, names: [`-z`]});
+        b.addOption({key: `u`,  names: [`-u`], arity: 1});
+        b.addOption({key: `v`, names: [`-v`], arity: 1});
+        b.addOption({key: `w`, names: [`-w`], arity: 1});
       },
     ]);
 
@@ -643,8 +643,8 @@ describe(`Core`, () => {
   it(`should aggregate the mandatory arguments`, () => {
     const cli = makeCli([
       b => {
-        b.addPositional();
-        b.addPositional();
+        b.addPositional({key: `x`});
+        b.addPositional({key: `y`});
       },
     ]);
 
@@ -658,8 +658,8 @@ describe(`Core`, () => {
   it(`should aggregate the optional arguments`, () => {
     const cli = makeCli([
       b => {
-        b.addPositional({required: false});
-        b.addPositional({required: false});
+        b.addPositional({key: `x`, required: false});
+        b.addPositional({key: `y`, required: false});
       },
     ]);
 
@@ -673,8 +673,8 @@ describe(`Core`, () => {
   it(`should accept as few optional arguments as possible`, () => {
     const cli = makeCli([
       b => {
-        b.addPositional({required: false});
-        b.addPositional({required: false});
+        b.addPositional({key: `x`, required: false});
+        b.addPositional({key: `y`, required: false});
       },
     ]);
 
@@ -690,8 +690,8 @@ describe(`Core`, () => {
   it(`should accept a mix of mandatory and optional arguments`, () => {
     const cli = makeCli([
       b => {
-        b.addPositional();
-        b.addPositional({required: false});
+        b.addPositional({key: `x`});
+        b.addPositional({key: `y`, required: false});
       },
     ]);
 
@@ -710,7 +710,7 @@ describe(`Core`, () => {
   it(`should accept any option as positional argument when proxies are enabled`, () => {
     const cli = makeCli([
       b => {
-        b.addProxy();
+        b.addProxy({key: `x`});
       },
     ]);
 
@@ -785,7 +785,7 @@ describe(`Core`, () => {
   it(`should throw acceptable errors when omitting mandatory positional arguments`, () => {
     const cli = makeCli([
       b => {
-        b.addPositional();
+        b.addPositional({key: `x`});
       },
     ]);
 
@@ -809,7 +809,7 @@ describe(`Core`, () => {
   it(`should throw acceptable errors when writing bound boolean arguments`, () => {
     const cli = makeCli([
       b => {
-        b.addOption({names: [`--foo`], allowBinding: false});
+        b.addOption({key: `foo`, names: [`--foo`], allowBinding: false});
       },
     ]);
 

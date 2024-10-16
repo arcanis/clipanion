@@ -26,8 +26,9 @@ export function Array<T = string, Arity extends number = 1>(descriptor: string, 
   const nameSet = new Set(optNames);
 
   return makeCommandOption({
-    definition(builder) {
+    definition(builder, key) {
       builder.addOption({
+        key,
         names: optNames,
 
         arity,
@@ -35,6 +36,7 @@ export function Array<T = string, Arity extends number = 1>(descriptor: string, 
         hidden: opts?.hidden,
         description: opts?.description,
         required: opts.required,
+        initialValue,
       });
     },
 

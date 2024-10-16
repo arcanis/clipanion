@@ -20,8 +20,9 @@ export function Counter(descriptor: string, initialValueBase: CounterFlags | num
   const nameSet = new Set(optNames);
 
   return makeCommandOption({
-    definition(builder) {
+    definition(builder, key) {
       builder.addOption({
+        key,
         names: optNames,
 
         allowBinding: false,
@@ -30,6 +31,7 @@ export function Counter(descriptor: string, initialValueBase: CounterFlags | num
         hidden: opts.hidden,
         description: opts.description,
         required: opts.required,
+        initialValue,
       });
     },
 

@@ -788,6 +788,26 @@ describe(`Advanced`, () => {
     expect(cli.usage(CommandA, {detailed: true})).toMatch(/\u001b\[1m\$ \u001b\[22m\.\.\. greet \[--message #0\]\n\n\u001b\[1m━━━ Options .*\n\n +\S*--verbose *\S* +Log output\n +\S*--output #0 *\S* +The output directory\n/);
   });
 
+
+  it(`should print flags with a description and/or initialValue separately`, async () => {
+    class CommandA extends Command {
+      verbose = Option.Boolean(`--verbose`, {description: `Log output`});
+      output = Option.String(`--output`, {description: `The output directory`});
+      message = Option.String(`--message`, `Hello world`);
+      recipient = Option.String(`--recipient`, `Bob`, {description: `The greeting's recipient`});
+
+      static paths = [[`greet`]];
+      async execute() {
+        throw new Error(`not implemented, just testing usage()`);
+      }
+    }
+
+    const cli = Cli.from([CommandA]);
+
+    // eslint-disable-next-line no-control-regex
+    expect(cli.usage(CommandA, {detailed: true})).toMatch(/\u001b\[1m\$ \u001b\[22m\.\.\. greet\n\n\u001b\[1m━━━ Options .*\n\n +\S*--verbose *\S* +Log output\n +\S*--output #0 *\S* +The output directory\n +\S*--message #0 *\S* +\[default: Hello world\]\n +\S*--recipient #0 *\S* +The greeting's recipient \[default: Bob\]\n/);
+  });
+
   it(`should support tuples`, async () => {
     class PointCommand extends Command {
       point = Option.String(`--point`, {arity: 3});
