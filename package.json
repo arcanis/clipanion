@@ -24,6 +24,9 @@
     "url": "https://github.com/arcanis/clipanion",
     "type": "git"
   },
+  "bugs": {
+    "url": "https://github.com/arcanis/clipanion/issues"
+  },
   "workspaces": [
     "website"
   ],
